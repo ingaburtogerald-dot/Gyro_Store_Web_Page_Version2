@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+frontend/node_modules/
+
+# Build
+frontend/build/
+frontend/.cache/
+frontend/public/build/
+
+# Entorno y secretos
+.env
+.env.local
+serviceAccountKey.json
+server/serviceAccountKey.json
+*.pem
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
