@@ -4,6 +4,7 @@ import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { SALE_STATUS_META } from "./saleStatus";
 import { DataTable } from "~/components/ui/DataTable";
+import { AdminSaleCard } from "./AdminSaleCard";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
 import { SaleEditor } from "./SaleEditor";
@@ -292,6 +293,7 @@ export function AdminSalesHistory({
         }}
         allSelected={finalSales.length > 0 && selectedSales.size === finalSales.length}
         initialSorting={[{ id: "createdAt", desc: false }]}
+        mobileCard={(s) => <AdminSaleCard sale={s} />}
       />
 
       {deleteFor && (

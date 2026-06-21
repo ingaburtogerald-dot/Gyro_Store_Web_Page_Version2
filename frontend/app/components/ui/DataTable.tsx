@@ -1,6 +1,6 @@
 // Tabla de datos genérica sobre TanStack Table v8: ordenable, con búsqueda
 // global y paginación. Se reutiliza en todos los portales del admin.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -30,6 +30,8 @@ interface DataTableProps<T> {
   hideSearch?: boolean;
   globalFilterValue?: string;
   onGlobalFilterChange?: (value: string) => void;
+  // Si se provee, en móvil se renderiza cada fila como tarjeta (la tabla queda solo en desktop).
+  mobileCard?: (row: T) => ReactNode;
 }
 
 export function DataTable<T>({
@@ -48,6 +50,7 @@ export function DataTable<T>({
   hideSearch = false,
   globalFilterValue,
   onGlobalFilterChange,
+  mobileCard,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [internalGlobalFilter, setInternalGlobalFilter] = useState("");
@@ -85,7 +88,8 @@ export function DataTable<T>({
       {isLoading ? (
         <TableSkeleton rows={6} cols={onRowClick ? columns.length + 1 : columns.length} />
       ) : (
-      <div className="overflow-auto max-h-[75vh] rounded-card border border-border bg-surface relative">
+      <>
+      <div className={`overflow-auto max-h-[75vh] rounded-card border border-border bg-surface relative${mobileCard ? " hidden md:block" : ""}`}>
         <table className="w-full text-sm">
           <thead className="table-header-brand text-left sticky top-0 z-20 shadow-sm">
             {table.getHeaderGroups().map((hg) => (
@@ -186,6 +190,29 @@ export function DataTable<T>({
           )}
         </table>
       </div>
+      {mobileCard && (
+        <div className="space-y-3 md:hidden">
+          {table.getRowModel().rows.length === 0 ? (
+            <p className="rounded-card border border-border bg-surface py-8 text-center text-muted">{emptyText}</p>
+          ) : (
+            table.getRowModel().rows.map((row) => {
+              const rowId = (row.original as any).id;
+              const isSelected =
+                (selectedRowIds && selectedRowIds.has(rowId)) || (selectedRowId && rowId === selectedRowId);
+              return (
+                <div
+                  key={row.id}
+                  onClick={() => onRowClick?.(row.original)}
+                  className={`${onRowClick ? "cursor-pointer " : ""}${isSelected ? "rounded-card ring-2 ring-accent-2" : ""}`}
+                >
+                  {mobileCard(row.original)}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+      </>
       )}
 
       {table.getPageCount() > 1 && (

@@ -1,31 +1,47 @@
-// Portal del vendedor: inventario disponible, próximamente, cotizador/registro de venta e historial de comisiones.
+// Portal del vendedor (mobile-first): estado de su dinero arriba, KPIs, y sus ventas /
+// pagos en tarjetas (no tablas). Solo ve datos propios y no confidenciales.
 import { useMemo, useState, useEffect } from "react";
-import { type ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2, Coins, Clock, ShoppingBag, Plus, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Coins, Clock, ShoppingBag, Plus, ArrowLeft, Wallet } from "lucide-react";
 import { SaleEditor } from "./SaleEditor";
 import { AvailableInventory } from "./AvailableInventory";
 import { IncomingInventory } from "./IncomingInventory";
-import { SALE_STATUS_META } from "./saleStatus";
+import { SaleCard } from "./SaleCard";
+import { PaymentCard } from "./PaymentCard";
 import { StatCard } from "~/components/ui/StatCard";
-import { DataTable } from "~/components/ui/DataTable";
-import { useGetSalesPaginatedQuery, useGetSellerSummaryQuery, type Sale } from "~/store/api/salesApi";
+import {
+  useGetSalesPaginatedQuery,
+  useGetMyBalanceQuery,
+  useGetMyPaymentsQuery,
+  type Sale,
+  type SaleStatus,
+} from "~/store/api/salesApi";
 import { formatCordobas, usdFromCordobas, cn } from "~/lib/utils";
 
-type Tab = "available" | "incoming" | "new" | "history";
+type Tab = "ventas" | "pagos" | "available" | "incoming" | "new";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "available", label: "Inventario Disponible" },
+  { id: "ventas", label: "Mis Ventas" },
+  { id: "pagos", label: "Pagos" },
+  { id: "available", label: "Inventario" },
   { id: "incoming", label: "Próximamente" },
-  { id: "history", label: "Historial" },
+];
+
+type StatusFilter = "all" | SaleStatus;
+const STATUS_CHIPS: { id: StatusFilter; label: string }[] = [
+  { id: "all", label: "Todas" },
+  { id: "pending_approval", label: "Pendientes" },
+  { id: "approved", label: "Aprobadas" },
+  { id: "paid", label: "Pagadas" },
+  { id: "rejected", label: "Rechazadas" },
 ];
 
 export function SellerSales() {
-  const [tab, setTab] = useState<Tab>("available");
+  const [tab, setTab] = useState<Tab>("ventas");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
-
   const [page, setPage] = useState(1);
 
   const { data: salesData, isLoading: loadingSales } = useGetSalesPaginatedQuery({
@@ -33,6 +49,8 @@ export function SellerSales() {
     limit: 50,
     date: selectedMonth,
   });
+  const { data: balance } = useGetMyBalanceQuery();
+  const { data: payments = [], isLoading: loadingPayments } = useGetMyPaymentsQuery();
 
   const sales = salesData?.data ?? [];
 
@@ -40,57 +58,31 @@ export function SellerSales() {
     setPage(1);
   }, [selectedMonth]);
 
-  const columns = useMemo<ColumnDef<Sale, any>[]>(
-    () => [
-      {
-        accessorKey: "createdAt",
-        header: "Fecha",
-        cell: (c) => (c.getValue() ? new Date(c.getValue()).toLocaleDateString("es-NI") : "—"),
-      },
-      { accessorFn: (s) => s.items.map((i) => i.name).join(", "), id: "products", header: "Productos" },
-      { accessorKey: "items", header: "Cant.", cell: (c) => {
-        const items = c.getValue() as Sale["items"];
-        return items.reduce((sum, item) => sum + item.quantity, 0);
-      }},
-      { accessorKey: "saleTotal", header: "Precio venta", cell: (c) => formatCordobas(c.getValue()) },
-      {
-        accessorKey: "comisionVendedor",
-        header: "Mi comisión",
-        cell: (c) => (c.getValue() ? formatCordobas(c.getValue()) : "—"),
-      },
-      {
-        accessorKey: "status",
-        header: "Estado",
-        cell: (c) => {
-          const m = SALE_STATUS_META[c.getValue() as Sale["status"]];
-          return <span className={`rounded-pill px-2.5 py-1 text-xs font-semibold ${m.cls}`}>{m.label}</span>;
-        },
-      },
-    ],
-    [],
+  const filteredSales = useMemo(
+    () => (statusFilter === "all" ? sales : sales.filter((s: Sale) => s.status === statusFilter)),
+    [sales, statusFilter],
   );
 
-  const filteredSales = sales;
+  const summary = {
+    ventasAprobadas: salesData?.summary?.ventasAprobadas ?? 0,
+    totalVendido: salesData?.summary?.totalVendido ?? 0,
+    comisionGanada: salesData?.summary?.comisiones ?? 0,
+    enRevision: salesData?.summary?.enRevision ?? 0,
+  };
 
-  const dynamicSummary = useMemo(() => {
-    return {
-      ventasAprobadas: salesData?.summary?.ventasAprobadas ?? 0,
-      totalVendido: salesData?.summary?.totalVendido ?? 0,
-      comisionGanada: salesData?.summary?.comisiones ?? 0,
-      enRevision: salesData?.summary?.enRevision ?? 0,
-    };
-  }, [salesData]);
+  const saldo = balance?.saldo ?? 0;
 
   return (
     <div className="space-y-6">
+      {/* Encabezado */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Portal de Ventas</h1>
-          <p className="text-muted">Gestiona tus ventas, cotizaciones e inventario disponible.</p>
+          <p className="text-muted">Gestiona tus ventas, comisiones e inventario.</p>
         </div>
         {tab === "new" ? (
           <button
-            onClick={() => setTab("available")}
+            onClick={() => setTab("ventas")}
             className="inline-flex items-center gap-2 rounded-pill border border-border bg-surface px-4 py-2 text-sm font-medium text-muted transition-colors hover:text-text"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -107,105 +99,145 @@ export function SellerSales() {
         )}
       </div>
 
-      {/* KPIs y Filtro de Mes - Visibles arriba de los tabs, excepto al registrar venta */}
       {tab !== "new" && (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <label className="block w-full sm:w-48">
-              <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
-              <input
-                type="month"
-                className="input"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
+        <>
+          {/* Tarjeta protagonista: el dinero */}
+          <div className="rounded-card border border-whatsapp/30 bg-whatsapp/5 p-5">
+            <span className="flex items-center gap-1.5 text-sm text-muted">
+              <Wallet className="h-4 w-4 text-whatsapp" /> Comisión por cobrar
+            </span>
+            <p className="mt-1 text-4xl font-bold text-whatsapp">{formatCordobas(balance?.comisionPorCobrar ?? 0)}</p>
+            <p className="text-xs text-muted">
+              de {balance?.ventasPorCobrar ?? 0} venta{(balance?.ventasPorCobrar ?? 0) === 1 ? "" : "s"} aprobada
+              {(balance?.ventasPorCobrar ?? 0) === 1 ? "" : "s"}
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-border bg-surface p-3">
+                <span className="block text-xs text-muted">
+                  {saldo > 0 ? "Saldo a favor" : saldo < 0 ? "Saldo en contra" : "Saldo"}
+                </span>
+                <p className={cn("font-bold", saldo > 0 ? "text-emerald-400" : saldo < 0 ? "text-red-400" : "text-text")}>
+                  {formatCordobas(Math.abs(saldo))}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-surface p-3">
+                <span className="block text-xs text-muted">Próximo pago estimado</span>
+                <p className="font-bold text-text">{formatCordobas(balance?.proximoPago ?? 0)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* KPIs del mes + filtro */}
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <label className="block w-full sm:w-48">
+                <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
+                <input
+                  type="month"
+                  className="input"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatCard icon={CheckCircle2} label="Ventas aprobadas" countTo={summary.ventasAprobadas} delay={0} />
+              <StatCard
+                icon={ShoppingBag}
+                label="Total vendido"
+                countTo={summary.totalVendido}
+                format={formatCordobas}
+                sub={usdFromCordobas(summary.totalVendido)}
+                delay={0.05}
               />
-            </label>
+              <StatCard
+                icon={Coins}
+                label="Comisión ganada"
+                countTo={summary.comisionGanada}
+                format={formatCordobas}
+                sub={usdFromCordobas(summary.comisionGanada)}
+                color="emerald"
+                delay={0.1}
+              />
+              <StatCard icon={Clock} label="En revisión" countTo={summary.enRevision} color="amber" delay={0.15} />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatCard
-              icon={CheckCircle2}
-              label="Ventas aprobadas"
-              countTo={dynamicSummary.ventasAprobadas}
-              delay={0}
-            />
-            <StatCard
-              icon={ShoppingBag}
-              label="Total vendido"
-              countTo={dynamicSummary.totalVendido}
-              format={formatCordobas}
-              sub={usdFromCordobas(dynamicSummary.totalVendido)}
-              delay={0.05}
-            />
-            <StatCard
-              icon={Coins}
-              label="Comisión ganada"
-              countTo={dynamicSummary.comisionGanada}
-              format={formatCordobas}
-              sub={usdFromCordobas(dynamicSummary.comisionGanada)}
-              color="emerald"
-              delay={0.1}
-            />
-            <StatCard
-              icon={Clock}
-              label="En revisión"
-              countTo={dynamicSummary.enRevision}
-              color="amber"
-              delay={0.15}
-            />
+          {/* Tabs */}
+          <div className="flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1 w-full sm:w-fit">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none whitespace-nowrap",
+                  tab === t.id ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
-        </div>
-      )}
-
-      {tab !== "new" && (
-        <div className="flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1 w-full sm:w-fit">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none whitespace-nowrap",
-                tab === t.id ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        </>
       )}
 
       {tab === "available" && <AvailableInventory />}
       {tab === "incoming" && <IncomingInventory />}
       {tab === "new" && <SaleEditor />}
 
-      {tab === "history" && (
-        <div className="rounded-card border border-border bg-surface p-4">
-          <h2 className="mb-4 text-lg font-bold">Ventas del Mes</h2>
-          <DataTable 
-            columns={columns} 
-            data={filteredSales} 
-            isLoading={loadingSales}
-            searchPlaceholder="Buscar venta…" 
-            emptyText="No tienes ventas registradas para este mes." 
-          />
+      {/* Mis Ventas */}
+      {tab === "ventas" && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {STATUS_CHIPS.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setStatusFilter(c.id)}
+                className={cn(
+                  "rounded-pill border px-3 py-1.5 text-xs font-semibold transition-colors",
+                  statusFilter === c.id
+                    ? "border-accent-2 bg-accent-2/10 text-accent-2"
+                    : "border-border text-muted hover:text-text",
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+
+          {loadingSales ? (
+            <p className="py-10 text-center text-sm text-muted">Cargando tus ventas…</p>
+          ) : filteredSales.length === 0 ? (
+            <p className="rounded-card border border-border bg-surface py-10 text-center text-sm text-muted">
+              No tienes ventas {statusFilter !== "all" ? "con este estado " : ""}para este mes.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredSales.map((s: Sale) => (
+                <SaleCard key={s.id} sale={s} />
+              ))}
+            </div>
+          )}
 
           {salesData && salesData.totalPages > 1 && (
-            <div className="flex items-center justify-between text-sm text-muted mt-4 border-t border-border pt-4">
+            <div className="flex items-center justify-between border-t border-border pt-4 text-sm text-muted">
               <span>
-                Página {page} de {salesData.totalPages} (Total: {salesData.total} registros)
+                Página {page} de {salesData.totalPages}
               </span>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="rounded-lg border border-border px-3 py-1.5 disabled:opacity-40 hover:bg-surface-hover transition-colors font-medium text-xs"
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-hover disabled:opacity-40"
                 >
                   Anterior
                 </button>
                 <button
-                  onClick={() => setPage(p => Math.min(salesData.totalPages, p + 1))}
+                  onClick={() => setPage((p) => Math.min(salesData.totalPages, p + 1))}
                   disabled={page === salesData.totalPages}
-                  className="rounded-lg border border-border px-3 py-1.5 disabled:opacity-40 hover:bg-surface-hover transition-colors font-medium text-xs"
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-hover disabled:opacity-40"
                 >
                   Siguiente
                 </button>
@@ -214,7 +246,25 @@ export function SellerSales() {
           )}
         </div>
       )}
+
+      {/* Pagos recibidos */}
+      {tab === "pagos" && (
+        <div className="space-y-4">
+          {loadingPayments ? (
+            <p className="py-10 text-center text-sm text-muted">Cargando tus pagos…</p>
+          ) : payments.length === 0 ? (
+            <p className="rounded-card border border-border bg-surface py-10 text-center text-sm text-muted">
+              Aún no has recibido pagos.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {payments.map((p) => (
+                <PaymentCard key={p.id} payment={p} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
-

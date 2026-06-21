@@ -98,6 +98,31 @@ export function AvailableInventory() {
         searchPlaceholder="Buscar productos en bodega…"
         emptyText="No hay inventario disponible en bodega."
         initialSorting={[{ id: "code", desc: false }]}
+        mobileCard={(row) => (
+          <div className="space-y-2 rounded-card border border-border bg-surface p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-muted">{row.code}</span>
+                <p className="mt-1 font-medium text-text">{row.productName}</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+                {row.available} uds
+              </span>
+            </div>
+            <div className="flex items-end justify-between border-t border-border pt-2">
+              <div>
+                <span className="block text-[10px] uppercase text-muted">Precio sugerido</span>
+                <span className="font-bold text-whatsapp">{formatCordobas(row.suggestedPrice || 0)}</span>
+              </div>
+              <WholesaleCell
+                suggested={row.suggestedPrice || 0}
+                discounts={discounts}
+                code={row.code}
+                productName={row.productName}
+              />
+            </div>
+          </div>
+        )}
       />
 
       {configOpen && (

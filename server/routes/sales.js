@@ -370,6 +370,60 @@ router.get('/my-summary', requireSeller, asyncHandler(async (req, res) => {
   });
 }));
 
+// GET /api/sales/my-balance — estado del dinero del vendedor (lo que verá arriba en su portal).
+// Comisión por cobrar (ventas aprobadas no pagadas), saldo a favor/contra (ajustes) y el
+// próximo pago estimado. No expone datos financieros confidenciales de la tienda.
+router.get('/my-balance', requireSeller, asyncHandler(async (req, res) => {
+  const snap = await db.collection(ORDERS).where('sellerEmail', '==', req.user.email).get();
+
+  let comisionPorCobrar = 0;
+  let ventasPorCobrar = 0;
+  snap.docs.forEach((d) => {
+    const o = d.data();
+    if (o.status === 'approved') {
+      comisionPorCobrar += o.comisionVendedor || 0;
+      ventasPorCobrar++;
+    }
+  });
+
+  const { balance: saldo } = await getPendingBalance(req.user.email);
+  const proximoPago = Math.max(0, round(comisionPorCobrar + saldo));
+
+  res.json({
+    comisionPorCobrar: round(comisionPorCobrar),
+    ventasPorCobrar,
+    saldo: round(saldo),
+    proximoPago,
+  });
+}));
+
+// GET /api/sales/my-payments — historial de pagos recibidos por el vendedor (sus lotes).
+router.get('/my-payments', requireSeller, asyncHandler(async (req, res) => {
+  const snap = await db.collection(config.collections.payments)
+    .where('sellerEmail', '==', req.user.email)
+    .get();
+
+  const list = snap.docs.map((d) => {
+    const p = d.data();
+    return {
+      id: d.id,
+      totalComision: p.totalComision || 0,
+      saldoAplicado: p.saldoAplicado || 0,
+      isSettlement: p.isSettlement === true,
+      ventasCount: Array.isArray(p.saleIds) ? p.saleIds.length : 0,
+      paymentMethod: p.paymentMethod || 'cash',
+      receiptUrl: p.receiptUrl || null,
+      noReceiptComment: p.noReceiptComment || null,
+      createdAt: p.createdAt?.toDate?.()?.toISOString() || null,
+    };
+  });
+
+  // Orden descendente por fecha (en memoria para evitar índice compuesto en Firestore).
+  list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  res.json(list);
+}));
+
 // GET /api/sales/payments — obtiene el historial de pagos realizados (lotes)
 router.get('/payments', requireAdmin, asyncHandler(async (req, res) => {
   const snap = await db.collection(config.collections.payments).orderBy('createdAt', 'desc').get();

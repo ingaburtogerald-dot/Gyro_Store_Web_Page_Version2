@@ -105,6 +105,25 @@ export interface SellerSummary {
   enRevision: number;
 }
 
+export interface MyBalance {
+  comisionPorCobrar: number; // comisión de ventas aprobadas aún no pagadas
+  ventasPorCobrar: number;
+  saldo: number; // + a favor del vendedor / − en contra
+  proximoPago: number; // comisionPorCobrar + saldo (mínimo 0)
+}
+
+export interface MySellerPayment {
+  id: string;
+  totalComision: number;
+  saldoAplicado: number;
+  isSettlement: boolean;
+  ventasCount: number;
+  paymentMethod: "cash" | "deposit";
+  receiptUrl: string | null;
+  noReceiptComment: string | null;
+  createdAt: string | null;
+}
+
 export interface WeeklyPaymentGroup {
   sellerEmail: string;
   sellerName: string;
@@ -223,6 +242,14 @@ export const salesApi = baseApi.injectEndpoints({
       query: () => "/sales/my-summary",
       providesTags: ["Order"],
     }),
+    getMyBalance: build.query<MyBalance, void>({
+      query: () => "/sales/my-balance",
+      providesTags: ["Order"],
+    }),
+    getMyPayments: build.query<MySellerPayment[], void>({
+      query: () => "/sales/my-payments",
+      providesTags: ["Order"],
+    }),
     getWeeklySummary: build.query<WeeklyPaymentGroup[], void>({
       query: () => "/sales/weekly-summary",
       providesTags: ["Order"],
@@ -337,6 +364,8 @@ export const {
   useGetSalesByIdsQuery,
   useGetPerformanceQuery,
   useGetSellerSummaryQuery,
+  useGetMyBalanceQuery,
+  useGetMyPaymentsQuery,
   useGetWeeklySummaryQuery,
   useGetPaymentsHistoryQuery,
   useGetBalancesQuery,

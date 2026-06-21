@@ -6,6 +6,7 @@ import { Button } from "~/components/ui/Button";
 import { Modal } from "~/components/ui/Modal";
 import { DatePicker } from "~/components/ui/DatePicker";
 import { DataTable } from "~/components/ui/DataTable";
+import { AdminSaleCard } from "./AdminSaleCard";
 import { SaleEditor } from "./SaleEditor";
 import {
   useGetSalesPaginatedQuery,
@@ -382,6 +383,7 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
         }}
         allSelected={pending.length > 0 && selectedSales.size === pending.length}
         initialSorting={[{ id: "createdAt", desc: false }]}
+        mobileCard={(s) => <AdminSaleCard sale={s} />}
       />
 
       <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar Venta Pendiente" maxWidth="max-w-5xl">

@@ -60,6 +60,29 @@ export function IncomingInventory() {
         isLoading={isLoading}
         searchPlaceholder="Buscar pedidos en tránsito…"
         emptyText="No hay mercadería próximamente en camino."
+        mobileCard={(row) => {
+          const label = row.status === "china" ? "En tránsito" : "Pendiente de aprobación";
+          const cls =
+            row.status === "china"
+              ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+              : "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+          const date = row.purchaseDate ? new Date(row.purchaseDate).toLocaleDateString("es-NI") : "—";
+          return (
+            <div className="space-y-2 rounded-card border border-border bg-surface p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-muted">{row.code}</span>
+                  <p className="mt-1 font-medium text-text">{row.productName}</p>
+                </div>
+                <span className={`shrink-0 rounded-pill px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{label}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-2 text-sm">
+                <span className="font-semibold">{row.quantity} uds</span>
+                <span className="text-xs text-muted">Estimada: {date}</span>
+              </div>
+            </div>
+          );
+        }}
       />
     </div>
   );
