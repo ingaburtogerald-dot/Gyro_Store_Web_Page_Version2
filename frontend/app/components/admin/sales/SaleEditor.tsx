@@ -462,7 +462,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                 onDone?.(); // Cierra el modal principal
               }}
             >
-              Salir
+              Cerrar
             </Button>
             <Button
               className="bg-accent text-white"
