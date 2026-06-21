@@ -19,7 +19,13 @@ const { sanitizeBody } = require('./utils/sanitize');
 const app = express();
 
 // ── Seguridad y middleware base ──
-app.use(helmet({ contentSecurityPolicy: false })); // CSP se afina al desplegar el front
+// COOP relajado a 'same-origin-allow-popups': el COOP por defecto de helmet
+// ('same-origin') aísla la ventana y rompe signInWithPopup de Firebase (el popup
+// de Google no puede comunicarse de vuelta → auth/popup-closed-by-user).
+app.use(helmet({
+  contentSecurityPolicy: false, // CSP se afina al desplegar el front
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+}));
 app.use(compression());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
