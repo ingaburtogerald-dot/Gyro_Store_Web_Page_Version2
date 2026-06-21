@@ -89,7 +89,7 @@ export function DataTable<T>({
         <TableSkeleton rows={6} cols={onRowClick ? columns.length + 1 : columns.length} />
       ) : (
       <>
-      <div className={`overflow-auto max-h-[75vh] rounded-card border border-border bg-surface relative${mobileCard ? " hidden md:block" : ""}`}>
+      <div className="hidden md:block overflow-auto max-h-[75vh] rounded-card border border-border bg-surface relative">
         <table className="w-full text-sm">
           <thead className="table-header-brand text-left sticky top-0 z-20 shadow-sm">
             {table.getHeaderGroups().map((hg) => (
@@ -190,28 +190,44 @@ export function DataTable<T>({
           )}
         </table>
       </div>
-      {mobileCard && (
-        <div className="space-y-3 md:hidden">
-          {table.getRowModel().rows.length === 0 ? (
-            <p className="rounded-card border border-border bg-surface py-8 text-center text-muted">{emptyText}</p>
-          ) : (
-            table.getRowModel().rows.map((row) => {
-              const rowId = (row.original as any).id;
-              const isSelected =
-                (selectedRowIds && selectedRowIds.has(rowId)) || (selectedRowId && rowId === selectedRowId);
-              return (
-                <div
-                  key={row.id}
-                  onClick={() => onRowClick?.(row.original)}
-                  className={`${onRowClick ? "cursor-pointer " : ""}${isSelected ? "rounded-card ring-2 ring-accent-2" : ""}`}
-                >
-                  {mobileCard(row.original)}
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
+      {/* Vista móvil: tarjetas (bonitas si el panel define mobileCard; genéricas si no). */}
+      <div className="space-y-3 md:hidden">
+        {table.getRowModel().rows.length === 0 ? (
+          <p className="rounded-card border border-border bg-surface py-8 text-center text-muted">{emptyText}</p>
+        ) : (
+          table.getRowModel().rows.map((row) => {
+            const rowId = (row.original as any).id;
+            const isSelected =
+              (selectedRowIds && selectedRowIds.has(rowId)) || (selectedRowId && rowId === selectedRowId);
+            return (
+              <div
+                key={row.id}
+                onClick={() => onRowClick?.(row.original)}
+                className={`${onRowClick ? "cursor-pointer " : ""}${isSelected ? "rounded-card ring-2 ring-accent-2" : ""}`}
+              >
+                {mobileCard ? (
+                  mobileCard(row.original)
+                ) : (
+                  <div className="space-y-1.5 rounded-card border border-border bg-surface p-4">
+                    {row.getVisibleCells().map((cell) => {
+                      const header = cell.column.columnDef.header;
+                      const label = typeof header === "string" ? header : "";
+                      return (
+                        <div key={cell.id} className="flex items-start justify-between gap-3 text-sm">
+                          {label ? <span className="shrink-0 pt-0.5 text-xs text-muted">{label}</span> : <span />}
+                          <div className="min-w-0 text-right">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
       </>
       )}
 
