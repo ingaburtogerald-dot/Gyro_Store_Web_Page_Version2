@@ -1,0 +1,46 @@
+// API de órdenes públicas (checkout por WhatsApp) y contacto.
+import { baseApi } from "./baseApi";
+
+export interface PublicOrderItem {
+  catalogId: string;
+  variantId?: string;
+  variantName?: string;
+  quantity: number;
+}
+
+export interface PublicOrderPayload {
+  customerName: string;
+  customerPhone: string;
+  deliveryMethod: "retiro" | "envio";
+  address?: string;
+  note?: string;
+  items: PublicOrderItem[];
+}
+
+export interface PublicOrderResult {
+  id: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  whatsappUrl: string;
+}
+
+export interface ContactPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+}
+
+export const ordersApi = baseApi.injectEndpoints({
+  endpoints: (build) => ({
+    createPublicOrder: build.mutation<PublicOrderResult, PublicOrderPayload>({
+      query: (body) => ({ url: "/orders/public", method: "POST", body }),
+    }),
+    sendContact: build.mutation<{ ok: boolean }, ContactPayload>({
+      query: (body) => ({ url: "/contact", method: "POST", body }),
+    }),
+  }),
+});
+
+export const { useCreatePublicOrderMutation, useSendContactMutation } = ordersApi;

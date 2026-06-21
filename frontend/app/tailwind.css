@@ -1,0 +1,355 @@
+@import "tailwindcss";
+@import "react-day-picker/style.css";
+
+/* ───────────────────────────────────────────────────────────
+   Tokens de diseño — Identidad visual Gyro Store (dark premium)
+   Tailwind v4: se declaran con @theme y generan utilidades
+   (bg-bg, text-accent, rounded-card, font-heading, etc.)
+   ─────────────────────────────────────────────────────────── */
+@theme {
+  /* Superficies */
+  --color-bg: #0a0a0f;
+  --color-surface: #12121a;
+  --color-surface-2: #1a1a24;
+  --color-border: rgba(255, 255, 255, 0.06);
+
+  /* Acentos — Esmeralda (identidad fintech) */
+  --color-accent: #10b981;
+  --color-accent-2: #34d399;
+  --color-whatsapp: #00d4aa;
+
+  /* Gradiente de botones: verdes más profundos que el acento brillante para
+     garantizar contraste del texto blanco (AA). */
+  --color-grad-from: #047857;
+  --color-grad-to: #059669;
+
+  /* Texto */
+  --color-text: #e2e8f0;
+  --color-muted: #717a9c;
+
+  /* Tipografía */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-heading: "Sora", system-ui, sans-serif;
+
+  /* Radios */
+  --radius-card: 16px;
+  --radius-pill: 99px;
+}
+
+/* Gradiente de acento reutilizable */
+@utility bg-gradient-accent {
+  background-image: linear-gradient(135deg, var(--color-grad-from), var(--color-grad-to));
+}
+
+/* ───────────────────────────────────────────────────────────
+   Temas seleccionables — sobre-escriben los tokens del @theme.
+   Se activan con [data-theme="..."] en <html> (ver useTheme).
+   Los acentos quedan vivos para textos/badges; el gradiente de
+   botones usa tonos un poco más profundos para que el texto
+   blanco siga legible.
+   ─────────────────────────────────────────────────────────── */
+
+
+[data-theme="light"] {
+  --color-bg: #e7ede9;        /* fondo gris-esmeralda: hace que los cards blancos resalten */
+  --color-surface: #ffffff;
+  --color-surface-2: #eef3f0;
+  --color-border: #d3ded8;    /* borde más definido (no casi invisible) */
+  --color-accent: #059669;
+  --color-accent-2: #10b981;
+  --color-grad-from: #059669;
+  --color-grad-to: #047857;
+  --color-whatsapp: #059669;
+  --color-text: #102a22;
+  --color-muted: #556b63;
+  color-scheme: light;
+}
+
+/* Table Headers */
+@utility table-header-brand {
+  background-color: var(--color-surface);
+  color: var(--color-muted);
+}
+
+/* Tab/Pill Buttons */
+@utility tab-active {
+  background-image: linear-gradient(135deg, var(--color-grad-from), var(--color-grad-to));
+  color: white;
+}
+[data-theme="light"] .tab-active {
+  background-image: none;
+  background-color: #059669;
+  color: #ffffff;
+  box-shadow: 0 2px 8px -2px rgba(5, 150, 105, 0.4);
+}
+
+@utility tab-active-red {
+  background-color: #ef4444;
+  color: white;
+}
+[data-theme="light"] .tab-active-red {
+  background-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 2px 8px -2px rgba(239, 68, 68, 0.4);
+}
+
+/* StatCard Overrides for Light Mode (Clean & Crisp) */
+[data-theme="light"] .stat-card-container {
+  background-image: none !important;
+  background-color: var(--color-surface) !important;
+  box-shadow: 0 1px 2px rgba(16,40,30,0.05), 0 12px 28px -14px rgba(16,40,30,0.18) !important;
+  border-width: 1px !important;
+  border-bottom-width: 4px !important;
+}
+
+[data-theme="light"] .stat-card-neutral { border-color: var(--color-border) !important; }
+
+[data-theme="light"] .stat-card-indigo { border-color: var(--color-border) !important; border-bottom-color: #6366f1 !important; }
+[data-theme="light"] .stat-card-indigo .stat-card-icon { color: #4f46e5 !important; }
+
+[data-theme="light"] .stat-card-sky { border-color: var(--color-border) !important; border-bottom-color: #0ea5e9 !important; }
+[data-theme="light"] .stat-card-sky .stat-card-icon { color: #0284c7 !important; }
+
+[data-theme="light"] .stat-card-amber { border-color: var(--color-border) !important; border-bottom-color: #f59e0b !important; }
+[data-theme="light"] .stat-card-amber .stat-card-icon { color: #d97706 !important; }
+
+[data-theme="light"] .stat-card-emerald { border-color: var(--color-border) !important; border-bottom-color: #10b981 !important; }
+[data-theme="light"] .stat-card-emerald .stat-card-icon { color: #059669 !important; }
+
+[data-theme="light"] .stat-card-rose { border-color: var(--color-border) !important; border-bottom-color: #f43f5e !important; }
+[data-theme="light"] .stat-card-rose .stat-card-icon { color: #e11d48 !important; }
+
+[data-theme="light"] .stat-card-purple { border-color: var(--color-border) !important; border-bottom-color: #a855f7 !important; }
+[data-theme="light"] .stat-card-purple .stat-card-icon { color: #9333ea !important; }
+
+[data-theme="light"] .stat-card-red { border-color: var(--color-border) !important; border-bottom-color: #ef4444 !important; }
+[data-theme="light"] .stat-card-red .stat-card-icon { color: #dc2626 !important; }
+
+[data-theme="light"] .stat-card-value {
+  color: var(--color-text) !important;
+}
+[data-theme="light"] .stat-card-label {
+  color: var(--color-muted) !important;
+}
+
+/* ───────────────────────────────────────────────────────────
+   Modo claro — profundidad y color (que no se vea "lavado").
+   ─────────────────────────────────────────────────────────── */
+
+/* Fondo orgánico esmeralda muy sutil bajo todo el contenido. */
+[data-theme="light"] body {
+  background-image:
+    radial-gradient(circle at 12% 14%, rgba(16, 185, 129, 0.08) 0%, transparent 44%),
+    radial-gradient(circle at 88% 86%, rgba(5, 150, 105, 0.07) 0%, transparent 46%);
+  background-attachment: fixed;
+}
+
+/* Cards y paneles con elevación real para que floten sobre el fondo tintado. */
+[data-theme="light"] .rounded-card {
+  box-shadow: 0 1px 2px rgba(16, 40, 30, 0.04), 0 10px 26px -16px rgba(16, 40, 30, 0.16);
+}
+
+/* Tablas: header tintado de esmeralda + texto definido + borde inferior. */
+[data-theme="light"] .table-header-brand {
+  background-color: #e6f2ec;
+  color: #2c4a40;
+  border-bottom: 1px solid #cfe0d7;
+}
+[data-theme="light"] .table-header-brand th {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Inputs ligeramente recesados sobre los cards blancos. */
+[data-theme="light"] .input {
+  background-color: var(--color-surface-2);
+  border-color: var(--color-border);
+}
+[data-theme="light"] .input:focus {
+  background-color: #ffffff;
+  border-color: var(--color-accent);
+}
+
+/* Scrollbar acorde al modo claro. */
+[data-theme="light"] ::-webkit-scrollbar-track { background: var(--color-bg); }
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #c4d2cb;
+  border-radius: 99px;
+}
+
+/* Glassmorphism sutil para cards y modales */
+@utility glass {
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+@layer base {
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em; /* tracking ajustado = look premium en Sora */
+  }
+
+  /* Cifras alineadas (estados de cuenta, KPIs, tablas) */
+  .nums { font-variant-numeric: tabular-nums; }
+
+  /* Iconos lucide con trazo más fino = look más premium/refinado. */
+  svg.lucide { stroke-width: 1.75; }
+
+  /* Scrollbar discreta acorde al tema oscuro */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--color-bg); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-surface-2);
+    border-radius: 99px;
+  }
+}
+
+/* Input estándar de formularios (tema oscuro) */
+@layer components {
+  .input {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    outline: none;
+    color-scheme: dark;
+  }
+  .input::placeholder {
+    color: var(--color-muted);
+  }
+  .input:focus {
+    border-color: var(--color-accent);
+  }
+}
+
+/* En modo claro el control nativo (números, fecha) debe usar esquema claro */
+[data-theme="light"] .input {
+  color-scheme: light;
+}
+
+/* ── Date picker propio (react-day-picker) tematizado con los tokens ── */
+.app-daypicker {
+  --rdp-accent-color: var(--color-accent);
+  --rdp-accent-background-color: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  --rdp-today-color: var(--color-accent-2);
+  --rdp-day-width: 2.25rem;
+  --rdp-day-height: 2.25rem;
+  --rdp-day_button-width: 2.25rem;
+  --rdp-day_button-height: 2.25rem;
+  --rdp-day_button-border-radius: 10px;
+  --rdp-selected-border: none;
+  --rdp-disabled-opacity: 0.35;
+  --rdp-outside-opacity: 0.4;
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+.app-daypicker .rdp-caption_label,
+.app-daypicker .rdp-month_caption {
+  font-weight: 700;
+  color: var(--color-text);
+}
+.app-daypicker .rdp-weekday {
+  color: var(--color-muted);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.app-daypicker .rdp-day_button:hover {
+  background-color: var(--color-surface-2, color-mix(in srgb, var(--color-accent) 12%, transparent));
+}
+.app-daypicker .rdp-selected .rdp-day_button {
+  background-color: var(--rdp-accent-color);
+  color: #fff;
+  font-weight: 700;
+}
+.app-daypicker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: var(--color-accent-2);
+  font-weight: 700;
+}
+.app-daypicker .rdp-chevron {
+  fill: var(--color-accent);
+}
+.app-daypicker .rdp-button_previous:hover,
+.app-daypicker .rdp-button_next:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+/* Aurora animada para el hero */
+@keyframes aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(3%, -3%) scale(1.1); }
+  66% { transform: translate(-3%, 3%) scale(0.95); }
+}
+.animate-aurora {
+  animation: aurora 18s ease-in-out infinite;
+}
+
+/* Glow neón pulsante para el emblema del hero */
+@keyframes glowPulse {
+  0%, 100% { filter: drop-shadow(0 0 18px color-mix(in srgb, var(--color-accent) 55%, transparent)) drop-shadow(0 0 45px color-mix(in srgb, var(--color-accent-2) 35%, transparent)); }
+  50% { filter: drop-shadow(0 0 30px color-mix(in srgb, var(--color-accent) 80%, transparent)) drop-shadow(0 0 70px color-mix(in srgb, var(--color-accent-2) 55%, transparent)); }
+}
+.animate-glow {
+  animation: glowPulse 3.5s ease-in-out infinite;
+}
+
+/* Destellos titilantes */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.animate-twinkle {
+  animation: twinkle 2.8s ease-in-out infinite;
+}
+
+/* ───────────────────────────────────────────────────────────
+   Skeletons con shimmer — carga percibida más rápida que un spinner.
+   ─────────────────────────────────────────────────────────── */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-text) 7%, transparent),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* Header de tabla pegajoso: queda justo bajo el header de la app (h-16). */
+.table-sticky-head { position: sticky; top: 4rem; z-index: 10; }
+
+/* Respeta a quien pidió menos movimiento (accesibilidad + buena práctica). */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after,
+  .animate-aurora,
+  .animate-glow,
+  .animate-twinkle {
+    animation: none !important;
+  }
+  * { scroll-behavior: auto !important; }
+}

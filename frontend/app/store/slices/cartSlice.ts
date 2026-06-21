@@ -1,0 +1,86 @@
+// Carrito de compras del catálogo público. Persiste en localStorage para
+// sobrevivir refrescos. El checkout final se hace por WhatsApp (Fase 2).
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+
+export interface CartItem {
+  catalogId: string;
+  variantId?: string; // id del producto físico (para recalcular precio en el servidor)
+  name: string;
+  variantName: string;
+  price: number; // precio unitario en C$ (solo para mostrar; el servidor recalcula)
+  image: string;
+  quantity: number;
+}
+
+interface CartState {
+  items: CartItem[];
+  isOpen: boolean;
+}
+
+const STORAGE_KEY = "gyro_cart";
+
+function loadCart(): CartItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function persist(items: CartItem[]) {
+  if (typeof window !== "undefined") localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+const initialState: CartState = { items: [], isOpen: false };
+
+function lineKey(i: Pick<CartItem, "catalogId" | "variantName">) {
+  return `${i.catalogId}::${i.variantName}`;
+}
+
+const cartSlice = createSlice({
+  name: "cart",
+  initialState,
+  reducers: {
+    hydrate(state) {
+      state.items = loadCart();
+    },
+    addItem(state, action: PayloadAction<CartItem>) {
+      const existing = state.items.find((i) => lineKey(i) === lineKey(action.payload));
+      if (existing) existing.quantity += action.payload.quantity;
+      else state.items.push(action.payload);
+      persist(state.items);
+    },
+    setQuantity(state, action: PayloadAction<{ key: string; quantity: number }>) {
+      const item = state.items.find((i) => lineKey(i) === action.payload.key);
+      if (item) item.quantity = Math.max(1, action.payload.quantity);
+      persist(state.items);
+    },
+    removeItem(state, action: PayloadAction<string>) {
+      state.items = state.items.filter((i) => lineKey(i) !== action.payload);
+      persist(state.items);
+    },
+    clearCart(state) {
+      state.items = [];
+      persist(state.items);
+    },
+    openCart(state) {
+      state.isOpen = true;
+    },
+    closeCart(state) {
+      state.isOpen = false;
+    },
+  },
+});
+
+export const { hydrate, addItem, setQuantity, removeItem, clearCart, openCart, closeCart } =
+  cartSlice.actions;
+export default cartSlice.reducer;
+
+// Selectores
+export const selectCartItems = (s: { cart: CartState }) => s.cart.items;
+export const selectCartCount = (s: { cart: CartState }) =>
+  s.cart.items.reduce((n, i) => n + i.quantity, 0);
+export const selectCartTotal = (s: { cart: CartState }) =>
+  s.cart.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+export const selectCartOpen = (s: { cart: CartState }) => s.cart.isOpen;
