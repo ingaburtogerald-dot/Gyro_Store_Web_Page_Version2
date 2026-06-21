@@ -333,7 +333,7 @@ export function AdminSalesHistory({
       )}
 
       {editFor && (
-        <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar Venta" maxWidth="max-w-3xl">
+        <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar Venta" maxWidth="max-w-5xl">
           <div className="max-h-[80vh] overflow-y-auto pr-1">
             <SaleEditor sale={editFor} onDone={() => { setEditFor(null); setSelectedSales(new Set()); }} />
           </div>

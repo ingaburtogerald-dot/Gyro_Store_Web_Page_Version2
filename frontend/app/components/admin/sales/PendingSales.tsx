@@ -384,7 +384,7 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
         initialSorting={[{ id: "createdAt", desc: false }]}
       />
 
-      <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar Venta Pendiente" maxWidth="max-w-3xl">
+      <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar Venta Pendiente" maxWidth="max-w-5xl">
         <div className="max-h-[80vh] overflow-y-auto pr-1">
           {editFor && <SaleEditor sale={editFor} onDone={() => { setEditFor(null); setSelectedSales(new Set()); }} />}
         </div>

@@ -203,247 +203,286 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
   }
 
   return (
-    <div className="space-y-4 max-w-3xl">
-      <div className="space-y-4 rounded-card border border-border bg-surface p-4">
-        {/* Selector de vendedor (sólo visible para Admin) */}
-        {isAdmin && (
-          <div className="rounded-lg border border-dashed border-accent-2/30 bg-accent-2/5 p-3">
-            <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-accent-2">
-                👤 Registrar a nombre de:
-              </span>
-              <select
-                className="input border-accent-2/40 focus:border-accent-2 focus:ring-accent-2"
-                value={selectedSellerEmail}
-                onChange={(e) => setSelectedSellerEmail(e.target.value)}
-              >
-                <option value="">Seleccionar vendedor…</option>
-                {sellers.map((s) => (
-                  <option key={s.id} value={s.email}>
-                    {s.displayName} ({s.email})
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        )}
+    <div className="space-y-4">
+      {/* Encabezado */}
+      <div className="flex items-center gap-3 rounded-card border border-border bg-surface p-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-accent text-white shadow-[0_0_15px_rgba(124,131,255,0.35)]">
+          <ShoppingCart className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-text">{isEdit ? "Editar venta" : "Registrar venta"}</h2>
+          <p className="text-xs text-muted">Arma las líneas y el total se calcula en vivo.</p>
+        </div>
+      </div>
 
-        {/* Fecha de la venta */}
-        <label className="block sm:w-56">
-          <span className="mb-1 block text-xs font-semibold text-accent-2">📅 Fecha de la venta (Obligatorio)</span>
-          <DatePicker value={saleDate} onChange={setSaleDate} />
-        </label>
-
-        {lines.map((line, i) => {
-          const p = productsForUi.find((pr) => pr.id === line.productId);
-          return (
-            <div key={i} className="flex flex-col gap-3 rounded-xl border border-border bg-surface-2/50 p-4 relative group">
-              <div className="flex items-start justify-between gap-3">
-                <label className="block flex-1">
-                  <span className="mb-1 block text-xs text-muted">Producto</span>
-                  <ProductAutocomplete
-                    products={sortedProducts}
-                    value={line.productId}
-                    onChange={(val) => update(i, { productId: val })}
-                  />
-                </label>
-                <button
-                  onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
-                  disabled={lines.length === 1}
-                  className="mt-6 rounded-lg p-2 text-muted hover:bg-red-500/10 hover:text-red-400 disabled:opacity-30 shrink-0 transition-colors"
-                  aria-label="Quitar línea"
-                >
-                  <Trash2 className="h-4.5 w-4.5" />
-                </button>
-              </div>
-
-              <div className="flex flex-wrap sm:flex-nowrap gap-3 items-start">
-                <label className="block w-full sm:w-1/3">
-                  <span className="mb-1 block text-xs text-muted">Cantidad</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={p?.stock}
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr] lg:items-start">
+        {/* COLUMNA IZQUIERDA: datos + productos */}
+        <div className="space-y-4">
+          {/* Sección: datos de la venta */}
+          <div className="space-y-3 rounded-card border border-border bg-surface p-4">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-accent-2" />
+              <h3 className="text-sm font-semibold text-text">Datos de la venta</h3>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {isAdmin && (
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-muted">Registrar a nombre de</span>
+                  <select
                     className="input"
-                    placeholder="0"
-                    value={line.quantity}
-                    onChange={(e) => update(i, { quantity: e.target.value === "" ? "" : (parseInt(e.target.value, 10) || 0) })}
-                  />
-                </label>
-                <label className="block w-full sm:w-2/3">
-                  <span className="mb-1 flex flex-wrap items-center justify-between text-xs text-muted gap-2">
-                    <span>Precio unitario (C$)</span>
-                    {p && (() => {
-                        const qty = Number(line.quantity) || 0;
-                        let suggestedPrice = p.price;
-                        let discountPercent = 0;
-
-                        if (p.origin !== "migrated" && wholesaleDiscounts.length > 0) {
-                          const applicableTiers = wholesaleDiscounts.filter(
-                            (d) => qty >= d.minQty && (d.maxQty == null || qty <= d.maxQty)
-                          );
-                          if (applicableTiers.length > 0) {
-                            const bestTier = applicableTiers.reduce((prev, current) => 
-                              (prev.discountPercent > current.discountPercent) ? prev : current
-                            );
-                            discountPercent = bestTier.discountPercent;
-                            suggestedPrice = p.price * (1 - discountPercent / 100);
-                          }
-                        }
-
-                        return (
-                          <div className="flex items-center gap-2">
-                            {discountPercent > 0 && (
-                              <span className="text-emerald-500 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded-pill">
-                                −{discountPercent}% mayoreo
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => update(i, { salePrice: suggestedPrice })}
-                              className="text-accent hover:text-accent-2 font-medium hover:underline transition-colors"
-                              title="Haz clic para usar este precio sugerido"
-                            >
-                              Sugerido: {formatCordobas(suggestedPrice)}
-                            </button>
-                          </div>
-                        );
-                    })()}
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    className="input"
-                    placeholder="Precio..."
-                    value={line.salePrice}
-                    onChange={(e) => update(i, { salePrice: e.target.value === "" ? "" : (parseFloat(e.target.value) || 0) })}
-                  />
-                </label>
-              </div>
-
-              {p && typeof line.quantity === "number" && line.quantity > p.stock && (
-                <p className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-400 mt-1">
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  Solo hay {p.stock} uds disponibles.
-                </p>
-              )}
-
-              {p?.origin === "migrated" && (
-                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 mt-1">
-                  <span className="rounded-pill bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-300">
-                    🏷️ Migrado
-                  </span>
-                  <span className="text-xs text-muted">Cálculo:</span>
-                  <div className="flex gap-1 rounded-pill border border-border bg-surface p-0.5">
-                    {(["M1", "M2"] as const).map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => update(i, { mode: m })}
-                        className={cn(
-                          "rounded-pill px-3 py-1 text-xs font-semibold transition-colors",
-                          (line.mode ?? "M1") === m ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-                        )}
-                      >
-                        {m}
-                      </button>
+                    value={selectedSellerEmail}
+                    onChange={(e) => setSelectedSellerEmail(e.target.value)}
+                  >
+                    <option value="">Seleccionar vendedor…</option>
+                    {sellers.map((s) => (
+                      <option key={s.id} value={s.email}>
+                        {s.displayName} ({s.email})
+                      </option>
                     ))}
-                  </div>
-                </div>
+                  </select>
+                </label>
               )}
+              <label className="block">
+                <span className="mb-1 flex items-center gap-1 text-xs font-medium text-muted">
+                  <CalendarDays className="h-3.5 w-3.5" /> Fecha de la venta *
+                </span>
+                <DatePicker value={saleDate} onChange={setSaleDate} />
+              </label>
             </div>
-          );
-        })}
-
-        {/* Botones de acción rápidos */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4 pt-2">
-          <button
-            onClick={() => setLines((ls) => [...ls, { ...emptyLine }])}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-2 hover:underline"
-          >
-            <Plus className="h-4 w-4" /> Agregar producto
-          </button>
-
-          {/* Recibo opcional con captura de cámara */}
-          <label className="flex cursor-pointer items-center gap-2 rounded-pill border border-border bg-background/50 px-3 py-1.5 text-xs text-muted hover:text-text transition-colors">
-            <Camera className="h-3.5 w-3.5" />
-            {receipt ? receipt.name : isEdit ? "Actualizar foto del recibo" : "Adjuntar foto del recibo"}
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => setReceipt(e.target.files?.[0] || null)}
-            />
-          </label>
-        </div>
-
-        {/* Cotización en vivo */}
-        <div className="pt-2">
-          <QuoteSummary result={result} loading={quoting} errorMsg={errorMsg} />
-        </div>
-
-        {/* Aviso de ajuste de saldo al editar una venta YA PAGADA */}
-        {isEdit && sale?.status === "paid" && result && (() => {
-          const oldCom = sale.comisionVendedor ?? 0;
-          const newCom = result.comisionVendedor ?? 0;
-          const delta = Math.round((newCom - oldCom) * 100) / 100;
-          if (delta === 0) return null;
-          const favor = delta > 0;
-          return (
-            <div className={cn(
-              "rounded-lg border p-3 text-sm animate-in fade-in",
-              favor ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-rose-500/30 bg-rose-500/10 text-rose-300",
-            )}>
-              <p className="font-semibold">
-                {favor ? "Saldo a favor del vendedor" : "Saldo en contra del vendedor"}: {formatCordobas(Math.abs(delta))}
-              </p>
-              <p className="mt-1 text-xs opacity-90">
-                Esta venta ya fue pagada. La comisión cambia de {formatCordobas(oldCom)} a {formatCordobas(newCom)}. La diferencia se
-                {favor ? " sumará" : " descontará"} en el próximo pago del vendedor (o puedes saldarla aparte desde Historial de Pagos). El lote de pago original no se modifica.
-              </p>
-            </div>
-          );
-        })()}
-
-        {/* Acciones principales de guardado */}
-        {isEdit && sale?.status !== "pending_approval" && (
-          <div className="pt-2 animate-in fade-in slide-in-from-bottom-2">
-            <label className="block">
-              <span className="mb-1 block text-sm font-bold text-accent-2">
-                Motivo de la edición (Obligatorio)
-              </span>
-              <textarea
-                className="input border-accent-2/40 focus:border-accent-2 focus:ring-accent-2 w-full"
-                rows={2}
-                value={editReason}
-                onChange={(e) => setEditReason(e.target.value)}
-                placeholder="Explica por qué estás editando esta venta ya procesada..."
-                required
-              />
-            </label>
           </div>
-        )}
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
-          <Button
-            className="flex-1 py-5 text-sm font-bold"
-            onClick={registerSale}
-            loading={reporting || updating}
-            disabled={!saleDate || validLines.length === 0 || hasOverStock || isMixed || !!errorMsg || (isEdit && sale?.status !== 'pending_approval' && !editReason.trim())}
-          >
-            {isEdit ? "Guardar cambios" : "Registrar venta"} · {formatCordobas(result?.saleTotal ?? 0)}
-          </Button>
-          {isAdmin && !isEdit && (
-            <Button
-              variant="ghost"
-              className="flex items-center justify-center gap-1.5 border border-border sm:w-48"
-              onClick={() => setInstallmentOpen(true)}
-              disabled={validLines.length === 0 || hasOverStock}
-            >
-              <CreditCard className="h-4 w-4" /> Vender en cuotas
-            </Button>
+          {/* Sección: productos */}
+          <div className="space-y-3 rounded-card border border-border bg-surface p-4">
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-accent-2" />
+              <h3 className="text-sm font-semibold text-text">Productos</h3>
+              <span className="ml-auto rounded-pill bg-surface-2 px-2 py-0.5 text-xs text-muted">{lines.length}</span>
+            </div>
+
+            {lines.map((line, i) => {
+              const p = productsForUi.find((pr) => pr.id === line.productId);
+              const lineSubtotal = (Number(line.quantity) || 0) * (Number(line.salePrice) || 0);
+              return (
+                <div key={i} className="space-y-3 rounded-xl border border-border bg-surface-2/50 p-3.5 animate-in fade-in">
+                  {/* Fila superior: número + código + producto + eliminar */}
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-accent text-xs font-bold text-white">
+                      {i + 1}
+                    </span>
+                    {p?.code && (
+                      <span className="shrink-0 rounded-md bg-surface px-2 py-0.5 font-mono text-xs text-muted">{p.code}</span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <ProductAutocomplete
+                        products={sortedProducts}
+                        value={line.productId}
+                        onChange={(val) => update(i, { productId: val })}
+                      />
+                    </div>
+                    <button
+                      onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                      disabled={lines.length === 1}
+                      className="shrink-0 rounded-lg p-2 text-muted transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-30"
+                      aria-label="Quitar línea"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Fila inferior: cantidad + precio + subtotal */}
+                  <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap">
+                    <label className="block w-24 shrink-0">
+                      <span className="mb-1 block text-xs text-muted">Cantidad</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={p?.stock}
+                        className="input"
+                        placeholder="0"
+                        value={line.quantity}
+                        onChange={(e) => update(i, { quantity: e.target.value === "" ? "" : (parseInt(e.target.value, 10) || 0) })}
+                      />
+                    </label>
+                    <label className="block min-w-0 flex-1">
+                      <span className="mb-1 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+                        <span>Precio unitario (C$)</span>
+                        {p && (() => {
+                            const qty = Number(line.quantity) || 0;
+                            let suggestedPrice = p.price;
+                            let discountPercent = 0;
+
+                            if (p.origin !== "migrated" && wholesaleDiscounts.length > 0) {
+                              const applicableTiers = wholesaleDiscounts.filter(
+                                (d) => qty >= d.minQty && (d.maxQty == null || qty <= d.maxQty)
+                              );
+                              if (applicableTiers.length > 0) {
+                                const bestTier = applicableTiers.reduce((prev, current) =>
+                                  (prev.discountPercent > current.discountPercent) ? prev : current
+                                );
+                                discountPercent = bestTier.discountPercent;
+                                suggestedPrice = p.price * (1 - discountPercent / 100);
+                              }
+                            }
+
+                            return (
+                              <div className="flex items-center gap-2">
+                                {discountPercent > 0 && (
+                                  <span className="rounded-pill bg-emerald-500/10 px-1.5 py-0.5 font-semibold text-emerald-500">
+                                    −{discountPercent}% mayoreo
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => update(i, { salePrice: suggestedPrice })}
+                                  className="font-medium text-accent transition-colors hover:text-accent-2 hover:underline"
+                                  title="Haz clic para usar este precio sugerido"
+                                >
+                                  Sugerido: {formatCordobas(suggestedPrice)}
+                                </button>
+                              </div>
+                            );
+                        })()}
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        className="input"
+                        placeholder="Precio..."
+                        value={line.salePrice}
+                        onChange={(e) => update(i, { salePrice: e.target.value === "" ? "" : (parseFloat(e.target.value) || 0) })}
+                      />
+                    </label>
+                    <div className="shrink-0 pt-5 text-right">
+                      <span className="block text-xs text-muted">Subtotal</span>
+                      <span className="text-sm font-bold text-text">{formatCordobas(lineSubtotal)}</span>
+                    </div>
+                  </div>
+
+                  {p && typeof line.quantity === "number" && line.quantity > p.stock && (
+                    <p className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-400">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      Solo hay {p.stock} uds disponibles.
+                    </p>
+                  )}
+
+                  {p?.origin === "migrated" && (
+                    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+                      <span className="flex items-center gap-1 rounded-pill bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-300">
+                        <Tag className="h-3 w-3" /> Migrado
+                      </span>
+                      <span className="text-xs text-muted">Cálculo:</span>
+                      <div className="flex gap-1 rounded-pill border border-border bg-surface p-0.5">
+                        {(["M1", "M2"] as const).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => update(i, { mode: m })}
+                            className={cn(
+                              "rounded-pill px-3 py-1 text-xs font-semibold transition-colors",
+                              (line.mode ?? "M1") === m ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
+                            )}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Agregar producto + recibo opcional */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <button
+                onClick={() => setLines((ls) => [...ls, { ...emptyLine }])}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-accent-2/40 px-3 py-2 text-sm font-semibold text-accent-2 transition-colors hover:bg-accent-2/5"
+              >
+                <Plus className="h-4 w-4" /> Agregar producto
+              </button>
+
+              <label className="flex cursor-pointer items-center gap-2 rounded-pill border border-border bg-background/50 px-3 py-1.5 text-xs text-muted transition-colors hover:text-text">
+                <Camera className="h-3.5 w-3.5" />
+                {receipt ? receipt.name : isEdit ? "Actualizar foto del recibo" : "Adjuntar foto del recibo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => setReceipt(e.target.files?.[0] || null)}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* COLUMNA DERECHA: resumen sticky + acciones */}
+        <div className="space-y-4 lg:sticky lg:top-0 lg:self-start">
+          <QuoteSummary result={result} loading={quoting} errorMsg={errorMsg} />
+
+          {/* Aviso de ajuste de saldo al editar una venta YA PAGADA */}
+          {isEdit && sale?.status === "paid" && result && (() => {
+            const oldCom = sale.comisionVendedor ?? 0;
+            const newCom = result.comisionVendedor ?? 0;
+            const delta = Math.round((newCom - oldCom) * 100) / 100;
+            if (delta === 0) return null;
+            const favor = delta > 0;
+            return (
+              <div className={cn(
+                "rounded-lg border p-3 text-sm animate-in fade-in",
+                favor ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-rose-500/30 bg-rose-500/10 text-rose-300",
+              )}>
+                <p className="font-semibold">
+                  {favor ? "Saldo a favor del vendedor" : "Saldo en contra del vendedor"}: {formatCordobas(Math.abs(delta))}
+                </p>
+                <p className="mt-1 text-xs opacity-90">
+                  Esta venta ya fue pagada. La comisión cambia de {formatCordobas(oldCom)} a {formatCordobas(newCom)}. La diferencia se
+                  {favor ? " sumará" : " descontará"} en el próximo pago del vendedor (o puedes saldarla aparte desde Historial de Pagos). El lote de pago original no se modifica.
+                </p>
+              </div>
+            );
+          })()}
+
+          {/* Motivo de edición de venta ya procesada */}
+          {isEdit && sale?.status !== "pending_approval" && (
+            <div className="rounded-card border border-border bg-surface p-4 animate-in fade-in">
+              <label className="block">
+                <span className="mb-1 block text-sm font-bold text-accent-2">
+                  Motivo de la edición (Obligatorio)
+                </span>
+                <textarea
+                  className="input border-accent-2/40 focus:border-accent-2 focus:ring-accent-2 w-full"
+                  rows={2}
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  placeholder="Explica por qué estás editando esta venta ya procesada..."
+                  required
+                />
+              </label>
+            </div>
           )}
+
+          {/* Acciones principales */}
+          <div className="flex flex-col gap-3">
+            <Button
+              className="w-full py-5 text-sm font-bold"
+              onClick={registerSale}
+              loading={reporting || updating}
+              disabled={!saleDate || validLines.length === 0 || hasOverStock || isMixed || !!errorMsg || (isEdit && sale?.status !== 'pending_approval' && !editReason.trim())}
+            >
+              {isEdit ? "Guardar cambios" : "Registrar venta"} · {formatCordobas(result?.saleTotal ?? 0)}
+            </Button>
+            {isAdmin && !isEdit && (
+              <Button
+                variant="ghost"
+                className="flex w-full items-center justify-center gap-1.5 border border-border"
+                onClick={() => setInstallmentOpen(true)}
+                disabled={validLines.length === 0 || hasOverStock}
+              >
+                <CreditCard className="h-4 w-4" /> Vender en cuotas
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
