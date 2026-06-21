@@ -2,7 +2,7 @@
 // ve el cotizador en vivo (utilidad, comisión, ganancia) y registra la venta con
 // foto de recibo opcional. El servidor recalcula todo al cotizar y al registrar.
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Camera, Tag, Layers, CreditCard, AlertTriangle, Check } from "lucide-react";
+import { Plus, Trash2, Camera, Tag, CreditCard, AlertTriangle, Check, User, CalendarDays, Package, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { Modal } from "~/components/ui/Modal";
@@ -462,7 +462,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                 onDone?.(); // Cierra el modal principal
               }}
             >
-              No, volver al panel
+              Salir
             </Button>
             <Button
               className="bg-accent text-white"
