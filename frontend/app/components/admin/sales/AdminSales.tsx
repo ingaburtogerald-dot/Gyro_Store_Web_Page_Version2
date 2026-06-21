@@ -343,7 +343,7 @@ export function AdminSales() {
         <PricingConfigModal open={configOpen} onClose={() => setConfigOpen(false)} initialTab="business" />
       )}
 
-      <Modal open={saleOpen} onClose={() => setSaleOpen(false)} title="Registrar venta" maxWidth="max-w-3xl">
+      <Modal open={saleOpen} onClose={() => setSaleOpen(false)} title="Registrar venta" maxWidth="max-w-3xl" preventOutsideClose={true}>
         <div className="max-h-[80vh] overflow-y-auto pr-1">
           <SaleEditor onDone={() => setSaleOpen(false)} />
         </div>
