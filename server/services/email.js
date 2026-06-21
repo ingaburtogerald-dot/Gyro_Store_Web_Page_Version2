@@ -3,6 +3,19 @@
 // devuelven false sin lanzar (el flujo principal no debe romperse por el email).
 const nodemailer = require('nodemailer');
 const config = require('../config');
+const { db } = require('../firebase');
+
+async function isLocalUser(email) {
+  try {
+    const snap = await db.collection('users').where('email', '==', email).limit(1).get();
+    if (!snap.empty) {
+      return snap.docs[0].data().provider === 'local';
+    }
+  } catch (e) {
+    // ignorar error
+  }
+  return false;
+}
 
 const ROLE_NAMES = {
   global_admin: 'Administrador Global',
@@ -133,7 +146,7 @@ const c$ = (n) => `C$${Math.round(n).toLocaleString('es-NI')}`;
 
 // Venta aprobada → notifica al vendedor con su comisión.
 async function sendSaleApproved({ to, sellerName, products, comision }) {
-  if (!config.email.user) return false;
+  if (!config.email.user || await isLocalUser(to)) return false;
   await createTransport().sendMail({
     from: fromAddress(),
     to,
@@ -157,7 +170,7 @@ async function sendSaleApproved({ to, sellerName, products, comision }) {
 
 // Venta rechazada → notifica al vendedor con el motivo.
 async function sendSaleRejected({ to, sellerName, products, reason }) {
-  if (!config.email.user) return false;
+  if (!config.email.user || await isLocalUser(to)) return false;
   await createTransport().sendMail({
     from: fromAddress(),
     to,
@@ -180,7 +193,7 @@ async function sendSaleRejected({ to, sellerName, products, reason }) {
 
 // Pago realizado → notifica al vendedor, con screenshot del depósito adjunto/visible.
 async function sendPaymentMade({ to, sellerName, amount, screenshotUrl, ventasCount, paymentMethod, noReceiptComment, saldoAplicado }) {
-  if (!config.email.user) return false;
+  if (!config.email.user || await isLocalUser(to)) return false;
 
   const formattedMethod = paymentMethod === 'cash' ? '💵 Efectivo' : '🏦 Depósito';
   const portalUrl = `${config.appUrl}/admin/ventas`;
@@ -265,7 +278,7 @@ async function sendLogisticsAdminAlert({ toEmails, customerName, trackingNumber,
 
 // Notifica al cliente que su paquete cambió de estado.
 async function sendLogisticsStatusEmail({ to, customerName, status, comment }) {
-  if (!config.email.user) return false;
+  if (!config.email.user || await isLocalUser(to)) return false;
   const copy = LOGISTICS_STATUS_COPY[status];
   if (!copy) return false;
   await createTransport().sendMail({

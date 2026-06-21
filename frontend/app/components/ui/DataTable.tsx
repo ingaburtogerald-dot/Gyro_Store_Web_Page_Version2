@@ -85,9 +85,9 @@ export function DataTable<T>({
       {isLoading ? (
         <TableSkeleton rows={6} cols={onRowClick ? columns.length + 1 : columns.length} />
       ) : (
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
+      <div className="overflow-auto max-h-[75vh] rounded-card border border-border bg-surface relative">
         <table className="w-full text-sm">
-          <thead className="table-header-brand text-left">
+          <thead className="table-header-brand text-left sticky top-0 z-20 shadow-sm">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {onRowClick && (
@@ -170,6 +170,20 @@ export function DataTable<T>({
               })
             )}
           </tbody>
+          {table.getFooterGroups().some(fg => fg.headers.some(h => h.column.columnDef.footer)) && (
+            <tfoot className="sticky bottom-0 z-20 bg-background/60 backdrop-blur-md border-t border-white/10 shadow-[0_-5px_20px_rgba(0,0,0,0.25)] font-bold">
+              {table.getFooterGroups().map((fg) => (
+                <tr key={fg.id}>
+                  {onRowClick && <td className="px-3 py-2.5"></td>}
+                  {fg.headers.map((header) => (
+                    <td key={header.id} className="whitespace-nowrap px-3 py-2.5">
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tfoot>
+          )}
         </table>
       </div>
       )}

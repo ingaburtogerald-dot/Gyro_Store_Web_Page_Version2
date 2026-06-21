@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Check, X, Receipt, AlertTriangle, Pencil, Trash2, Plus } from "lucide-react";
+import { Check, X, Receipt, AlertTriangle, Pencil, Trash2, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { Modal } from "~/components/ui/Modal";
+import { DatePicker } from "~/components/ui/DatePicker";
 import { DataTable } from "~/components/ui/DataTable";
 import { SaleEditor } from "./SaleEditor";
 import {
@@ -38,6 +39,7 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
   const [reason, setReason] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
   const [selectedSales, setSelectedSales] = useState<Set<string>>(new Set());
+  const [mixedSellerWarning, setMixedSellerWarning] = useState(false);
 
   async function handleDelete() {
     if (!deleteFor || !deleteReason.trim()) return;
@@ -66,7 +68,8 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
     // Check if all belong to same seller
     const firstSeller = salesToApprove[0].sellerEmail;
     if (salesToApprove.some(s => s.sellerEmail !== firstSeller)) {
-      return toast.error("Todas las ventas a pagar en lote deben pertenecer al mismo vendedor.");
+      setMixedSellerWarning(true);
+      return;
     }
     
     setPayFor(salesToApprove);
@@ -150,6 +153,16 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
         cell: (c) => <span className="font-mono text-xs text-muted-foreground">{c.getValue() !== undefined ? formatCordobas(c.getValue()) : "—"}</span>
       },
       {
+        id: "inversionRecuperada",
+        header: "Inversión recuperada",
+        enableSorting: false,
+        cell: (c) => {
+          const s = c.row.original;
+          const invRecuperada = (s.saleTotal || 0) - (s.totalCostReal || 0);
+          return <span className="font-mono text-xs text-emerald-400">{formatCordobas(invRecuperada)}</span>;
+        }
+      },
+      {
         accessorKey: "totalUtilidadBruta",
         header: "Utilidad bruta",
         enableSorting: false,
@@ -230,22 +243,59 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
     [approving]
   );
 
+  const totals = useMemo(() => {
+    let cant = 0, venta = 0, costo = 0, utilBruta = 0, costosFijos = 0, utilNeta = 0, comision = 0, ganancia = 0;
+    for (const s of pending) {
+      cant += s.items?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0;
+      venta += s.saleTotal || 0;
+      costo += s.totalCostReal || 0;
+      utilBruta += s.totalUtilidadBruta || 0;
+      costosFijos += s.totalCostosFijos || 0;
+      utilNeta += s.totalUtilidadNeta || 0;
+      comision += s.comisionVendedor || 0;
+      ganancia += s.gananciaTienda || 0;
+    }
+    return { cant, venta, costo, utilBruta, costosFijos, utilNeta, comision, ganancia };
+  }, [pending]);
+
   return (
-    <div className="space-y-4 rounded-card border border-border bg-surface p-4">
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-4 rounded-card border border-border bg-surface p-4 relative">
+      <div className="sticky top-0 z-30 flex flex-col lg:flex-row items-start justify-between gap-4 bg-surface pb-2">
         <div>
           <h2 className="text-lg font-bold text-text">Ventas Pendientes de Aprobación</h2>
           <p className="text-xs text-muted">Revisa las transacciones reportadas y audita sus utilidades. Selecciona una fila para editarla o eliminarla.</p>
         </div>
-        {onRegisterSale && (
-          <button
-            onClick={onRegisterSale}
-            className="flex items-center gap-1.5 rounded-lg bg-gradient-accent px-4 py-2 text-sm font-bold text-white transition-all hover:opacity-90 whitespace-nowrap"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Registrar Venta</span>
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {pending.length > 0 && (
+            <div className="flex items-center gap-4 rounded-lg border border-border bg-surface-2 px-4 py-2 text-xs shadow-sm">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-muted uppercase font-bold">Cantidades</span>
+                <span className="text-sm font-semibold text-text">{totals.cant}</span>
+              </div>
+              <div className="flex flex-col border-l border-border pl-4">
+                <span className="text-[10px] text-muted uppercase font-bold">Venta Total</span>
+                <span className="text-sm font-semibold text-text">{formatCordobas(totals.venta)}</span>
+              </div>
+              <div className="flex flex-col border-l border-border pl-4">
+                <span className="text-[10px] text-muted uppercase font-bold">Comisión</span>
+                <span className="text-sm font-semibold text-emerald-400">{formatCordobas(totals.comision)}</span>
+              </div>
+              <div className="flex flex-col border-l border-border pl-4">
+                <span className="text-[10px] text-muted uppercase font-bold">Ganancia</span>
+                <span className="text-sm font-bold text-whatsapp">{formatCordobas(totals.ganancia)}</span>
+              </div>
+            </div>
+          )}
+          {onRegisterSale && (
+            <button
+              onClick={onRegisterSale}
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-accent px-4 py-2 text-sm font-bold text-white transition-all hover:opacity-90 whitespace-nowrap shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)]"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Registrar Venta</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {selectedSales.size > 0 && (
@@ -493,6 +543,25 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
           </div>
         </Modal>
       )}
+
+      {mixedSellerWarning && (
+        <Modal open={true} onClose={() => setMixedSellerWarning(false)} title="Atención" maxWidth="max-w-md">
+          <div className="space-y-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/10 text-rose-500">
+              <AlertTriangle className="h-8 w-8" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-text">Estás mezclando ventas</p>
+              <p className="text-sm text-muted mt-2">
+                Has seleccionado ventas de dos o más vendedores distintos. Para aprobar y registrar el pago, <strong className="text-rose-400">por favor selecciona ventas de un solo vendedor a la vez.</strong>
+              </p>
+            </div>
+            <Button onClick={() => setMixedSellerWarning(false)} className="w-full bg-rose-500 hover:bg-rose-600 text-white">
+              Entendido
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -501,12 +570,13 @@ function ApproveAndPayModal({ sales, onClose, onSuccess, approveAndPayBulk }: { 
   const [method, setMethod] = useState<"cash" | "deposit">("cash");
   const [file, setFile] = useState<File | null>(null);
   const [comment, setComment] = useState("");
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(false);
 
   const { data: balances = {} } = useGetBalancesQuery();
   const totalComision = sales.reduce((sum, s) => sum + (s.comisionVendedor || 0), 0);
   const sellerName = sales[0].sellerName;
-  const saldo = balances[sales[0].sellerEmail]?.balance ?? 0;
+  const saldo = balances[sales[0]?.sellerEmail]?.balance ?? 0;
   const totalAPagar = Math.max(0, Math.round((totalComision + saldo) * 100) / 100);
 
   async function submit(e: React.FormEvent) {
@@ -522,6 +592,7 @@ function ApproveAndPayModal({ sales, onClose, onSuccess, approveAndPayBulk }: { 
       fd.append("paymentMethod", method);
       if (file) fd.append("receipt", file);
       if (comment.trim()) fd.append("noReceiptComment", comment.trim());
+      if (paymentDate) fd.append("paymentDate", paymentDate);
 
       const res = await approveAndPayBulk(fd).unwrap();
       onSuccess(res);
@@ -570,6 +641,15 @@ function ApproveAndPayModal({ sales, onClose, onSuccess, approveAndPayBulk }: { 
         </div>
 
         <div>
+          <label className="mb-1.5 block text-sm font-medium">Fecha de Pago</label>
+          <DatePicker
+            value={paymentDate}
+            onChange={(val) => setPaymentDate(val)}
+            placeholder="Selecciona la fecha de pago"
+          />
+        </div>
+
+        <div>
           <label className="mb-1.5 block text-sm font-medium">Método de Pago</label>
           <div className="grid grid-cols-2 gap-2">
             <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border p-3 text-sm font-medium transition-colors ${method === "cash" ? "border-accent bg-accent/10 text-accent" : "border-border bg-surface hover:bg-surface-2 text-muted"}`}>
@@ -597,17 +677,22 @@ function ApproveAndPayModal({ sales, onClose, onSuccess, approveAndPayBulk }: { 
             <textarea
               className="input w-full"
               rows={2}
+              placeholder="Ej: Pago realizado previamente, venta migrada..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Ej: Se le pagó en efectivo pero no hay factura en este momento..."
-              required={!file}
+              required
             />
           </div>
         )}
 
-        <div className="flex justify-end gap-2 border-t border-border pt-4">
-          <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={loading} className="bg-emerald-500/90 hover:bg-emerald-500">Aprobar y Pagar</Button>
+        <div className="mt-4 flex justify-end gap-3 pt-4 border-t border-border">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={loading} className="bg-emerald-500 hover:bg-emerald-600 text-white">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Aprobar y Pagar
+          </Button>
         </div>
       </form>
     </Modal>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Trash2, Pencil, Plus } from "lucide-react";
+import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { SALE_STATUS_META } from "./saleStatus";
 import { DataTable } from "~/components/ui/DataTable";
@@ -29,20 +29,22 @@ export function AdminSalesHistory({
   totalCount = 0,
   onRegisterSale,
 }: AdminSalesHistoryProps) {
-  const [del, { isLoading: deleting }] = useDeleteSaleMutation();
-  const [deleteFor, setDeleteFor] = useState<Sale | null>(null);
+  const [deleteFor, setDeleteFor] = useState<Sale[] | null>(null);
   const [editFor, setEditFor] = useState<Sale | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
+  const [selectedSales, setSelectedSales] = useState<Set<string>>(new Set());
+  const [del, { isLoading: deleting }] = useDeleteSaleMutation();
 
   async function handleDelete() {
     if (!deleteFor || !deleteReason.trim()) return;
     try {
-      await del({ id: deleteFor.id, reason: deleteReason.trim() }).unwrap();
-      toast.success("Venta eliminada. Stock devuelto si aplica.");
+      await Promise.all(deleteFor.map(s => del({ id: s.id, reason: deleteReason.trim() }).unwrap()));
+      toast.success(deleteFor.length > 1 ? "Ventas eliminadas exitosamente." : "Venta eliminada exitosamente.");
       setDeleteFor(null);
       setDeleteReason("");
+      setSelectedSales(new Set());
     } catch (err: any) {
-      toast.error(err?.data?.error || "No se pudo eliminar la venta.");
+      toast.error(err?.data?.error || "Error al eliminar.");
     }
   }
 
@@ -88,6 +90,15 @@ export function AdminSalesHistory({
         accessorKey: "displayCostReal",
         header: "Costo Real",
         cell: (c) => <span className="font-mono text-xs text-muted-foreground">{formatCordobas(c.getValue())}</span>,
+      },
+      {
+        id: "inversionRecuperada",
+        header: "Inversión Recuperada",
+        cell: (c) => {
+          const s = c.row.original;
+          const invRecuperada = (s.saleTotal || 0) - (s.displayCostReal || 0);
+          return <span className="font-mono text-xs text-emerald-400">{formatCordobas(invRecuperada)}</span>;
+        },
       },
       {
         accessorKey: "displayUtilidadBruta",
@@ -147,94 +158,151 @@ export function AdminSalesHistory({
           );
         },
       },
-      {
-        id: "actions",
-        header: "Acciones",
-        enableSorting: false,
-        cell: (c) => (
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setEditFor(c.row.original)}
-              className="rounded-lg p-1.5 text-muted hover:text-accent hover:bg-surface-hover"
-              title="Editar venta"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setDeleteFor(c.row.original)}
-              className="rounded-lg p-1.5 text-muted hover:text-red-400 hover:bg-red-500/10"
-              title="Eliminar venta"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        ),
-      },
     ],
-    [],
+    []
   );
 
   const finalSales = useMemo(() => {
     return filteredSales.filter((s) => s.status !== "pending_approval" && s.status !== "rejected");
   }, [filteredSales]);
 
+  const totals = useMemo(() => {
+    let venta = 0, comision = 0, ganancia = 0;
+    for (const s of finalSales) {
+      venta += s.saleTotal || 0;
+      comision += s.displayComisionVendedor || s.comisionVendedor || 0;
+      ganancia += s.displayGananciaTienda || s.gananciaTienda || 0;
+    }
+    return { venta, comision, ganancia };
+  }, [finalSales]);
+
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
-      <div className="flex items-center justify-between mb-4 gap-4">
+    <div className="rounded-card border border-border bg-surface p-4 relative">
+      <div className="sticky top-0 z-30 flex flex-col lg:flex-row items-start justify-between gap-4 bg-surface pb-2">
         <h2 className="text-lg font-bold text-text">Desglose Detallado de Transacciones</h2>
-        {onRegisterSale && (
-          <button
-            onClick={onRegisterSale}
-            className="flex items-center gap-1.5 rounded-lg bg-gradient-accent px-4 py-2 text-sm font-bold text-white transition-all hover:opacity-90 whitespace-nowrap"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Registrar Venta</span>
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          {finalSales.length > 0 && (
+            <div className="flex items-center gap-4 rounded-lg border border-border bg-surface-2 px-4 py-2 text-xs shadow-sm">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-muted uppercase font-bold">Venta Total</span>
+                <span className="text-sm font-semibold text-text">{formatCordobas(totals.venta)}</span>
+              </div>
+              <div className="flex flex-col border-l border-border pl-4">
+                <span className="text-[10px] text-muted uppercase font-bold">Comisión</span>
+                <span className="text-sm font-semibold text-emerald-400">{formatCordobas(totals.comision)}</span>
+              </div>
+              <div className="flex flex-col border-l border-border pl-4">
+                <span className="text-[10px] text-muted uppercase font-bold">Ganancia</span>
+                <span className="text-sm font-bold text-whatsapp">{formatCordobas(totals.ganancia)}</span>
+              </div>
+            </div>
+          )}
+          {onPageChange && totalPages > 1 && (
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-surface-2 px-2 py-2 text-xs shadow-sm h-full">
+              <span className="text-muted font-bold px-2 whitespace-nowrap">
+                Pág. {page}/{totalPages}
+              </span>
+              <button
+                onClick={() => onPageChange(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="rounded p-1 text-muted hover:text-text hover:bg-surface-hover disabled:opacity-40 transition-colors"
+                title="Página Anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="rounded p-1 text-muted hover:text-text hover:bg-surface-hover disabled:opacity-40 transition-colors"
+                title="Página Siguiente"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          {onRegisterSale && (
+            <button
+              onClick={onRegisterSale}
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-accent px-4 py-2 text-sm font-bold text-white transition-all hover:opacity-90 whitespace-nowrap shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)]"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Registrar Venta</span>
+            </button>
+          )}
+        </div>
       </div>
+      
+      {selectedSales.size > 0 && (
+        <div className="sticky bottom-0 z-30 mt-4 rounded-card border border-accent/20 bg-accent/5 p-4 shadow-lg backdrop-blur-sm animate-in slide-in-from-bottom-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
+              {selectedSales.size}
+            </span>
+            <span className="text-sm font-semibold text-accent-2">
+              {selectedSales.size === 1 ? "Venta seleccionada" : "Ventas seleccionadas"}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {selectedSales.size === 1 && (
+              <Button variant="outline" size="sm" onClick={() => {
+                const sale = finalSales.find(p => p.id === Array.from(selectedSales)[0]);
+                if (sale) setEditFor(sale);
+              }}>
+                <Pencil className="mr-1.5 h-4 w-4" />
+                Editar
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                const sales = finalSales.filter(p => selectedSales.has(p.id));
+                setDeleteFor(sales);
+              }}
+              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" />
+              Eliminar
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedSales(new Set())}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
       <DataTable
         columns={columns}
         data={finalSales}
         isLoading={isLoading}
         hideSearch={true}
         emptyText="No se encontraron transacciones con los filtros seleccionados."
+        onRowClick={(row) => {
+          setSelectedSales((prev) => {
+            const next = new Set(prev);
+            if (next.has(row.id)) next.delete(row.id);
+            else next.add(row.id);
+            return next;
+          });
+        }}
+        selectedRowIds={selectedSales}
+        onSelectAll={(select) => {
+          if (select) setSelectedSales(new Set(finalSales.map(p => p.id)));
+          else setSelectedSales(new Set());
+        }}
+        allSelected={finalSales.length > 0 && selectedSales.size === finalSales.length}
         initialSorting={[{ id: "createdAt", desc: false }]}
       />
-
-      {onPageChange && totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-muted mt-4 border-t border-border pt-4">
-          <span>
-            Página {page} de {totalPages} (Total: {totalCount} registros)
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => onPageChange(Math.max(1, page - 1))}
-              disabled={page === 1}
-              className="rounded-lg border border-border px-3 py-1.5 disabled:opacity-40 hover:bg-surface-hover transition-colors font-medium text-xs"
-            >
-              Anterior
-            </button>
-            <button
-              onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-              disabled={page === totalPages}
-              className="rounded-lg border border-border px-3 py-1.5 disabled:opacity-40 hover:bg-surface-hover transition-colors font-medium text-xs"
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
-      )}
 
       {deleteFor && (
         <Modal open={!!deleteFor} onClose={() => { setDeleteFor(null); setDeleteReason(""); }} title="Eliminar venta">
           <div className="space-y-4">
             <p className="text-sm text-muted">
-              ¿Eliminar por completo la venta de <strong className="text-text">{deleteFor.sellerName}</strong> por{" "}
-              <strong>{formatCordobas(deleteFor.saleTotal)}</strong>?{" "}
-              {(deleteFor.status === "approved" || deleteFor.status === "paid")
-                ? "Se devolverán al inventario las unidades vendidas."
-                : "Se liberará el stock reservado."}{" "}
-              Esta acción no se puede deshacer.
+              {deleteFor.length === 1 ? (
+                <>¿Eliminar por completo la venta de <strong className="text-text">{deleteFor[0].sellerName}</strong> por <strong>{formatCordobas(deleteFor[0].saleTotal)}</strong>? Se devolverán al inventario las unidades vendidas. Esta acción no se puede deshacer.</>
+              ) : (
+                <>¿Eliminar por completo las <strong>{deleteFor.length} ventas</strong> seleccionadas? Se devolverán al inventario las unidades vendidas de todas ellas. Esta acción no se puede deshacer.</>
+              )}
             </p>
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-muted">Motivo de la eliminación (obligatorio)</span>
@@ -267,7 +335,7 @@ export function AdminSalesHistory({
       {editFor && (
         <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar Venta" maxWidth="max-w-3xl">
           <div className="max-h-[80vh] overflow-y-auto pr-1">
-            <SaleEditor sale={editFor} onDone={() => setEditFor(null)} />
+            <SaleEditor sale={editFor} onDone={() => { setEditFor(null); setSelectedSales(new Set()); }} />
           </div>
         </Modal>
       )}

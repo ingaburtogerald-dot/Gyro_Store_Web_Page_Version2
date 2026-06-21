@@ -166,7 +166,20 @@ export function MigratedInventoryForm({ item, onDone }: { item?: MigratedItem | 
 
       <div className="sm:col-span-2 lg:col-span-3">
         <Field label="Nombre del producto" error={errors.productName?.message}>
-          <input className="input" {...register("productName")} />
+          <Controller
+            control={control}
+            name="productName"
+            render={({ field }) => (
+              <Autocomplete
+                options={Array.from(new Set(existingItems.map((i) => i.productName).filter(Boolean)))}
+                value={field.value || ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                name={field.name}
+                invalid={!!errors.productName}
+              />
+            )}
+          />
         </Field>
       </div>
 

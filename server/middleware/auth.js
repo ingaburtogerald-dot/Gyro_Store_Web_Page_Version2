@@ -65,8 +65,23 @@ async function authenticate(req) {
     try {
       const snap = await db.collection(config.collections.users).where('email', '==', decoded.email.toLowerCase()).limit(1).get();
       if (!snap.empty) {
-        mustChangePassword = snap.docs[0].data().mustChangePassword === true;
-        whatsapp = snap.docs[0].data().whatsapp || '';
+        const docSnap = snap.docs[0];
+        const data = docSnap.data();
+        mustChangePassword = data.mustChangePassword === true;
+        whatsapp = data.whatsapp || '';
+
+        // Sincronizar foto de perfil y nombre de proveedores (Google/Microsoft) a Firestore
+        // para que se vea en el panel de Gestión de Usuarios.
+        const updateData = {};
+        if (decoded.picture && data.photoURL !== decoded.picture) {
+          updateData.photoURL = decoded.picture;
+        }
+        if (decoded.name && data.name !== decoded.name) {
+          updateData.name = decoded.name;
+        }
+        if (Object.keys(updateData).length > 0) {
+          docSnap.ref.update(updateData).catch(() => {});
+        }
       }
     } catch {}
 

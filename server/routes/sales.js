@@ -57,6 +57,9 @@ async function buildLines(items) {
       const m = doc.data();
       const lineTotal = salePrice * quantity;
       const unitCostReal = ((Number(m.costUnit) || 0) + (Number(m.shippingUnit) || 0)) * RATE;
+      if (salePrice < unitCostReal) {
+        throw new Error(`El precio ingresado para el producto migrado "${m.productName}" (C$${salePrice}) no puede estar por debajo de su coste real (C$${Math.round(unitCostReal)}).`);
+      }
       saleTotal += lineTotal;
       hasMigrated = true;
       lines.push({
@@ -802,6 +805,16 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
     return res.status(400).json({ error: 'Debes subir un comprobante o ingresar un comentario que justifique su ausencia.' });
   }
 
+  let baseDate = new Date();
+  let serverDate = FieldValue.serverTimestamp();
+  if (req.body.paymentDate) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(req.body.paymentDate));
+    if (m) {
+      baseDate = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0));
+      serverDate = baseDate;
+    }
+  }
+
   // 1. Obtener todas las ventas y validar que pertenezcan al mismo vendedor y estén pendientes
   const sales = [];
   for (const id of saleIds) {
@@ -894,7 +907,7 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
 
     totalComision += fin.comisionVendedor;
 
-    const approvedDate = new Date();
+    const approvedDate = baseDate;
     const weekOf = getISOWeekString(approvedDate);
     const updatePayload = {
       ...fin,
@@ -905,7 +918,7 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
       totalUtilidadNeta: fin.utilidadNeta,
       items: updatedItems,
       status: 'paid', // Directamente a pagado
-      approvedAt: FieldValue.serverTimestamp(),
+      approvedAt: serverDate,
       approvedBy: req.user.email,
       weekOf,
     };
@@ -948,7 +961,7 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
     receiptUrl,
     noReceiptComment: noReceiptComment ? String(noReceiptComment).trim() : null,
     notifiedVia: isLocal ? 'whatsapp' : 'email',
-    createdAt: FieldValue.serverTimestamp(),
+    createdAt: serverDate,
     createdBy: req.user.email,
   };
 

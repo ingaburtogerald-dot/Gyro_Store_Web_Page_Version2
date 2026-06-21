@@ -208,7 +208,33 @@ export function PaymentHistory({ selectedSeller }: { selectedSeller: string }) {
         </div>
       )}
 
-      <Modal open={!!viewDetail} onClose={() => setViewDetail(null)} title="Detalle de Pago" maxWidth="max-w-2xl">
+      <Modal 
+        open={!!viewDetail} 
+        onClose={() => setViewDetail(null)} 
+        title="Detalle de Pago" 
+        maxWidth="max-w-2xl"
+        headerRight={
+          viewDetail && newDate && newDate !== (viewDetail.createdAt?.split("T")[0] || "") ? (
+            <button
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-1.5 px-3 text-xs font-bold text-white shadow-lg hover:bg-emerald-600 transition-all animate-in fade-in slide-in-from-top-1"
+              disabled={isUpdatingDate}
+              onClick={async () => {
+                if (!viewDetail) return;
+                try {
+                  await updatePaymentDate({ id: viewDetail.id, date: newDate }).unwrap();
+                  toast.success("Fecha actualizada exitosamente.");
+                  setViewDetail(null);
+                } catch (err: any) {
+                  toast.error(err?.data?.error || "Error al actualizar la fecha.");
+                }
+              }}
+            >
+              <Check className="h-4 w-4" />
+              Guardar cambio de fecha
+            </button>
+          ) : null
+        }
+      >
         {viewDetail && (
           <div className="space-y-6">
             <div className="flex items-center justify-between rounded-xl bg-background/50 border border-border p-4">
@@ -235,28 +261,6 @@ export function PaymentHistory({ selectedSeller }: { selectedSeller: string }) {
                         onChange={(val) => setNewDate(val)}
                         disabled={isUpdatingDate}
                       />
-                      {newDate && newDate !== (viewDetail.createdAt?.split("T")[0] || "") && (
-                        <button
-                          className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-1.5 px-3 text-xs font-bold text-white shadow-lg hover:bg-emerald-600 transition-all animate-in fade-in slide-in-from-top-1"
-                          disabled={isUpdatingDate}
-                          onClick={async () => {
-                            if (!viewDetail) return;
-                            try {
-                              await updatePaymentDate({ id: viewDetail.id, date: newDate }).unwrap();
-                              toast.success("Fecha actualizada exitosamente.");
-                              
-                              const [y, m, d] = newDate.split("-").map(Number);
-                              const simulatedDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).toISOString();
-                              setViewDetail({ ...viewDetail, createdAt: simulatedDate });
-                            } catch (err: any) {
-                              toast.error(err?.data?.error || "Error al actualizar la fecha.");
-                            }
-                          }}
-                        >
-                          <Check className="h-4 w-4" />
-                          Guardar cambio de fecha
-                        </button>
-                      )}
                     </div>
                   </li>
                   <li><strong>Aprobado por:</strong> {viewDetail.createdBy}</li>

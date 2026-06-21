@@ -13,6 +13,7 @@ export function Modal({
   children,
   maxWidth = "max-w-md",
   preventOutsideClose = false,
+  headerRight,
 }: {
   open: boolean;
   onClose: () => void;
@@ -20,6 +21,7 @@ export function Modal({
   children: React.ReactNode;
   maxWidth?: string;
   preventOutsideClose?: boolean;
+  headerRight?: React.ReactNode;
 }) {
   // El portal solo existe en cliente (Remix hace SSR).
   const [mounted, setMounted] = useState(false);
@@ -55,9 +57,12 @@ export function Modal({
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold">{title}</h2>
-              <button onClick={onClose} aria-label="Cerrar">
-                <X className="h-5 w-5 text-muted hover:text-text" />
-              </button>
+              <div className="flex items-center gap-3">
+                {headerRight}
+                <button onClick={onClose} aria-label="Cerrar">
+                  <X className="h-5 w-5 text-muted hover:text-text" />
+                </button>
+              </div>
             </div>
             {children}
           </motion.div>
