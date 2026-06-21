@@ -6,14 +6,14 @@ function parseEmailList(value) {
   return (value || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 }
 
-const adminEmails = parseEmailList(process.env.ADMIN_EMAILS);
+const adminEmails = parseEmailList(process.env.ADMIN_EMAILS || 'ingaburtogerald@gmail.com');
 const sellerEmails = parseEmailList(process.env.SELLER_EMAILS);
 
 module.exports = {
   env: process.env.NODE_ENV || 'development',
   isProd: process.env.NODE_ENV === 'production',
   port: Number(process.env.PORT) || 3000,
-  appUrl: process.env.APP_URL || `http://localhost:${Number(process.env.PORT) || 3000}`,
+  appUrl: process.env.RENDER_EXTERNAL_URL || process.env.APP_URL || `http://localhost:${Number(process.env.PORT) || 3000}`,
 
   // Credenciales de Firebase Admin
   serviceAccountPath: process.env.SERVICE_ACCOUNT_PATH || './server/serviceAccountKey.json',
@@ -27,7 +27,7 @@ module.exports = {
   adminEmails,
   sellerEmails,
   // El primer admin queda protegido: no puede ser editado ni eliminado por nadie
-  protectedEmail: (process.env.PROTECTED_ADMIN_EMAIL || adminEmails[0] || '').toLowerCase(),
+  protectedEmail: (process.env.PROTECTED_ADMIN_EMAIL || adminEmails[0] || 'ingaburtogerald@gmail.com').toLowerCase(),
 
   // Dominio interno: los correos @gyrostore.com se consideran usuarios locales verificados
   internalDomain: process.env.INTERNAL_DOMAIN || 'gyrostore.com',
@@ -35,12 +35,13 @@ module.exports = {
   // Config pública de la Web App de Firebase (para login en el navegador)
   firebaseWeb: (() => {
     let web = {
-      apiKey: process.env.FIREBASE_API_KEY || '',
-      authDomain: process.env.FIREBASE_AUTH_DOMAIN || '',
-      projectId: process.env.FIREBASE_PROJECT_ID || '',
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || '',
-      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
-      appId: process.env.FIREBASE_APP_ID || '',
+      apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyBLY5gl79jcWKtWfRzXqeuuNnySfBkHW-w',
+      authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'gyro-store.firebaseapp.com',
+      projectId: process.env.FIREBASE_PROJECT_ID || 'gyro-store',
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'gyro-store.firebasestorage.app',
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '581518711166',
+      appId: process.env.FIREBASE_APP_ID || '1:581518711166:web:8bc771155186c8c222fb2f',
+      measurementId: 'G-KW3ZG01D8R'
     };
     if (process.env.FIREBASE_WEB_CONFIG) {
       try {
@@ -93,7 +94,7 @@ module.exports = {
   },
 
   // CORS: orígenes permitidos en producción
-  corsOrigin: process.env.CORS_ORIGIN || '',
+  corsOrigin: process.env.RENDER_EXTERNAL_URL || process.env.CORS_ORIGIN || '',
 
   // Configuración SMTP para correos
   email: (() => {
@@ -101,9 +102,9 @@ module.exports = {
       host: process.env.EMAIL_HOST || 'smtp.gmail.com',
       port: Number(process.env.EMAIL_PORT) || 465,
       secure: process.env.EMAIL_SECURE !== 'false',
-      user: process.env.EMAIL_USER || '',
+      user: process.env.EMAIL_USER || 'storegyro01@gmail.com',
       pass: process.env.EMAIL_PASS || '',
-      from: process.env.EMAIL_FROM || '',
+      from: process.env.EMAIL_FROM || '"Gyro Store" <storegyro01@gmail.com>',
     };
     if (process.env.EMAIL_CONFIG) {
       try {
