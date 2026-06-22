@@ -6,14 +6,17 @@ import { SALE_STATUS_META } from "./saleStatus";
 import { formatCordobas } from "~/lib/utils";
 import type { Sale } from "~/store/api/salesApi";
 
-export function SaleCard({ sale }: { sale: Sale }) {
+export function SaleCard({ sale, onClick }: { sale: Sale; onClick?: () => void }) {
   const meta = SALE_STATUS_META[sale.status];
   const date = sale.createdAt
     ? new Date(sale.createdAt).toLocaleDateString("es-NI", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
 
   return (
-    <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 transition-colors hover:border-accent-2/40">
+    <div
+      onClick={onClick}
+      className={`flex flex-col gap-3 rounded-card border border-border bg-surface p-4 transition-colors hover:border-accent-2/40${onClick ? " cursor-pointer" : ""}`}
+    >
       <div className="flex items-start justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs text-muted">
           <Calendar className="h-3.5 w-3.5" /> {date}
@@ -60,6 +63,7 @@ export function SaleCard({ sale }: { sale: Sale }) {
           href={sale.receiptPhotoUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
           className="flex items-center gap-1.5 text-xs text-accent-2 hover:underline"
         >
           <ImageIcon className="h-3.5 w-3.5" /> Ver recibo

@@ -3,9 +3,9 @@
 import { useMemo, useState, useEffect } from "react";
 import { CheckCircle2, Coins, Clock, ShoppingBag, Plus, ArrowLeft, Wallet } from "lucide-react";
 import { SaleEditor } from "./SaleEditor";
-import { AvailableInventory } from "./AvailableInventory";
-import { IncomingInventory } from "./IncomingInventory";
+import { SellerInventory } from "./SellerInventory";
 import { SaleCard } from "./SaleCard";
+import { SaleDetailModal } from "./SaleDetailModal";
 import { PaymentCard } from "./PaymentCard";
 import { StatCard } from "~/components/ui/StatCard";
 import {
@@ -17,13 +17,12 @@ import {
 } from "~/store/api/salesApi";
 import { formatCordobas, usdFromCordobas, cn } from "~/lib/utils";
 
-type Tab = "ventas" | "pagos" | "available" | "incoming" | "new";
+type Tab = "ventas" | "pagos" | "inventario" | "new";
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "inventario", label: "Inventario" },
   { id: "ventas", label: "Mis Ventas" },
   { id: "pagos", label: "Pagos" },
-  { id: "available", label: "Inventario" },
-  { id: "incoming", label: "Próximamente" },
 ];
 
 type StatusFilter = "all" | SaleStatus;
@@ -73,7 +72,7 @@ export function SellerSales() {
   const saldo = balance?.saldo ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Encabezado */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -102,7 +101,7 @@ export function SellerSales() {
       {tab !== "new" && (
         <>
           {/* Tarjeta protagonista: el dinero */}
-          <div className="rounded-card border border-whatsapp/30 bg-whatsapp/5 p-5">
+          <div className="order-2 md:order-1 rounded-card border border-whatsapp/30 bg-whatsapp/5 p-5">
             <span className="flex items-center gap-1.5 text-sm text-muted">
               <Wallet className="h-4 w-4 text-whatsapp" /> Comisión por cobrar
             </span>
@@ -129,7 +128,7 @@ export function SellerSales() {
           </div>
 
           {/* KPIs del mes + filtro */}
-          <div className="space-y-4">
+          <div className="order-3 md:order-2 space-y-4">
             <div className="flex justify-end">
               <label className="block w-full sm:w-48">
                 <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
@@ -165,8 +164,8 @@ export function SellerSales() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1 w-full sm:w-fit">
+          {/* Tabs (en móvil suben al inicio con order-1; en desktop quedan en su lugar) */}
+          <div className="order-1 md:order-3 flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1 w-full sm:w-fit">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -183,8 +182,9 @@ export function SellerSales() {
         </>
       )}
 
-      {tab === "available" && <AvailableInventory />}
-      {tab === "incoming" && <IncomingInventory />}
+      {/* Contenido de la pestaña: order-4 para que en móvil quede después de los tabs */}
+      <div className="order-4">
+      {tab === "inventario" && <SellerInventory />}
       {tab === "new" && <SaleEditor />}
 
       {/* Mis Ventas */}
@@ -265,6 +265,7 @@ export function SellerSales() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
