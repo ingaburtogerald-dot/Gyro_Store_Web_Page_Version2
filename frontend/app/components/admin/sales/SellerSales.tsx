@@ -73,7 +73,7 @@ export function SellerSales() {
   const saldo = balance?.saldo ?? 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Encabezado */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -99,10 +99,35 @@ export function SellerSales() {
         )}
       </div>
 
+      {/* Tabs: siempre arriba, justo bajo el encabezado */}
       {tab !== "new" && (
-        <>
+        <div className="flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1 w-full sm:w-fit">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none whitespace-nowrap",
+                tab === t.id ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Inventario: solo la lista, sin dinero/KPIs/FAB */}
+      {tab === "inventario" && <SellerInventory />}
+
+      {/* Nueva venta: al cerrar el formulario vuelve a Mis Ventas */}
+      {tab === "new" && <SaleEditor onDone={() => setTab("ventas")} />}
+
+      {/* Mis Ventas: aquí sí van el dinero, los KPIs y las ventas */}
+      {tab === "ventas" && (
+        <div className="space-y-5 pb-24 sm:pb-0">
           {/* Tarjeta protagonista: el dinero */}
-          <div className="order-2 md:order-1 rounded-card border border-whatsapp/30 bg-whatsapp/5 p-5">
+          <div className="rounded-card border border-whatsapp/30 bg-whatsapp/5 p-5">
             <span className="flex items-center gap-1.5 text-sm text-muted">
               <Wallet className="h-4 w-4 text-whatsapp" /> Comisión por cobrar
             </span>
@@ -128,69 +153,42 @@ export function SellerSales() {
             </div>
           </div>
 
-          {/* KPIs del mes + filtro */}
-          <div className="order-3 md:order-2 space-y-4">
-            <div className="flex justify-end">
-              <label className="block w-full sm:w-48">
-                <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
-                <input
-                  type="month"
-                  className="input"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                />
-              </label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard icon={CheckCircle2} label="Ventas aprobadas" countTo={summary.ventasAprobadas} delay={0} />
-              <StatCard
-                icon={ShoppingBag}
-                label="Total vendido"
-                countTo={summary.totalVendido}
-                format={formatCordobas}
-                sub={usdFromCordobas(summary.totalVendido)}
-                delay={0.05}
+          {/* Filtro de mes + KPIs */}
+          <div className="flex justify-end">
+            <label className="block w-full sm:w-48">
+              <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
+              <input
+                type="month"
+                className="input"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
               />
-              <StatCard
-                icon={Coins}
-                label="Comisión ganada"
-                countTo={summary.comisionGanada}
-                format={formatCordobas}
-                sub={usdFromCordobas(summary.comisionGanada)}
-                color="emerald"
-                delay={0.1}
-              />
-              <StatCard icon={Clock} label="En revisión" countTo={summary.enRevision} color="amber" delay={0.15} />
-            </div>
+            </label>
           </div>
 
-          {/* Tabs (en móvil suben al inicio con order-1; en desktop quedan en su lugar) */}
-          <div className="order-1 md:order-3 flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1 w-full sm:w-fit">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={cn(
-                  "flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none whitespace-nowrap",
-                  tab === t.id ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard icon={CheckCircle2} label="Ventas aprobadas" countTo={summary.ventasAprobadas} delay={0} />
+            <StatCard
+              icon={ShoppingBag}
+              label="Total vendido"
+              countTo={summary.totalVendido}
+              format={formatCordobas}
+              sub={usdFromCordobas(summary.totalVendido)}
+              delay={0.05}
+            />
+            <StatCard
+              icon={Coins}
+              label="Comisión ganada"
+              countTo={summary.comisionGanada}
+              format={formatCordobas}
+              sub={usdFromCordobas(summary.comisionGanada)}
+              color="emerald"
+              delay={0.1}
+            />
+            <StatCard icon={Clock} label="En revisión" countTo={summary.enRevision} color="amber" delay={0.15} />
           </div>
-        </>
-      )}
 
-      {/* Contenido de la pestaña: order-4 para que en móvil quede después de los tabs */}
-      <div className="order-4">
-      {tab === "inventario" && <SellerInventory />}
-      {tab === "new" && <SaleEditor />}
-
-      {/* Mis Ventas */}
-      {tab === "ventas" && (
-        <div className="space-y-4">
+          {/* Chips de estado: filtran las cards de abajo */}
           <div className="flex flex-wrap gap-2">
             {STATUS_CHIPS.map((c) => (
               <button
@@ -248,7 +246,7 @@ export function SellerSales() {
         </div>
       )}
 
-      {/* Pagos recibidos */}
+      {/* Pagos recibidos: solo los pagos, sin tarjeta de comisión por cobrar */}
       {tab === "pagos" && (
         <div className="space-y-4">
           {loadingPayments ? (
@@ -266,10 +264,9 @@ export function SellerSales() {
           )}
         </div>
       )}
-      </div>
 
-      {/* FAB "Nueva Venta" (solo móvil; en desktop está el botón del encabezado) */}
-      {tab !== "new" && (
+      {/* FAB "Nueva Venta": solo en Mis Ventas y solo móvil (en desktop está en el encabezado) */}
+      {tab === "ventas" && (
         <button
           onClick={() => setTab("new")}
           className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-accent text-white shadow-lg shadow-accent/30 transition-transform active:scale-95 sm:hidden"
