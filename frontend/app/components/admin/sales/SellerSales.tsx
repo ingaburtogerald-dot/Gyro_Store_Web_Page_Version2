@@ -42,6 +42,7 @@ export function SellerSales() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   const [page, setPage] = useState(1);
+  const [detailSale, setDetailSale] = useState<Sale | null>(null);
 
   const { data: salesData, isLoading: loadingSales } = useGetSalesPaginatedQuery({
     page,
@@ -90,7 +91,7 @@ export function SellerSales() {
         ) : (
           <button
             onClick={() => setTab("new")}
-            className="inline-flex items-center gap-2 rounded-pill bg-gradient-accent px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="hidden sm:inline-flex items-center gap-2 rounded-pill bg-gradient-accent px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             Nueva Venta
@@ -216,7 +217,7 @@ export function SellerSales() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredSales.map((s: Sale) => (
-                <SaleCard key={s.id} sale={s} />
+                <SaleCard key={s.id} sale={s} onClick={() => setDetailSale(s)} />
               ))}
             </div>
           )}
@@ -266,6 +267,19 @@ export function SellerSales() {
         </div>
       )}
       </div>
+
+      {/* FAB "Nueva Venta" (solo móvil; en desktop está el botón del encabezado) */}
+      {tab !== "new" && (
+        <button
+          onClick={() => setTab("new")}
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-accent text-white shadow-lg shadow-accent/30 transition-transform active:scale-95 sm:hidden"
+          aria-label="Nueva venta"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
+
+      <SaleDetailModal sale={detailSale} onClose={() => setDetailSale(null)} />
     </div>
   );
 }
