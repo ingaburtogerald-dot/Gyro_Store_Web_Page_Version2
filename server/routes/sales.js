@@ -1508,60 +1508,56 @@ router.post('/:id/pay', requireAdmin, upload.single('screenshot'), asyncHandler(
 
 // GET /api/sales/performance — comparativa por vendedor (admin y seller).
 router.get('/performance', requireSeller, asyncHandler(async (req, res) => {
-  const snap = await db.collection(ORDERS).where('type', 'in', ['seller_report', 'admin_report']).get();
-  const bySeller = {};
-  const now = new Date();
-  
-  // Soporte para año y mes dinámicos (query params)
-  const isAllTime = req.query.allTime === 'true';
-  const reqYear = req.query.year ? parseInt(req.query.year, 10) : now.getFullYear();
-  const reqMonth = req.query.month ? parseInt(req.query.month, 10) : now.getMonth();
+  const { year, month, allTime } = req.query;
+  let q = db.collection(ORDERS).where('status', '==', 'approved');
 
+  if (allTime !== 'true') {
+    const d = new Date();
+    const y = year ? Number(year) : d.getFullYear();
+    const m = month !== undefined ? Number(month) : d.getMonth();
+    const start = new Date(Date.UTC(y, m, 1, 0, 0, 0));
+    const end = new Date(Date.UTC(m === 11 ? y + 1 : y, m === 11 ? 0 : m + 1, 1, 0, 0, 0));
+    q = q.where('createdAt', '>=', start).where('createdAt', '<', end);
+  }
+
+  const snap = await q.get();
+  const map = {};
   let companyTotalSales = 0;
 
-  snap.docs.forEach((d) => {
-    const o = d.data();
-    const key = o.sellerEmail;
-    if (!bySeller[key]) {
-      bySeller[key] = {
-        sellerEmail: key,
-        sellerName: o.sellerName || key.split('@')[0],
+  snap.forEach((doc) => {
+    const d = doc.data();
+    const email = d.sellerEmail;
+    if (!map[email]) {
+      map[email] = {
+        sellerEmail: email,
+        sellerName: d.sellerName,
         ventas: 0,
         totalVendido: 0,
         comisiones: 0,
-        comisionPromedio: 0,
       };
     }
-
-    const createdDate = o.createdAt?.toDate?.() || null;
-    if (createdDate && (isAllTime || (createdDate.getFullYear() === reqYear && createdDate.getMonth() === reqMonth))) {
-      if (o.status === 'approved' || o.status === 'paid') {
-        bySeller[key].ventas++;
-        const t = o.saleTotal || o.totalSaleAmount || 0;
-        bySeller[key].totalVendido += t;
-        bySeller[key].comisiones += o.comisionVendedor || 0;
-        companyTotalSales += t;
-      }
-    }
+    map[email].ventas += 1;
+    map[email].totalVendido += d.saleTotal || 0;
+    map[email].comisiones += d.comisionVendedor || 0;
+    
+    companyTotalSales += d.saleTotal || 0;
   });
 
-  let list = Object.values(bySeller).map((s) => {
-    if (s.ventas > 0) {
-      s.comisionPromedio = s.comisiones / s.ventas;
-    }
-    s.totalVendido = Math.round(s.totalVendido * 100) / 100;
-    s.comisiones = Math.round(s.comisiones * 100) / 100;
-    s.comisionPromedio = Math.round(s.comisionPromedio * 100) / 100;
-    return s;
-  });
+  let results = Object.values(map).map((s) => ({
+    ...s,
+    comisionPromedio: s.ventas ? s.comisiones / s.ventas : 0,
+  }));
+
+  // Ordenar de mayor a menor totalVendido
+  results.sort((a, b) => b.totalVendido - a.totalVendido);
 
   if (req.user.role !== 'admin') {
-    list = list.filter((s) => s.sellerEmail === req.user.email);
-    res.json({ data: list, companyTotalSales });
+    results = results.filter((s) => s.sellerEmail === req.user.email);
+    res.json({ data: results, companyTotalSales });
     return;
   }
 
-  res.json({ data: list.sort((a, b) => b.totalVendido - a.totalVendido), companyTotalSales });
+  res.json({ data: results, companyTotalSales });
 }));
 
 module.exports = router;
