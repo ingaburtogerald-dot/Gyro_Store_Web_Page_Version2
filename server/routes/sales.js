@@ -1530,7 +1530,6 @@ router.get('/performance', requireSeller, asyncHandler(async (req, res) => {
         totalVendido: 0,
         comisiones: 0,
         comisionPromedio: 0,
-        ticketPromedio: 0,
       };
     }
 
@@ -1549,12 +1548,10 @@ router.get('/performance', requireSeller, asyncHandler(async (req, res) => {
   let list = Object.values(bySeller).map((s) => {
     if (s.ventas > 0) {
       s.comisionPromedio = s.comisiones / s.ventas;
-      s.ticketPromedio = s.totalVendido / s.ventas;
     }
     s.totalVendido = Math.round(s.totalVendido * 100) / 100;
     s.comisiones = Math.round(s.comisiones * 100) / 100;
     s.comisionPromedio = Math.round(s.comisionPromedio * 100) / 100;
-    s.ticketPromedio = Math.round(s.ticketPromedio * 100) / 100;
     return s;
   });
 

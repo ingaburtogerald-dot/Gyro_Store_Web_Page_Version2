@@ -82,7 +82,6 @@ export interface SellerPerformance {
   totalVendido: number;
   comisiones: number;
   comisionPromedio: number;
-  ticketPromedio: number;
 }
 
 export interface Discount {

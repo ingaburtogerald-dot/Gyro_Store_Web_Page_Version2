@@ -95,10 +95,6 @@ export function SellerPerformanceCard({
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Comisión</p>
               <p className="font-bold text-whatsapp drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]">{formatCordobas(performance.comisiones)}</p>
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Ticket Prom.</p>
-              <p className="font-bold text-text">{formatCordobas(performance.ticketPromedio)}</p>
-            </div>
           </div>
         </div>
       </div>
