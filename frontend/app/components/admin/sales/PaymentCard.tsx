@@ -30,14 +30,18 @@ export function PaymentCard({ payment: p }: { payment: MySellerPayment }) {
       >
         <div className="flex w-full min-w-0 items-center justify-between sm:w-auto sm:flex-1 sm:justify-start sm:gap-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-accent shadow-inner text-sm font-bold text-white">
+          <div className="relative">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-accent text-sm font-bold text-white shadow-inner">
               Tú
             </span>
-            <div className="flex flex-col">
-              <span className="truncate text-sm font-bold text-text">Mi Pago</span>
-              <span className="text-xs text-muted">ID: {p.id.slice(-6).toUpperCase()}</span>
-            </div>
           </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-text">Mi Pago</span>
+            <span className="text-[11px] text-muted">
+              {dayLabel(p.createdAt)} • <span className="font-mono">ID: {p.id.slice(0, 6).toUpperCase()}</span>
+            </span>
+          </div>
+        </div>
 
           <div className="hidden flex-col items-start sm:flex">
             <span className="text-xs text-muted">Fecha</span>
