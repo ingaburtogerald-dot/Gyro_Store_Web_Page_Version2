@@ -1,51 +1,199 @@
-// Tarjeta de un pago recibido por el vendedor (historial de pagos). Da transparencia:
-// cuánto, cuándo, método y comprobante.
-import { Calendar, Banknote, Landmark, ImageIcon } from "lucide-react";
-import { formatCordobas } from "~/lib/utils";
-import type { MySellerPayment } from "~/store/api/salesApi";
+import { useState } from "react";
+import { Receipt, Calendar, Check, ChevronDown, ChevronUp, AlertCircle, Banknote, Landmark } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn, formatCordobas } from "~/lib/utils";
+import { useGetSalesByIdsQuery, type MySellerPayment } from "~/store/api/salesApi";
 
-export function PaymentCard({ payment }: { payment: MySellerPayment }) {
-  const date = payment.createdAt
-    ? new Date(payment.createdAt).toLocaleDateString("es-NI", { day: "2-digit", month: "short", year: "numeric" })
-    : "—";
-  const isCash = payment.paymentMethod === "cash";
+function dayLabel(iso: string | null) {
+  if (!iso) return "Sin fecha";
+  return new Date(iso).toLocaleDateString("es-NI", { day: "numeric", month: "short", year: "numeric" });
+}
+
+export function PaymentCard({ payment: p }: { payment: MySellerPayment }) {
+  const [expanded, setExpanded] = useState(false);
+  const isSettlement = !!p.isSettlement || (p.saleIds?.length === 0 && !!p.saldoAplicado);
+
+  const { data: batchSales = [], isLoading: loadingBatchSales } = useGetSalesByIdsQuery(
+    p.saleIds ?? [],
+    { skip: !expanded || (p.saleIds?.length ?? 0) === 0 }
+  );
 
   return (
-    <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4">
-      <div className="flex items-start justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-xs text-muted">
-          <Calendar className="h-3.5 w-3.5" /> {date}
-        </span>
-        <span className="flex items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 py-1 text-xs font-semibold text-muted">
-          {isCash ? <Banknote className="h-3.5 w-3.5" /> : <Landmark className="h-3.5 w-3.5" />}
-          {isCash ? "Efectivo" : "Depósito"}
-        </span>
-      </div>
+    <div className={cn(
+      "overflow-hidden rounded-xl border transition-all duration-300",
+      expanded ? "border-accent/40 bg-surface-2/80 shadow-[0_4px_20px_rgba(0,0,0,0.3)]" : "border-border bg-surface hover:border-accent/20 hover:bg-surface-2"
+    )}>
+      {/* Cabecera de la fila */}
+      <div 
+        onClick={() => setExpanded(!expanded)}
+        className="flex cursor-pointer items-center justify-between gap-4 p-4"
+      >
+        <div className="flex w-full min-w-0 items-center justify-between sm:w-auto sm:flex-1 sm:justify-start sm:gap-6">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-accent shadow-inner text-sm font-bold text-white">
+              Tú
+            </span>
+            <div className="flex flex-col">
+              <span className="truncate text-sm font-bold text-text">Mi Pago</span>
+              <span className="text-xs text-muted">ID: {p.id.slice(-6).toUpperCase()}</span>
+            </div>
+          </div>
 
-      <div className="flex items-end justify-between">
-        <div>
-          <span className="block text-xs text-muted">
-            {payment.isSettlement ? "Saldo saldado" : `Pago de ${payment.ventasCount} venta${payment.ventasCount === 1 ? "" : "s"}`}
-          </span>
-          {payment.saldoAplicado !== 0 && (
-            <span className="text-xs text-amber-300">Saldo aplicado: {formatCordobas(payment.saldoAplicado)}</span>
-          )}
+          <div className="hidden flex-col items-start sm:flex">
+            <span className="text-xs text-muted">Fecha</span>
+            <span className="text-sm font-medium text-text">{dayLabel(p.createdAt)}</span>
+          </div>
+          
+          <div className="hidden flex-col items-start md:flex">
+            <span className="text-xs text-muted">Método</span>
+            <span className="flex items-center gap-1.5 text-sm font-medium">
+              {p.paymentMethod === "cash" ? "💵 Efectivo" : "🏦 Depósito"}
+              {isSettlement && <span className="ml-1 rounded-pill bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-400">Ajuste</span>}
+            </span>
+          </div>
         </div>
-        <span className="text-xl font-bold text-whatsapp">{formatCordobas(payment.totalComision)}</span>
+
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex flex-col items-end">
+            <span className="text-xs text-muted">Total</span>
+            <span className="text-base font-bold text-whatsapp drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]">
+              {formatCordobas(p.totalComision)}
+            </span>
+          </div>
+          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-muted transition-colors hover:text-text">
+            {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
-      {payment.receiptUrl ? (
-        <a
-          href={payment.receiptUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs text-accent-2 hover:underline"
-        >
-          <ImageIcon className="h-3.5 w-3.5" /> Ver comprobante
-        </a>
-      ) : payment.noReceiptComment ? (
-        <p className="text-xs italic text-muted">Nota: {payment.noReceiptComment}</p>
-      ) : null}
+      {/* Cuerpo Expandible */}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <div className="border-t border-border/50 bg-background/30 p-5">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
+                
+                {/* Detalles y Ventas */}
+                <div className="space-y-6">
+                  {/* Fila de Resumen */}
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <div className="rounded-lg border border-border/50 bg-surface/50 p-3">
+                      <p className="mb-1 text-xs text-muted">Fecha de pago</p>
+                      <p className="text-sm font-semibold text-text">{dayLabel(p.createdAt)}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/50 bg-surface/50 p-3">
+                      <p className="mb-1 text-xs text-muted">Aprobado por</p>
+                      <p className="text-sm font-semibold text-text">{p.createdBy || "Admin"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/50 bg-surface/50 p-3">
+                      <p className="mb-1 text-xs text-muted">Método</p>
+                      <p className="flex items-center gap-1.5 text-sm font-semibold capitalize text-text">
+                        {p.paymentMethod === "cash" ? <Banknote className="h-4 w-4" /> : <Landmark className="h-4 w-4" />}
+                        {p.paymentMethod === "cash" ? "Efectivo" : "Depósito"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/50 bg-surface/50 p-3">
+                      <p className="mb-1 text-xs text-muted">Ventas incluidas</p>
+                      <p className="text-sm font-semibold text-text">{p.ventasCount || 0}</p>
+                    </div>
+                  </div>
+
+                  {/* Ajustes de saldo */}
+                  {!!p.saldoAplicado && (
+                    <div className={cn(
+                      "flex items-center justify-between rounded-lg border p-3 text-sm",
+                      p.saldoAplicado > 0 ? "border-emerald-500/30 bg-emerald-500/10" : "border-rose-500/30 bg-rose-500/10"
+                    )}>
+                      <div>
+                        <span className="font-semibold text-text">Nota de ajuste de saldo incluido en este pago.</span>
+                      </div>
+                      <div className={cn("font-bold", p.saldoAplicado > 0 ? "text-emerald-400" : "text-rose-400")}>
+                        Saldo {p.saldoAplicado > 0 ? "a favor" : "en contra"}: {p.saldoAplicado > 0 ? "+" : "−"}{formatCordobas(Math.abs(p.saldoAplicado))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lista de ventas incluidas */}
+                  {p.ventasCount === 0 ? (
+                    <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+                      <AlertCircle className="h-4 w-4" /> Este es un <strong>ajuste de saldo</strong>, no incluye ventas.
+                    </div>
+                  ) : (
+                    <div>
+                      <h4 className="mb-3 text-sm font-bold text-text">Desglose de Ventas</h4>
+                      {loadingBatchSales ? (
+                        <div className="flex items-center justify-center p-4">
+                          <span className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          {(p.saleIds || []).map((id) => {
+                            const sale = batchSales.find((s) => s.id === id);
+                            if (!sale) return (
+                              <div key={id} className="flex items-center justify-between rounded-lg border border-border bg-surface-2 p-3 text-xs text-muted">
+                                <span className="font-mono">{id}</span>
+                                <span className="italic">Venta archivada o no disponible</span>
+                              </div>
+                            );
+
+                            return (
+                              <div key={id} className="flex flex-col gap-3 rounded-lg border border-border/60 bg-surface/40 p-3 transition-colors hover:border-accent/30 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <div className="mb-0.5 text-xs text-muted">{sale.createdAt ? new Date(sale.createdAt).toLocaleDateString("es-NI") : "—"}</div>
+                                  <p className="text-sm font-medium text-text">
+                                    {sale.items?.map((i: any) => `${i.quantity}x ${i.name}`).join(", ") || "Venta Migrada"}
+                                  </p>
+                                  {sale.saleOrigin === "migrated" && (
+                                    <span className="mt-1 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">Migrada</span>
+                                  )}
+                                </div>
+                                <div className="flex gap-4 sm:flex-col sm:items-end sm:gap-0">
+                                  <div className="text-right">
+                                    <span className="mr-1 inline text-[10px] text-muted sm:hidden">Venta:</span>
+                                    <span className="text-sm font-medium text-text">{formatCordobas(sale.saleTotal)}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="mr-1 inline text-[10px] text-muted sm:hidden">Comisión:</span>
+                                    <span className="text-sm font-bold text-whatsapp">{formatCordobas(sale.comisionVendedor ?? 0)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Comprobante */}
+                <div className="flex flex-col">
+                  <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-text"><Receipt className="h-4 w-4" /> Comprobante</h4>
+                  {p.receiptUrl ? (
+                    <div className="group relative flex flex-1 items-center justify-center overflow-hidden rounded-xl border border-border bg-surface p-2 min-h-[200px]">
+                      <img src={p.receiptUrl} alt="Comprobante" className="h-full w-full object-contain" />
+                      <a href={p.receiptUrl} target="_blank" rel="noreferrer" className="absolute inset-0 flex items-center justify-center bg-black/60 font-semibold text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                        Abrir imagen original
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-rose-500/30 bg-rose-500/5 p-6 text-center">
+                      <p className="mb-1 text-sm font-bold text-rose-400">Sin comprobante</p>
+                      <p className="text-xs italic text-muted">"{p.noReceiptComment || "Sin justificación"}"</p>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

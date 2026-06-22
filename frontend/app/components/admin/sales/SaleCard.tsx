@@ -15,7 +15,7 @@ export function SaleCard({ sale, onClick }: { sale: Sale; onClick?: () => void }
   return (
     <div
       onClick={onClick}
-      className={`flex flex-col gap-3 rounded-card border border-border bg-surface p-4 transition-colors hover:border-accent-2/40${onClick ? " cursor-pointer" : ""}`}
+      className={`flex min-w-0 flex-col gap-3 overflow-hidden rounded-card border border-border bg-surface p-4 transition-colors hover:border-accent-2/40${onClick ? " cursor-pointer" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs text-muted">
@@ -27,9 +27,9 @@ export function SaleCard({ sale, onClick }: { sale: Sale; onClick?: () => void }
       <div className="space-y-1.5">
         {sale.items?.map((it, idx) => (
           <div key={idx} className="flex items-center justify-between gap-2 text-sm">
-            <span className="flex min-w-0 items-center gap-2">
+            <span className="flex min-w-0 flex-1 items-center gap-2">
               <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-muted">{it.quantity}×</span>
-              <span className="truncate">{it.name}</span>
+              <span className="min-w-0 flex-1 truncate">{it.name}</span>
             </span>
             <span className="shrink-0 text-muted">{formatCordobas(it.lineTotal ?? it.salePrice * it.quantity)}</span>
           </div>

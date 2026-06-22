@@ -153,19 +153,7 @@ export function SellerSales() {
             </div>
           </div>
 
-          {/* Filtro de mes + KPIs */}
-          <div className="flex justify-end">
-            <label className="block w-full sm:w-48">
-              <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
-              <input
-                type="month"
-                className="input"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-              />
-            </label>
-          </div>
-
+          {/* KPIs del mes */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatCard icon={CheckCircle2} label="Ventas aprobadas" countTo={summary.ventasAprobadas} delay={0} />
             <StatCard
@@ -204,6 +192,19 @@ export function SellerSales() {
                 {c.label}
               </button>
             ))}
+          </div>
+
+          {/* Filtro de mes: justo encima de las cards */}
+          <div className="flex justify-end">
+            <label className="block w-full sm:w-48">
+              <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
+              <input
+                type="month"
+                className="input"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+              />
+            </label>
           </div>
 
           {loadingSales ? (

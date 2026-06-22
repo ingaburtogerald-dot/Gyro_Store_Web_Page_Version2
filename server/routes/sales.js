@@ -411,10 +411,12 @@ router.get('/my-payments', requireSeller, asyncHandler(async (req, res) => {
       saldoAplicado: p.saldoAplicado || 0,
       isSettlement: p.isSettlement === true,
       ventasCount: Array.isArray(p.saleIds) ? p.saleIds.length : 0,
+      saleIds: Array.isArray(p.saleIds) ? p.saleIds : [],
       paymentMethod: p.paymentMethod || 'cash',
       receiptUrl: p.receiptUrl || null,
       noReceiptComment: p.noReceiptComment || null,
       createdAt: p.createdAt?.toDate?.()?.toISOString() || null,
+      createdBy: p.createdBy || 'Sistema',
     };
   });
 

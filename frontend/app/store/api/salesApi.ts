@@ -118,10 +118,12 @@ export interface MySellerPayment {
   saldoAplicado: number;
   isSettlement: boolean;
   ventasCount: number;
+  saleIds: string[];
   paymentMethod: "cash" | "deposit";
   receiptUrl: string | null;
   noReceiptComment: string | null;
   createdAt: string | null;
+  createdBy?: string;
 }
 
 export interface WeeklyPaymentGroup {
