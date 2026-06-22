@@ -15,7 +15,7 @@ export function SaleCard({ sale, onClick }: { sale: Sale; onClick?: () => void }
   return (
     <div
       onClick={onClick}
-      className={`flex min-w-0 flex-col gap-3 overflow-hidden rounded-card border border-border bg-surface p-4 transition-colors hover:border-accent-2/40${onClick ? " cursor-pointer" : ""}`}
+      className={`flex min-w-0 flex-col gap-3 overflow-hidden rounded-card border border-border bg-surface p-4 transition-all duration-200 hover:border-accent-2/40${onClick ? " cursor-pointer hover:-translate-y-0.5 active:scale-[0.99]" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs text-muted">

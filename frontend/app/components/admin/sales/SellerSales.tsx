@@ -107,37 +107,48 @@ export function SellerSales() {
         )}
       </div>
 
-      {/* Tabs: siempre arriba, justo bajo el encabezado */}
-      {tab !== "new" && (
-        <div className="flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1 w-full sm:w-fit">
-          {TABS.map((t) => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={cn(
-                  "relative flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none whitespace-nowrap",
-                  active ? "text-white" : "text-muted hover:text-text",
-                )}
-              >
-                {active &&
-                  (reduce ? (
-                    <span className="absolute inset-0 rounded-pill bg-gradient-accent" />
-                  ) : (
-                    <motion.span
-                      layoutId="sellerTabIndicator"
-                      className="absolute inset-0 rounded-pill bg-gradient-accent"
-                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                    />
-                  ))}
-                <span className="relative z-10">{t.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {/* Filtro de mes: ahora es global para todas las pestañas */}
+      <div className="flex flex-wrap items-center justify-between gap-4 w-full">
+        {/* Tabs */}
+        {tab !== "new" && (
+          <div className="flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1 w-full sm:w-fit">
+            {TABS.map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    "relative flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none whitespace-nowrap",
+                    active ? "text-white" : "text-muted hover:text-text",
+                  )}
+                >
+                  {active &&
+                    (reduce ? (
+                      <span className="absolute inset-0 rounded-pill bg-gradient-accent" />
+                    ) : (
+                      <motion.span
+                        layoutId="sellerTabIndicator"
+                        className="absolute inset-0 rounded-pill bg-gradient-accent"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    ))}
+                  <span className="relative z-10">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
+        {/* Month Picker */}
+        {tab !== "new" && tab !== "inventario" && (
+          <div className="w-full sm:w-56">
+            <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+          </div>
+        )}
+      </div>
+
+      <TabPanel id={tab}>
       {/* Inventario: solo la lista, sin dinero/KPIs/FAB */}
       {tab === "inventario" && <SellerInventory />}
 
@@ -147,13 +158,6 @@ export function SellerSales() {
       {/* Mis Ventas: aquí sí van el dinero, los KPIs y las ventas */}
       {tab === "ventas" && (
         <div className="space-y-5 pb-24 sm:pb-0">
-          {/* Filtro de mes: justo después de las tabs, arriba de todo */}
-          <div className="flex justify-end">
-            <label className="block w-full sm:w-56">
-              <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
-              <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-            </label>
-          </div>
 
           {/* Tarjeta protagonista: el dinero */}
           <div className="rounded-card border border-whatsapp/30 bg-whatsapp/5 p-5">
@@ -296,6 +300,7 @@ export function SellerSales() {
           )}
         </div>
       )}
+      </TabPanel>
 
       {/* FAB "Nueva Venta": solo en Mis Ventas y solo móvil (en desktop está en el encabezado) */}
       {tab === "ventas" && (
