@@ -1,49 +1,46 @@
-// Tabla comparativa de performance por vendedor.
+// Panel comparativo de performance por vendedor.
 import { useMemo } from "react";
-import { type ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "~/components/ui/DataTable";
-import { useGetPerformanceQuery, type SellerPerformance } from "~/store/api/salesApi";
-import { formatCordobas } from "~/lib/utils";
+import { useGetPerformanceQuery } from "~/store/api/salesApi";
+import { SellerPerformanceCard } from "./SellerPerformanceCard";
 
 export function SalesPerformance({ selectedMonth }: { selectedMonth: string }) {
   const isAll = selectedMonth === "all";
   const [y, m] = isAll ? [0, 0] : selectedMonth.split("-").map(Number);
-  const { data = [], isLoading } = useGetPerformanceQuery(isAll ? { allTime: true } : { year: y, month: m - 1 });
+  const { data: queryData, isLoading } = useGetPerformanceQuery(isAll ? { allTime: true } : { year: y, month: m - 1 });
+  
+  const data = queryData?.data || [];
+  const companyTotalSales = queryData?.companyTotalSales || 0;
 
-  const columns = useMemo<ColumnDef<SellerPerformance, any>[]>(
-    () => [
-      { accessorKey: "sellerName", header: "Vendedor" },
-      { accessorKey: "ventas", header: "Ventas (mes)" },
-      { accessorKey: "totalVendido", header: "Total vendido", cell: (c) => formatCordobas(c.getValue()) },
-      {
-        accessorKey: "comisiones",
-        header: "Comisión total",
-        cell: (c) => <span className="font-semibold text-emerald-400">{formatCordobas(c.getValue())}</span>,
-      },
-      {
-        accessorKey: "comisionPromedio",
-        header: "Comisión promedio",
-        cell: (c) => <span className="font-mono text-xs text-muted-foreground">{formatCordobas(c.getValue())}</span>,
-      },
-      {
-        accessorKey: "ticketPromedio",
-        header: "Ticket promedio",
-        cell: (c) => <span className="font-bold text-whatsapp">{formatCordobas(c.getValue())}</span>,
-      },
-    ],
-    [],
-  );
+  // Ordenar de mayor a menor por Total Vendido
+  const sortedData = useMemo(() => {
+    return [...data].sort((a, b) => b.totalVendido - a.totalVendido);
+  }, [data]);
 
   if (isLoading) return <div className="h-40 animate-pulse rounded-card border border-border bg-surface" />;
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4 space-y-4">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-text">Desempeño de Vendedores</h2>
-        <p className="text-xs text-muted">Comparativa acumulada para el mes actual.</p>
+        <h2 className="text-xl font-bold text-text">Desempeño de Vendedores</h2>
+        <p className="text-sm text-muted">Comparativa del volumen de ventas y comisiones para el mes actual.</p>
       </div>
-      <DataTable columns={columns} data={data} searchPlaceholder="Buscar vendedor…" emptyText="Sin datos de ventas." />
+      
+      {sortedData.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border py-16 text-center text-muted">
+          No hay datos de rendimiento para el período seleccionado.
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {sortedData.map((performance, index) => (
+            <SellerPerformanceCard 
+              key={performance.sellerEmail} 
+              performance={performance}
+              companyTotalSales={companyTotalSales}
+              rank={index + 1}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-

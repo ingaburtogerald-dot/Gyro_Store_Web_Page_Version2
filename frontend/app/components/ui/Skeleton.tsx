@@ -28,6 +28,27 @@ export function TableSkeleton({ rows = 6, cols = 5 }: { rows?: number; cols?: nu
   );
 }
 
+// Grilla de tarjetas fantasma (para listas de ventas / pagos en el portal del vendedor).
+export function CardGridSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="space-y-3 rounded-card border border-border bg-surface p-4">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-5 w-16 rounded-pill" />
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <div className="flex items-center justify-between border-t border-border pt-3">
+            <Skeleton className="h-7 w-20" />
+            <Skeleton className="h-7 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Grilla de KPIs fantasma.
 export function StatCardSkeleton({ count = 4 }: { count?: number }) {
   return (

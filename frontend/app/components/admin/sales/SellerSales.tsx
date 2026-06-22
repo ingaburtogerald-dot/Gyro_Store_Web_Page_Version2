@@ -1,6 +1,7 @@
 // Portal del vendedor (mobile-first): estado de su dinero arriba, KPIs, y sus ventas /
 // pagos en tarjetas (no tablas). Solo ve datos propios y no confidenciales.
 import { useMemo, useState, useEffect } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { CheckCircle2, Coins, Clock, ShoppingBag, Plus, ArrowLeft, Wallet } from "lucide-react";
 import { SaleEditor } from "./SaleEditor";
 import { SellerInventory } from "./SellerInventory";
@@ -8,21 +9,27 @@ import { SaleCard } from "./SaleCard";
 import { SaleDetailModal } from "./SaleDetailModal";
 import { PaymentCard } from "./PaymentCard";
 import { StatCard } from "~/components/ui/StatCard";
+import { MonthPicker } from "~/components/ui/MonthPicker";
+import { StaggerList, StaggerItem, TabPanel } from "~/components/ui/Motion";
+import { CardGridSkeleton } from "~/components/ui/Skeleton";
 import {
   useGetSalesPaginatedQuery,
   useGetMyBalanceQuery,
   useGetMyPaymentsQuery,
+  useGetPerformanceQuery,
   type Sale,
   type SaleStatus,
 } from "~/store/api/salesApi";
+import { SellerPerformanceCard } from "./SellerPerformanceCard";
 import { formatCordobas, usdFromCordobas, cn } from "~/lib/utils";
 
-type Tab = "ventas" | "pagos" | "inventario" | "new";
+type Tab = "ventas" | "pagos" | "inventario" | "new" | "desempeno";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "inventario", label: "Inventario" },
   { id: "ventas", label: "Mis Ventas" },
   { id: "pagos", label: "Pagos" },
+  { id: "desempeno", label: "Desempeño" },
 ];
 
 type StatusFilter = "all" | SaleStatus;
@@ -71,6 +78,7 @@ export function SellerSales() {
   };
 
   const saldo = balance?.saldo ?? 0;
+  const reduce = useReducedMotion();
 
   return (
     <div className="flex flex-col gap-5">
@@ -102,18 +110,31 @@ export function SellerSales() {
       {/* Tabs: siempre arriba, justo bajo el encabezado */}
       {tab !== "new" && (
         <div className="flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1 w-full sm:w-fit">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none whitespace-nowrap",
-                tab === t.id ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "relative flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none whitespace-nowrap",
+                  active ? "text-white" : "text-muted hover:text-text",
+                )}
+              >
+                {active &&
+                  (reduce ? (
+                    <span className="absolute inset-0 rounded-pill bg-gradient-accent" />
+                  ) : (
+                    <motion.span
+                      layoutId="sellerTabIndicator"
+                      className="absolute inset-0 rounded-pill bg-gradient-accent"
+                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                    />
+                  ))}
+                <span className="relative z-10">{t.label}</span>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -126,6 +147,14 @@ export function SellerSales() {
       {/* Mis Ventas: aquí sí van el dinero, los KPIs y las ventas */}
       {tab === "ventas" && (
         <div className="space-y-5 pb-24 sm:pb-0">
+          {/* Filtro de mes: justo después de las tabs, arriba de todo */}
+          <div className="flex justify-end">
+            <label className="block w-full sm:w-56">
+              <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
+              <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+            </label>
+          </div>
+
           {/* Tarjeta protagonista: el dinero */}
           <div className="rounded-card border border-whatsapp/30 bg-whatsapp/5 p-5">
             <span className="flex items-center gap-1.5 text-sm text-muted">
@@ -178,47 +207,47 @@ export function SellerSales() {
 
           {/* Chips de estado: filtran las cards de abajo */}
           <div className="flex flex-wrap gap-2">
-            {STATUS_CHIPS.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setStatusFilter(c.id)}
-                className={cn(
-                  "rounded-pill border px-3 py-1.5 text-xs font-semibold transition-colors",
-                  statusFilter === c.id
-                    ? "border-accent-2 bg-accent-2/10 text-accent-2"
-                    : "border-border text-muted hover:text-text",
-                )}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Filtro de mes: justo encima de las cards */}
-          <div className="flex justify-end">
-            <label className="block w-full sm:w-48">
-              <span className="mb-1 block text-xs text-muted">Filtrar por Mes</span>
-              <input
-                type="month"
-                className="input"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-              />
-            </label>
+            {STATUS_CHIPS.map((c) => {
+              const active = statusFilter === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setStatusFilter(c.id)}
+                  className={cn(
+                    "relative rounded-pill border px-3 py-1.5 text-xs font-semibold transition-colors",
+                    active ? "border-accent-2 text-accent-2" : "border-border text-muted hover:text-text",
+                  )}
+                >
+                  {active &&
+                    (reduce ? (
+                      <span className="absolute inset-0 rounded-pill bg-accent-2/10" />
+                    ) : (
+                      <motion.span
+                        layoutId="sellerStatusChip"
+                        className="absolute inset-0 rounded-pill bg-accent-2/10"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    ))}
+                  <span className="relative z-10">{c.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {loadingSales ? (
-            <p className="py-10 text-center text-sm text-muted">Cargando tus ventas…</p>
+            <CardGridSkeleton count={6} />
           ) : filteredSales.length === 0 ? (
             <p className="rounded-card border border-border bg-surface py-10 text-center text-sm text-muted">
               No tienes ventas {statusFilter !== "all" ? "con este estado " : ""}para este mes.
             </p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <StaggerList key={statusFilter} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredSales.map((s: Sale) => (
-                <SaleCard key={s.id} sale={s} onClick={() => setDetailSale(s)} />
+                <StaggerItem key={s.id}>
+                  <SaleCard sale={s} onClick={() => setDetailSale(s)} />
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerList>
           )}
 
           {salesData && salesData.totalPages > 1 && (
@@ -251,17 +280,19 @@ export function SellerSales() {
       {tab === "pagos" && (
         <div className="space-y-4">
           {loadingPayments ? (
-            <p className="py-10 text-center text-sm text-muted">Cargando tus pagos…</p>
+            <CardGridSkeleton count={4} />
           ) : payments.length === 0 ? (
             <p className="rounded-card border border-border bg-surface py-10 text-center text-sm text-muted">
               Aún no has recibido pagos.
             </p>
           ) : (
-            <div className="flex flex-col gap-2">
+            <StaggerList className="flex flex-col gap-2">
               {payments.map((p) => (
-                <PaymentCard key={p.id} payment={p} />
+                <StaggerItem key={p.id}>
+                  <PaymentCard payment={p} />
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerList>
           )}
         </div>
       )}
@@ -277,7 +308,44 @@ export function SellerSales() {
         </button>
       )}
 
+      {/* Desempeño: Tarjeta estilo leaderboard para el vendedor */}
+      {tab === "desempeno" && (
+        <div className="space-y-4">
+          <SellerPerformanceSection selectedMonth={selectedMonth} />
+        </div>
+      )}
+
       <SaleDetailModal sale={detailSale} onClose={() => setDetailSale(null)} />
+    </div>
+  );
+}
+
+// Sub-componente para evitar re-renders en toda la vista de ventas
+function SellerPerformanceSection({ selectedMonth }: { selectedMonth: string }) {
+  const isAll = selectedMonth === "all";
+  const [y, m] = isAll ? [0, 0] : selectedMonth.split("-").map(Number);
+  const { data: queryData, isLoading } = useGetPerformanceQuery(isAll ? { allTime: true } : { year: y, month: m - 1 });
+
+  if (isLoading) return <div className="h-40 animate-pulse rounded-card border border-border bg-surface" />;
+
+  const myPerformance = queryData?.data?.[0];
+  const companyTotalSales = queryData?.companyTotalSales || 0;
+
+  if (!myPerformance) {
+    return (
+      <div className="rounded-card border border-border bg-surface py-10 text-center text-sm text-muted">
+        No hay datos de desempeño disponibles para este período.
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-md mx-auto sm:max-w-none">
+      <SellerPerformanceCard 
+        performance={myPerformance} 
+        companyTotalSales={companyTotalSales} 
+        isSellerView={true} 
+      />
     </div>
   );
 }

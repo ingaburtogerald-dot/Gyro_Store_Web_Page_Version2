@@ -14,6 +14,7 @@ import { AdminSalesHistory } from "./AdminSalesHistory";
 import { StatCard } from "~/components/ui/StatCard";
 import { AnimatedTabs } from "~/components/ui/AnimatedTabs";
 import { DatePicker } from "~/components/ui/DatePicker";
+import { MonthPicker } from "~/components/ui/MonthPicker";
 import { useGetSalesPaginatedQuery } from "~/store/api/salesApi";
 import { useGetUsersQuery } from "~/store/api/usersApi";
 import { formatCordobas, usdFromCordobas } from "~/lib/utils";
@@ -230,11 +231,10 @@ export function AdminSales() {
                       placeholder="Seleccionar fecha"
                     />
                   ) : (
-                    <input
-                      type="month"
-                      className="input py-2 text-sm"
+                    <MonthPicker
                       value={selectedDate === "all" || selectedDate.length > 7 ? "" : selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value || "all")}
+                      onChange={(val) => setSelectedDate(val || "all")}
+                      placeholder="Seleccionar mes"
                     />
                   )}
                 </div>

@@ -1506,8 +1506,8 @@ router.post('/:id/pay', requireAdmin, upload.single('screenshot'), asyncHandler(
   res.json({ ok: true });
 }));
 
-// GET /api/sales/performance — comparativa por vendedor (admin).
-router.get('/performance', requireAdmin, asyncHandler(async (req, res) => {
+// GET /api/sales/performance — comparativa por vendedor (admin y seller).
+router.get('/performance', requireSeller, asyncHandler(async (req, res) => {
   const snap = await db.collection(ORDERS).where('type', 'in', ['seller_report', 'admin_report']).get();
   const bySeller = {};
   const now = new Date();
@@ -1516,6 +1516,8 @@ router.get('/performance', requireAdmin, asyncHandler(async (req, res) => {
   const isAllTime = req.query.allTime === 'true';
   const reqYear = req.query.year ? parseInt(req.query.year, 10) : now.getFullYear();
   const reqMonth = req.query.month ? parseInt(req.query.month, 10) : now.getMonth();
+
+  let companyTotalSales = 0;
 
   snap.docs.forEach((d) => {
     const o = d.data();
@@ -1536,13 +1538,15 @@ router.get('/performance', requireAdmin, asyncHandler(async (req, res) => {
     if (createdDate && (isAllTime || (createdDate.getFullYear() === reqYear && createdDate.getMonth() === reqMonth))) {
       if (o.status === 'approved' || o.status === 'paid') {
         bySeller[key].ventas++;
-        bySeller[key].totalVendido += o.saleTotal || o.totalSaleAmount || 0;
+        const t = o.saleTotal || o.totalSaleAmount || 0;
+        bySeller[key].totalVendido += t;
         bySeller[key].comisiones += o.comisionVendedor || 0;
+        companyTotalSales += t;
       }
     }
   });
 
-  const list = Object.values(bySeller).map((s) => {
+  let list = Object.values(bySeller).map((s) => {
     if (s.ventas > 0) {
       s.comisionPromedio = s.comisiones / s.ventas;
       s.ticketPromedio = s.totalVendido / s.ventas;
@@ -1554,9 +1558,13 @@ router.get('/performance', requireAdmin, asyncHandler(async (req, res) => {
     return s;
   });
 
-  res.json(list.sort((a, b) => b.totalVendido - a.totalVendido));
+  if (req.user.role !== 'admin') {
+    list = list.filter((s) => s.sellerEmail === req.user.email);
+    res.json({ data: list, companyTotalSales });
+    return;
+  }
+
+  res.json({ data: list.sort((a, b) => b.totalVendido - a.totalVendido), companyTotalSales });
 }));
 
 module.exports = router;
-
-

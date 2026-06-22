@@ -228,7 +228,7 @@ export const salesApi = baseApi.injectEndpoints({
       }),
       providesTags: ["Order"],
     }),
-    getPerformance: build.query<SellerPerformance[], { year?: number; month?: number; allTime?: boolean } | void>({
+    getPerformance: build.query<{ data: SellerPerformance[]; companyTotalSales: number }, { year?: number; month?: number; allTime?: boolean } | void>({
       query: (arg) => {
         if (arg && typeof arg === "object") {
           return {
