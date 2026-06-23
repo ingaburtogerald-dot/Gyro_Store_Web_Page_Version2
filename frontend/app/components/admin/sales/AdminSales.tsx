@@ -13,8 +13,7 @@ import { Modal } from "~/components/ui/Modal";
 import { AdminSalesHistory } from "./AdminSalesHistory";
 import { StatCard } from "~/components/ui/StatCard";
 import { AnimatedTabs } from "~/components/ui/AnimatedTabs";
-import { DatePicker } from "~/components/ui/DatePicker";
-import { MonthPicker } from "~/components/ui/MonthPicker";
+import { UnifiedDatePicker } from "~/components/ui/UnifiedDatePicker";
 import { useGetSalesPaginatedQuery } from "~/store/api/salesApi";
 import { useGetUsersQuery } from "~/store/api/usersApi";
 import { formatCordobas, usdFromCordobas } from "~/lib/utils";
@@ -70,15 +69,6 @@ export function AdminSales() {
   const [selectedDate, setSelectedDate] = useState(() => {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem("adminSales_selectedDate") || "all";
-    }
-    return "all";
-  });
-
-  const [dateFilterType, setDateFilterType] = useState<"all" | "day" | "month">(() => {
-    if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("adminSales_selectedDate") || "all";
-      if (saved === "all") return "all";
-      if (saved !== "all" && saved.length === 7) return "month";
     }
     return "all";
   });
@@ -192,58 +182,23 @@ export function AdminSales() {
       {/* Panel de KPIs y Filtros — solo en Ventas / Reportería (no en Inventario) */}
       {section !== "inventory" && (
       <div className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-4 rounded-card border border-border bg-surface p-4">
+        <div className="glass flex flex-wrap items-center justify-between gap-4 rounded-card p-4">
           <div>
             <h2 className="text-base font-semibold text-text">Filtros del Historial</h2>
-            <p className="text-xs text-muted">Ajusta los criterios de búsqueda para auditar las ventas.</p>
+            <p className="text-xs text-muted">Ajusta los criterios para auditar las ventas.</p>
           </div>
           <div className="flex flex-wrap items-end gap-3 w-full sm:w-auto">
-            {/* Tipo de Filtro de Fecha */}
-            <label className="block w-full sm:w-36">
+            {/* Selector unificado de fecha (mes o día en un solo picker) */}
+            <div className="block w-full sm:w-52">
               <span className="mb-1 block text-xs text-muted">Período de Tiempo</span>
-              <select
-                className="input py-2 text-xs"
-                value={dateFilterType}
-                onChange={(e) => {
-                  const val = e.target.value as "all" | "day" | "month";
-                  setDateFilterType(val);
-                  if (val === "all") setSelectedDate("all");
-                }}
-              >
-                <option value="all">Todo el tiempo</option>
-                <option value="day">Día específico</option>
-                <option value="month">Mes específico</option>
-              </select>
-            </label>
-
-            {/* Selector de Fecha */}
-            {dateFilterType !== "all" && (
-            <label className="block w-full sm:w-64">
-              <span className="mb-1 block text-xs text-muted">
-                {dateFilterType === "day" ? "Fecha (Día)" : "Fecha (Mes)"}
-              </span>
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  {dateFilterType === "day" ? (
-                    <DatePicker
-                      value={selectedDate === "all" ? "" : selectedDate}
-                      onChange={(val) => setSelectedDate(val || "all")}
-                      placeholder="Seleccionar fecha"
-                    />
-                  ) : (
-                    <MonthPicker
-                      value={selectedDate === "all" || selectedDate.length > 7 ? "" : selectedDate}
-                      onChange={(val) => setSelectedDate(val || "all")}
-                      placeholder="Seleccionar mes"
-                    />
-                  )}
-                </div>
-              </div>
-            </label>
-            )}
+              <UnifiedDatePicker
+                value={selectedDate}
+                onChange={(val) => setSelectedDate(val)}
+              />
+            </div>
 
             {/* Selector de Vendedor */}
-            <label className="block w-full sm:w-56">
+            <label className="block w-full sm:w-52">
               <span className="mb-1 block text-xs text-muted">Vendedor</span>
               <select
                 className="input"
@@ -253,7 +208,7 @@ export function AdminSales() {
                 <option value="all">Todos los vendedores</option>
                 {uniqueSellers.map((s) => (
                   <option key={s.email} value={s.email}>
-                    {s.name} ({s.email})
+                    {s.name}
                   </option>
                 ))}
               </select>

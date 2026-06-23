@@ -16,6 +16,39 @@ function val(v: CatalogVariant, i: number): string | null {
   return v.axisValues?.[i] ?? null;
 }
 
+const COLOR_MAP: Record<string, string> = {
+  negro: "#121212",
+  black: "#121212",
+  blanco: "#ffffff",
+  white: "#ffffff",
+  turquesa: "#00d4aa",
+  turquoise: "#00d4aa",
+  gris: "#717a9c", // matching our muted color
+  grey: "#717a9c",
+  gray: "#717a9c",
+  azul: "#3b82f6",
+  blue: "#3b82f6",
+  rojo: "#ef4444",
+  red: "#ef4444",
+  verde: "#22c55e",
+  green: "#22c55e",
+  rosa: "#ec4899",
+  rosado: "#ec4899",
+  pink: "#ec4899",
+  morado: "#a855f7",
+  purple: "#a855f7",
+  amarillo: "#eab308",
+  yellow: "#eab308",
+  naranja: "#f97316",
+  orange: "#f97316",
+  oro: "#d97706",
+  dorado: "#d97706",
+  gold: "#d97706",
+  plata: "#cbd5e1",
+  plateado: "#cbd5e1",
+  silver: "#cbd5e1",
+};
+
 export function VariantPicker({
   variants,
   axisLabels,
@@ -98,14 +131,20 @@ export function VariantPicker({
 
   return (
     <div className="mt-5 space-y-4">
-      {axisLabels.map((label, axis) =>
-        options[axis].length === 0 ? null : (
+      {axisLabels.map((label, axis) => {
+        if (options[axis].length === 0) return null;
+        const isColorAxis = label.toLowerCase().trim() === "color";
+        return (
           <div key={label}>
-            <p className="mb-2 text-sm font-medium">{label}</p>
+            <p className="mb-2 text-sm font-medium text-text/80">{label}</p>
             <div className="flex flex-wrap gap-2">
               {options[axis].map((opt) => {
                 const isSel = selected[axis] === opt;
                 const enabled = isOptionAvailable(selected, axis, opt);
+                const colorKey = opt.toLowerCase().trim();
+                const colorVal = COLOR_MAP[colorKey];
+                const isTransparente = colorKey === "transparente" || colorKey === "clear";
+
                 return (
                   <button
                     key={opt}
@@ -113,23 +152,36 @@ export function VariantPicker({
                     disabled={!enabled && !isSel}
                     onClick={() => pick(axis, opt)}
                     className={cn(
-                      "rounded-pill border px-3 py-1.5 text-sm transition-colors",
+                      "flex items-center gap-2 rounded-pill border px-3.5 py-1.5 text-sm font-medium transition-all active:scale-95 cursor-pointer",
                       isSel
-                        ? "border-transparent bg-gradient-accent text-white"
+                        ? "border-transparent bg-gradient-accent text-white shadow-md shadow-accent/25"
                         : enabled
-                          ? "border-border text-muted hover:text-text"
-                          : "cursor-not-allowed border-border/50 text-muted/40 line-through",
+                          ? "border-border bg-surface-2 text-muted hover:border-accent/40 hover:text-text"
+                          : "cursor-not-allowed border-border/30 bg-surface-2/45 text-muted/30 line-through",
                     )}
                   >
-                    {opt}
-                    {!enabled && !isSel && <span className="ml-1 text-xs">· agotado</span>}
+                    {isColorAxis && (colorVal || isTransparente) && (
+                      <span
+                        className={cn(
+                          "h-3.5 w-3.5 rounded-full border shadow-inner shrink-0",
+                          colorKey === "blanco" ? "border-muted/50" : "border-white/10"
+                        )}
+                        style={{
+                          background: isTransparente
+                            ? "repeating-conic-gradient(#52525b 0% 25%, #a1a1aa 0% 50%) 50% / 6px 6px"
+                            : colorVal,
+                        }}
+                      />
+                    )}
+                    <span>{opt}</span>
+                    {!enabled && !isSel && <span className="ml-0.5 text-[10px] opacity-75">· agotado</span>}
                   </button>
                 );
               })}
             </div>
           </div>
-        ),
-      )}
+        );
+      })}
     </div>
   );
 }

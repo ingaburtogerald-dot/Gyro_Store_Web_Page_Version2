@@ -32,10 +32,11 @@ export function MonthPicker({ value, onChange, placeholder = "Selecciona un mes"
   const ref = useRef<HTMLDivElement>(null);
   const now = new Date();
 
-  // Al cambiar el valor, sincroniza el año mostrado.
+  // Al cambiar el valor, sincroniza el año mostrado. Si se limpia, vuelve al año actual.
   useEffect(() => {
     const p = parseYm(value);
     if (p) setViewYear(p.year);
+    else setViewYear(new Date().getFullYear());
   }, [value]);
 
   useEffect(() => {

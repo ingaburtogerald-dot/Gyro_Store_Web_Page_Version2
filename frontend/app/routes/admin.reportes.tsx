@@ -2,16 +2,17 @@
 import { useRef, useState } from "react";
 import { useReactToPrint } from "react-to-print";
 import { motion } from "framer-motion";
-import { FileDown, FileSpreadsheet, Loader2 } from "lucide-react";
+import { FileDown, FileSpreadsheet } from "lucide-react";
 import { RequireRole } from "~/components/admin/RequireRole";
 import { ReportKpis } from "~/components/admin/reports/ReportKpis";
 import { ReportCharts } from "~/components/admin/reports/ReportCharts";
 import { BudgetTable } from "~/components/admin/reports/BudgetTable";
 import { LossesPanel } from "~/components/admin/reports/LossesPanel";
 import { Button } from "~/components/ui/Button";
+import { TabBtn } from "~/components/ui/TabBtn";
+import { Skeleton } from "~/components/ui/Skeleton";
 import { useGetReportQuery } from "~/store/api/reportsApi";
 import { exportXlsx } from "~/lib/exportXlsx";
-import { cn } from "~/lib/utils";
 
 const MONTH_NAMES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -46,7 +47,7 @@ export default function Reportes() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Reportería</h1>
+            <h1 className="gradient-text text-2xl font-bold">Reportería</h1>
             <p className="text-muted">
               KPIs, gráficos y pérdidas — <span className="font-semibold text-text">{periodLabel}</span>.
             </p>
@@ -89,8 +90,17 @@ export default function Reportes() {
 
         {tab === "dashboard" ? (
           isLoading || !data ? (
-            <div className="grid place-items-center py-24">
-              <Loader2 className="h-6 w-6 animate-spin text-accent" />
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <Skeleton key={i} className="h-24 rounded-card" />
+                ))}
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-72 rounded-card" />
+                ))}
+              </div>
             </div>
           ) : (
             <motion.div ref={sheetRef} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 bg-bg">
@@ -107,16 +117,3 @@ export default function Reportes() {
   );
 }
 
-function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none",
-        active ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-      )}
-    >
-      {children}
-    </button>
-  );
-}

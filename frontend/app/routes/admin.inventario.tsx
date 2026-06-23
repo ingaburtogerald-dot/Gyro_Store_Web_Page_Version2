@@ -31,7 +31,7 @@ export default function Inventario() {
     <RequireRole allowed={["admin"]}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Control de Inventario</h1>
+          <h1 className="gradient-text text-2xl font-bold">Control de Inventario</h1>
           <p className="text-muted">Registro de compras en China y stock recibido en bodega.</p>
         </div>
 

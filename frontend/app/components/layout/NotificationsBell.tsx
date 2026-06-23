@@ -53,6 +53,7 @@ export function NotificationsBell() {
   const { data: shipments = [] } = useGetShipmentsQuery(undefined, { skip: !isLogisticsAdmin });
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(new Set());
+  const [isHydrated, setIsHydrated] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -62,6 +63,7 @@ export function NotificationsBell() {
     } catch {
       /* ignorar */
     }
+    setIsHydrated(true);
   }, []);
 
   const due = useMemo(
@@ -99,7 +101,7 @@ export function NotificationsBell() {
   function handleToggle() {
     setOpen((o) => {
       const next = !o;
-      if (next && allIds.length > 0) {
+      if (next && isHydrated && allIds.length > 0) {
         setSeen(new Set(allIds));
         try {
           localStorage.setItem(SEEN_KEY, JSON.stringify(allIds));

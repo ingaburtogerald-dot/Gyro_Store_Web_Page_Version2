@@ -9,7 +9,7 @@ export default function AdminHome() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="text-2xl font-bold">Hola, {user?.name} 👋</h1>
+      <h1 className="gradient-text text-2xl font-bold">Hola, {user?.name} 👋</h1>
       <p className="mt-1 text-muted">Bienvenido al Centro de Administración de Gyro Store.</p>
 
       <div className="mt-6 flex flex-wrap gap-2">

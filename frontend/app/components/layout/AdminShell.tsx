@@ -105,7 +105,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           sidebarCollapsed && "md:hidden",
         )}
       >
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between">
           <Logo size={52} withText textClassName="text-xl" />
           <button className="md:hidden" onClick={() => dispatch(setSidebar(false))} aria-label="Cerrar menú">
             <X className="h-5 w-5 text-muted" />
@@ -119,6 +119,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <PanelLeftClose className="h-5 w-5" />
           </button>
         </div>
+
+        {/* Separador con fade de acento — ancla visualmente el logo al nav */}
+        <div className="divider-fade mb-4" />
 
         <nav className="space-y-1">
           {visible.map(({ to, label, icon: Icon }) => (

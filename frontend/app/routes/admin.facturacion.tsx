@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { RequireRole } from "~/components/admin/RequireRole";
 import { TicketBuilder } from "~/components/admin/invoices/TicketBuilder";
 import { InvoicesList } from "~/components/admin/invoices/InvoicesList";
-import { cn } from "~/lib/utils";
+import { TabBtn } from "~/components/ui/TabBtn";
 
 type Tab = "generate" | "history";
 
@@ -15,7 +15,7 @@ export default function Facturacion() {
     <RequireRole allowed={["admin", "cashier"]}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Facturación</h1>
+          <h1 className="gradient-text text-2xl font-bold">Facturación</h1>
           <p className="text-muted">Genera tickets térmicos POS 80mm y consulta el historial.</p>
         </div>
 
@@ -32,16 +32,3 @@ export default function Facturacion() {
   );
 }
 
-function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none",
-        active ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-      )}
-    >
-      {children}
-    </button>
-  );
-}

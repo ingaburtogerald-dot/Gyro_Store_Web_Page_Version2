@@ -14,7 +14,7 @@ const COLOR_MAP: Record<StatCardColor, {
   value: string;
 }> = {
   neutral: {
-    card: "stat-card-neutral bg-surface border-border hover:border-muted/30",
+    card: "stat-card-neutral bg-gradient-to-br from-surface to-surface-2 border-border hover:border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]",
     icon: "stat-card-icon text-muted",
     label: "text-muted/90",
     value: "text-text",

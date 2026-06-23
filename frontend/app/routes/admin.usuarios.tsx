@@ -7,7 +7,7 @@ import { UsersTable } from "~/components/admin/users/UsersTable";
 import { UserFormModal } from "~/components/admin/users/UserFormModal";
 import { TrashPanel } from "~/components/admin/users/TrashPanel";
 import type { ManagedUser } from "~/store/api/usersApi";
-import { cn } from "~/lib/utils";
+import { TabBtn } from "~/components/ui/TabBtn";
 
 export default function Usuarios() {
   const [tab, setTab] = useState<"active" | "trash">("active");
@@ -28,7 +28,7 @@ export default function Usuarios() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
+            <h1 className="gradient-text text-2xl font-bold">Gestión de Usuarios</h1>
             <p className="text-muted">Crea, invita y administra los roles del equipo.</p>
           </div>
           <Button onClick={openCreate}>
@@ -49,16 +49,3 @@ export default function Usuarios() {
   );
 }
 
-function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex-1 rounded-pill px-4 py-2 text-sm font-medium transition-colors sm:flex-none",
-        active ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-      )}
-    >
-      {children}
-    </button>
-  );
-}

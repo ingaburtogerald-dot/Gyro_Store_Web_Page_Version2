@@ -7,7 +7,7 @@ export default function AdminCatalogo() {
     <RequireRole allowed={["admin"]}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Gestión de Catálogo</h1>
+          <h1 className="gradient-text text-2xl font-bold">Gestión de Catálogo</h1>
           <p className="text-muted">Arrastra productos para reordenar el catálogo público, edítalos o agrega nuevos.</p>
         </div>
 

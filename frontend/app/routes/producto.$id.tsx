@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useParams, Link } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ImageOff, MessageCircle, ShoppingBag, Loader2, X, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ImageOff, MessageCircle, ShoppingBag, Loader2, X, ShieldCheck, Check } from "lucide-react";
 import { toast } from "sonner";
 import { PublicHeader } from "~/components/layout/PublicHeader";
 import { PublicFooter } from "~/components/layout/PublicFooter";
@@ -91,6 +91,10 @@ export default function ProductDetail() {
 
   const [activeImage, setActiveImage] = useState(0);
   const [selection, setSelection] = useState<VariantSelection | null>(null);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [activeTab, setActiveTab] = useState<"desc" | "specs" | "shipping">("desc");
+  const [isAdded, setIsAdded] = useState(false);
 
   const selectedVariant = selection?.variant ?? product?.variants[0];
   const baseName = product?.name ?? "";
@@ -117,6 +121,10 @@ export default function ProductDetail() {
     return hasOne ? discounts : [{ minQty: 1, maxQty: 1, discountPercent: 0 }, ...discounts];
   }, [discounts]);
 
+  const nextTier = useMemo(() => {
+    return discounts.find((d) => d.minQty > qty) ?? null;
+  }, [discounts, qty]);
+
   // Galería: fotos del color seleccionado; si no hay, las generales del producto.
   const gallery = useMemo(() => {
     const byColor = selection?.color ? product?.imagesByColor?.[selection.color] : undefined;
@@ -138,6 +146,9 @@ export default function ProductDetail() {
     );
     dispatch(openCart());
     toast.success(`Agregado al carrito (${qty} ud${qty > 1 ? "s" : ""})`);
+    
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 2000);
   }
 
   const whatsappUrl = buildWhatsappUrl(
@@ -166,39 +177,96 @@ export default function ProductDetail() {
           <div className="grid gap-10 md:grid-cols-2 items-start">
             {/* Galería (sticky) */}
             <div className="md:sticky md:top-24 h-fit">
-              <button
-                type="button"
-                onClick={() => (gallery[activeImage] ?? gallery[0]) && setLightbox(true)}
-                className="group relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-[2rem] border border-border bg-surface-2 p-6 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                aria-label="Ampliar imagen"
-              >
-                <AnimatePresence mode="wait">
+              <div className="relative w-full group/gallery">
+                {/* Ambient Glow */}
+                <div className="absolute inset-4 -z-10 overflow-hidden rounded-[2rem] filter blur-3xl opacity-25 pointer-events-none transition-all duration-700 scale-95">
                   {gallery[activeImage] ?? gallery[0] ? (
-                    <motion.img
-                      key={activeImage}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                      transition={{ duration: 0.3 }}
+                    <img
                       src={gallery[activeImage] ?? gallery[0]}
-                      alt={baseName}
-                      fetchPriority="high"
-                      className="h-full w-full object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105"
-                      style={{ viewTransitionName: `vt-product-${id}` } as React.CSSProperties}
+                      alt=""
+                      className="h-full w-full object-cover"
                     />
-                  ) : (
-                    <motion.div key="empty" className="grid h-full place-items-center text-muted">
-                      <ImageOff className="h-12 w-12 opacity-50" />
-                    </motion.div>
+                  ) : null}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => (gallery[activeImage] ?? gallery[0]) && setLightbox(true)}
+                  onMouseMove={(e) => {
+                    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                    const x = ((e.clientX - left) / width) * 100;
+                    const y = ((e.clientY - top) / height) * 100;
+                    setZoomPos({ x, y });
+                  }}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => {
+                    setIsHovered(false);
+                    setZoomPos({ x: 50, y: 50 });
+                  }}
+                  className="group relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-[2rem] border border-border bg-surface-2/80 p-6 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent backdrop-blur-sm"
+                  aria-label="Ampliar imagen"
+                >
+                  <AnimatePresence mode="wait">
+                    {gallery[activeImage] ?? gallery[0] ? (
+                      <motion.img
+                        key={activeImage}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.05 }}
+                        transition={{ duration: 0.3 }}
+                        src={gallery[activeImage] ?? gallery[0]}
+                        alt={baseName}
+                        fetchPriority="high"
+                        drag={gallery.length > 1 ? "x" : false}
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={0.4}
+                        onDragEnd={(event, info) => {
+                          const swipeThreshold = 50;
+                          if (info.offset.x < -swipeThreshold) {
+                            setActiveImage((prev) => (prev + 1) % gallery.length);
+                          } else if (info.offset.x > swipeThreshold) {
+                            setActiveImage((prev) => (prev - 1 + gallery.length) % gallery.length);
+                          }
+                        }}
+                        className="h-full w-full object-contain drop-shadow-2xl select-none transition-transform duration-150 ease-out"
+                        style={{
+                          viewTransitionName: `vt-product-${id}`,
+                          transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                          transform: isHovered ? `scale(1.25)` : `scale(1)`,
+                        } as React.CSSProperties}
+                      />
+                    ) : (
+                      <motion.div key="empty" className="grid h-full place-items-center text-muted">
+                        <ImageOff className="h-12 w-12 opacity-50" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  {!inStock && (
+                    <span className="absolute left-4 top-4 rounded-pill bg-black/85 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">
+                      Agotado
+                    </span>
                   )}
-                </AnimatePresence>
-                {!inStock && (
-                  <span className="absolute left-4 top-4 rounded-pill bg-black/80 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md">
-                    Agotado
-                  </span>
-                )}
-              </button>
-              
+                </button>
+              </div>
+
+              {/* Pagination Dots (Solo móvil para swipe) */}
+              {gallery.length > 1 && (
+                <div className="mt-4 flex justify-center gap-1.5 md:hidden">
+                  {gallery.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setActiveImage(i)}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-300",
+                        i === activeImage ? "w-4 bg-accent" : "w-1.5 bg-border"
+                      )}
+                      aria-label={`Ir a imagen ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
+
               {/* Thumbnails */}
               {gallery.length > 1 && (
                 <div className="mt-5 flex flex-wrap gap-3">
@@ -352,17 +420,53 @@ export default function ProductDetail() {
                       );
                     })}
                   </div>
+
+                  {/* Banner de Upsell dinámico */}
+                  {discounts.length > 0 && (
+                    <motion.div 
+                      layout
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 flex items-center gap-2.5 rounded-2xl bg-accent/10 border border-accent/20 px-4.5 py-3 text-sm text-accent-2"
+                    >
+                      <span className="text-base shrink-0">💡</span>
+                      <p className="leading-snug font-medium">
+                        {nextTier ? (
+                          <>
+                            Agregá <span className="font-bold text-white">{nextTier.minQty - qty} {nextTier.minQty - qty === 1 ? "unidad" : "unidades"}</span> más para ahorrar un <span className="font-bold text-white">{nextTier.discountPercent}%</span> por unidad.
+                          </>
+                        ) : (
+                          <>
+                            ¡Felicidades! Estás aprovechando el descuento máximo del <span className="font-bold text-white">{tier?.discountPercent}%</span> por unidad.
+                          </>
+                        )}
+                      </p>
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
 
               {/* Botones de acción principales */}
               <motion.div variants={itemFade} className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <Button 
-                  className="flex-1 h-14 rounded-2xl text-base shadow-xl shadow-accent/20 transition-all hover:scale-[1.02] hover:shadow-accent/30 active:scale-95" 
+                  className={cn(
+                    "flex-1 h-14 rounded-2xl text-base shadow-xl transition-all hover:scale-[1.02] active:scale-95 duration-300",
+                    isAdded 
+                      ? "bg-whatsapp hover:bg-whatsapp shadow-whatsapp/20 hover:shadow-whatsapp/30 border-transparent text-white" 
+                      : "shadow-accent/20 hover:shadow-accent/30"
+                  )}
                   onClick={add} 
                   disabled={!inStock}
                 >
-                  <ShoppingBag className="h-5 w-5 mr-2" /> Agregar al carrito
+                  {isAdded ? (
+                    <>
+                      <Check className="h-5 w-5 mr-2 animate-bounce" /> ¡Agregado con éxito!
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="h-5 w-5 mr-2" /> Agregar al carrito
+                    </>
+                  )}
                 </Button>
                 <a href={whatsappUrl} target="_blank" rel="noreferrer" className="flex-1">
                   <Button 
@@ -374,48 +478,191 @@ export default function ProductDetail() {
                 </a>
               </motion.div>
 
-              {/* Contenedor Unificado: Descripción y Especificaciones */}
-              <motion.div variants={itemFade} className="mt-12 rounded-3xl border border-border bg-surface-2 p-6 sm:p-8 shadow-sm">
+              {/* Trust Badges Row */}
+              <motion.div variants={itemFade} className="mt-6 grid grid-cols-3 gap-3">
+                <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-surface-2/40 border border-border/40 text-center backdrop-blur-sm">
+                  <div className="rounded-full bg-accent/10 p-2 text-accent mb-2 shrink-0">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-[11px] font-bold text-text mb-0.5">Envío Express</span>
+                  <span className="text-[9px] text-muted">Managua &lt; 24h</span>
+                </div>
                 
-                {/* Descripción y Video */}
-                <div className="text-sm md:text-base leading-relaxed text-muted whitespace-pre-wrap">
-                  {product.description ? (
-                    <div dangerouslySetInnerHTML={{ __html: product.description.replace(/\n/g, '<br/>') }} />
-                  ) : (
-                    "No hay descripción disponible para este producto."
-                  )}
-                  
-                  {product.tiktokUrl && (
-                    <div className="mt-8 pt-6 border-t border-border/50">
-                      <p className="mb-4 text-xs font-bold text-text uppercase tracking-wider flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-accent animate-pulse" /> Ver en acción
-                      </p>
-                      <TikTokButton url={product.tiktokUrl} />
-                    </div>
-                  )}
+                <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-surface-2/40 border border-border/40 text-center backdrop-blur-sm">
+                  <div className="rounded-full bg-accent/10 p-2 text-accent mb-2 shrink-0">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <span className="text-[11px] font-bold text-text mb-0.5">Pago Contra Entrega</span>
+                  <span className="text-[9px] text-muted">Efectivo o Transfer</span>
                 </div>
 
-                {/* Especificaciones (si existen) */}
-                {product.specs && product.specs.length > 0 && (
-                  <div className="mt-10 pt-8 border-t border-border/50">
-                    <p className="mb-6 text-sm font-bold text-text uppercase tracking-wider flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-accent" /> Especificaciones Técnicas
-                    </p>
-                    <table className="w-full text-sm">
-                      <tbody>
-                        {product.specs.map((s: any, i: number) => (
-                          <tr key={i} className="group border-b border-border/40 last:border-0 hover:bg-surface/60 transition-colors">
-                            <td className="py-3.5 pr-4 text-muted whitespace-nowrap">{s.label}</td>
-                            <td className="py-3.5 font-semibold text-text text-right break-words">{s.value}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-surface-2/40 border border-border/40 text-center backdrop-blur-sm">
+                  <div className="rounded-full bg-accent/10 p-2 text-accent mb-2 shrink-0">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
                   </div>
-                )}
-
+                  <span className="text-[11px] font-bold text-text mb-0.5">Garantía Gyro</span>
+                  <span className="text-[9px] text-muted">Soporte post-venta</span>
+                </div>
               </motion.div>
 
+              {/* Contenedor Unificado en Pestañas */}
+              <motion.div variants={itemFade} className="mt-12 rounded-3xl border border-border bg-surface-2/65 backdrop-blur-sm p-6 sm:p-8 shadow-sm">
+                {/* Cabecera de pestañas */}
+                <div className="flex border-b border-border/40 pb-px mb-6 overflow-x-auto scrollbar-none gap-6">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("desc")}
+                    className={cn(
+                      "relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none cursor-pointer",
+                      activeTab === "desc" ? "text-text" : "text-muted hover:text-text"
+                    )}
+                  >
+                    <span>Descripción</span>
+                    {activeTab === "desc" && (
+                      <motion.div
+                        layoutId="activeTabUnderline"
+                        className="absolute bottom-0 inset-x-0 h-0.5 bg-accent"
+                      />
+                    )}
+                  </button>
+                  {product.specs && product.specs.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("specs")}
+                      className={cn(
+                        "relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none cursor-pointer",
+                        activeTab === "specs" ? "text-text" : "text-muted hover:text-text"
+                      )}
+                    >
+                      <span>Especificaciones</span>
+                      {activeTab === "specs" && (
+                        <motion.div
+                          layoutId="activeTabUnderline"
+                          className="absolute bottom-0 inset-x-0 h-0.5 bg-accent"
+                        />
+                      )}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("shipping")}
+                    className={cn(
+                      "relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none cursor-pointer",
+                      activeTab === "shipping" ? "text-text" : "text-muted hover:text-text"
+                    )}
+                  >
+                    <span>Envíos y Garantía</span>
+                    {activeTab === "shipping" && (
+                      <motion.div
+                        layoutId="activeTabUnderline"
+                        className="absolute bottom-0 inset-x-0 h-0.5 bg-accent"
+                      />
+                    )}
+                  </button>
+                </div>
+
+                {/* Contenido de las pestañas con animación de desvanecimiento */}
+                <AnimatePresence mode="wait">
+                  {activeTab === "desc" && (
+                    <motion.div
+                      key="desc"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-sm md:text-base leading-relaxed text-muted whitespace-pre-wrap focus:outline-none"
+                    >
+                      {product.description ? (
+                        <div dangerouslySetInnerHTML={{ __html: product.description.replace(/\n/g, '<br/>') }} />
+                      ) : (
+                        "No hay descripción disponible para este producto."
+                      )}
+                      
+                      {product.tiktokUrl && (
+                        <div className="mt-8 pt-6 border-t border-border/50">
+                          <p className="mb-4 text-xs font-bold text-text uppercase tracking-wider flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-accent animate-pulse" /> Ver en acción
+                          </p>
+                          <TikTokButton url={product.tiktokUrl} />
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {activeTab === "specs" && product.specs && product.specs.length > 0 && (
+                    <motion.div
+                      key="specs"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="focus:outline-none"
+                    >
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {product.specs.map((s: any, i: number) => (
+                            <tr key={i} className="group border-b border-border/40 last:border-0 hover:bg-surface/40 transition-colors">
+                              <td className="py-3.5 pr-4 text-muted whitespace-nowrap">{s.label}</td>
+                              <td className="py-3.5 font-semibold text-text text-right break-words">{s.value}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </motion.div>
+                  )}
+
+                  {activeTab === "shipping" && (
+                    <motion.div
+                      key="shipping"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-sm leading-relaxed text-muted space-y-4 focus:outline-none"
+                    >
+                      <div className="flex gap-3.5 items-start">
+                        <div className="rounded-xl bg-accent/10 p-2 text-accent shrink-0 mt-0.5">
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-text mb-1">Tiempos de Entrega</h4>
+                          <p>Hacemos envíos locales express en Managua en menos de 24 horas. Para los departamentos del país, coordinamos envíos rápidos y seguros.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3.5 items-start">
+                        <div className="rounded-xl bg-accent/10 p-2 text-accent shrink-0 mt-0.5">
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-text mb-1">Métodos de Pago</h4>
+                          <p>Pagá de forma segura al recibir tu pedido (Pago contra entrega) en efectivo o mediante transferencia bancaria rápida en la comodidad de tu hogar.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3.5 items-start">
+                        <div className="rounded-xl bg-accent/10 p-2 text-accent shrink-0 mt-0.5">
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-text mb-1">Garantía Asegurada</h4>
+                          <p>Todos nuestros productos cuentan con garantía de la tienda por desperfectos de fábrica. Ofrecemos soporte post-venta personalizado vía WhatsApp.</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </motion.div>
           </div>
         )}
