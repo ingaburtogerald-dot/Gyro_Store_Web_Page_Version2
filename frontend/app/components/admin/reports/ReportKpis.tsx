@@ -1,6 +1,6 @@
 // KPIs principales del reporte (mes o año completo). Cada tarjeta muestra el
 // valor en C$ y su equivalente en USD (a la tasa fija).
-import { TrendingUp, DollarSign, Receipt, Truck, Coins, Wallet, AlertTriangle, Percent, Landmark, PiggyBank } from "lucide-react";
+import { TrendingUp, DollarSign, Receipt, Truck, Coins, Wallet, AlertTriangle, Percent, Landmark, PiggyBank, ReceiptText, Banknote } from "lucide-react";
 import { StatCard } from "~/components/ui/StatCard";
 import type { ReportKpisData } from "~/store/api/reportsApi";
 import { formatCordobas, formatUsd } from "~/lib/utils";
@@ -18,12 +18,14 @@ export function ReportKpis({ kpis }: { kpis: ReportKpisData }) {
       <StatCard icon={Receipt} label="Impuestos" countTo={impuestosC} format={formatCordobas} sub={formatUsd(kpis.impuestosUsd)} delay={0.04} />
       <StatCard icon={Truck} label="Envíos" countTo={enviosC} format={formatCordobas} sub={formatUsd(kpis.enviosUsd)} delay={0.08} />
       <StatCard icon={TrendingUp} label="Ventas" countTo={kpis.ventasCordobas} format={formatCordobas} sub={usdOf(kpis.ventasCordobas)} color="indigo" delay={0.12} />
-      <StatCard icon={Coins} label="Comisiones" countTo={kpis.comisionesCordobas} format={formatCordobas} sub={usdOf(kpis.comisionesCordobas)} delay={0.16} />
+      <StatCard icon={Banknote} label="Inversión recuperada" countTo={kpis.totalCostoVentaCordobas ?? 0} format={formatCordobas} sub={usdOf(kpis.totalCostoVentaCordobas ?? 0)} delay={0.16} />
+      <StatCard icon={Coins} label="Comisiones" countTo={kpis.comisionesCordobas} format={formatCordobas} sub={usdOf(kpis.comisionesCordobas)} delay={0.2} />
       <StatCard icon={PiggyBank} label="Costos fijos" countTo={kpis.costosFijosCordobas ?? 0} format={formatCordobas} sub={usdOf(kpis.costosFijosCordobas ?? 0)} delay={0.2} />
       <StatCard icon={Landmark} label="Ganancia tienda" countTo={kpis.gananciaTiendaCordobas ?? 0} format={formatCordobas} sub={usdOf(kpis.gananciaTiendaCordobas ?? 0)} delay={0.24} />
-      <StatCard icon={AlertTriangle} label="Pérdidas" countTo={kpis.perdidasCordobas} format={formatCordobas} sub={usdOf(kpis.perdidasCordobas)} color="rose" delay={0.28} />
-      <StatCard icon={Wallet} label="Ganancia neta" countTo={kpis.gananciaNetaCordobas} format={formatCordobas} sub={usdOf(kpis.gananciaNetaCordobas)} color="emerald" delay={0.32} />
-      <StatCard icon={Percent} label="Margen" countTo={kpis.margenPct} format={(n) => `${Math.round(n)}%`} delay={0.36} />
+      <StatCard icon={AlertTriangle} label="Pérdidas inventario" countTo={kpis.perdidasInventarioCordobas ?? kpis.perdidasCordobas} format={formatCordobas} sub={usdOf(kpis.perdidasInventarioCordobas ?? kpis.perdidasCordobas)} color="rose" delay={0.28} />
+      <StatCard icon={ReceiptText} label="Gastos (sobre presup.)" countTo={(kpis.gastosExcedenteCordobas ?? 0) + (kpis.gastosVariosCordobas ?? 0)} format={formatCordobas} sub={usdOf((kpis.gastosExcedenteCordobas ?? 0) + (kpis.gastosVariosCordobas ?? 0))} color="rose" delay={0.32} />
+      <StatCard icon={Wallet} label="Ganancia neta" countTo={kpis.gananciaNetaCordobas} format={formatCordobas} sub={usdOf(kpis.gananciaNetaCordobas)} color="emerald" delay={0.36} />
+      <StatCard icon={Percent} label="Margen s/ inversión" countTo={kpis.margenPct} format={(n) => `${Math.round(n)}%`} delay={0.4} />
     </div>
   );
 }

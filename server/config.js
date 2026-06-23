@@ -62,13 +62,27 @@ module.exports = {
   // Categorías del catálogo con su ícono emoji (reciclado del proyecto anterior).
   categories: [
     { id: 'audifonos-kz', name: 'Audífonos KZ in-ear', icon: '🎧' },
-    { id: 'adaptador-bt', name: 'Adaptador Bluetooth in-ear', icon: '📶' },
+    { id: 'adaptador-bt', name: 'Adaptador Bluetooth para audífonos KZ', icon: '📶' },
     { id: 'accesorios-kz', name: 'Accesorios para audífonos KZ', icon: '🎚️' },
     { id: 'accesorios-pc', name: 'Accesorios para computadora', icon: '🖱️' },
   ],
 
   // Costos fijos por defecto (porcentajes configurables desde el admin → app_config)
   costosFijos: { publicidad: 10, servicios: 5, utiles: 5, garantias: 5 },
+
+  // Grupos de gasto para el registro de gastos operativos.
+  // Los presupuestados (budgeted:true) tienen "pozo" = reserva de costos fijos del mes
+  // repartida por su % en `costosFijos`. Mientras el gasto no supere su pozo NO afecta la
+  // ganancia (ya estaba reservado); solo el excedente la reduce.
+  // 'varios' NO tiene pozo: todo lo registrado ahí baja la ganancia directamente
+  // (préstamos, uso personal del dueño desde caja chica, etc.).
+  expenseGroups: [
+    { key: 'publicidad', label: 'Publicidad', budgeted: true },
+    { key: 'servicios', label: 'Servicios Básicos', budgeted: true },
+    { key: 'utiles', label: 'Útiles', budgeted: true },
+    { key: 'garantias', label: 'Garantías', budgeted: true },
+    { key: 'varios', label: 'Gastos Varios', budgeted: false },
+  ],
 
   // Colecciones de Firestore (fuente única de nombres)
   collections: {

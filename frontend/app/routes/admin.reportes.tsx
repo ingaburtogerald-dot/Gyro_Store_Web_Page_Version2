@@ -6,6 +6,7 @@ import { FileDown, FileSpreadsheet, Loader2 } from "lucide-react";
 import { RequireRole } from "~/components/admin/RequireRole";
 import { ReportKpis } from "~/components/admin/reports/ReportKpis";
 import { ReportCharts } from "~/components/admin/reports/ReportCharts";
+import { BudgetTable } from "~/components/admin/reports/BudgetTable";
 import { LossesPanel } from "~/components/admin/reports/LossesPanel";
 import { Button } from "~/components/ui/Button";
 import { useGetReportQuery } from "~/store/api/reportsApi";
@@ -36,6 +37,7 @@ export default function Reportes() {
       { name: "Mensual", rows: data.charts.monthly },
       { name: "Vendedores", rows: data.charts.performance },
       { name: "CostosFijos", rows: data.charts.costosFijos },
+      { name: "PresupuestoVsGasto", rows: data.charts.presupuestoVsGasto as unknown as Record<string, unknown>[] },
     ]);
   }
 
@@ -82,7 +84,7 @@ export default function Reportes() {
 
         <div className="flex gap-1 rounded-pill border border-border bg-surface p-1 sm:w-fit">
           <TabBtn active={tab === "dashboard"} onClick={() => setTab("dashboard")}>Dashboard</TabBtn>
-          <TabBtn active={tab === "losses"} onClick={() => setTab("losses")}>Pérdidas</TabBtn>
+          <TabBtn active={tab === "losses"} onClick={() => setTab("losses")}>Pérdidas y gastos</TabBtn>
         </div>
 
         {tab === "dashboard" ? (
@@ -93,6 +95,7 @@ export default function Reportes() {
           ) : (
             <motion.div ref={sheetRef} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 bg-bg">
               <ReportKpis kpis={data.kpis} />
+              <BudgetTable rows={data.charts.presupuestoVsGasto} />
               <ReportCharts charts={data.charts} />
             </motion.div>
           )

@@ -26,6 +26,51 @@ function lossToCordobas(loss) {
   return (loss.currency || 'C$') === 'USD' ? amount * RATE : amount;
 }
 
+// Reparte las deducciones de un periodo a partir de los registros de `losses`:
+//   - Pérdidas de inventario (kind !== 'expense', incluye docs legacy sin kind).
+//   - Gastos (kind === 'expense') agrupados; cada grupo presupuestado tiene un "pozo"
+//     = costosFijosReal × (%grupo / Σ%). Solo el excedente sobre el pozo reduce la
+//     ganancia. Los grupos sin pozo ('varios') la reducen por completo.
+// `costosFijosReal` es la reserva de costos fijos acumulada por las ventas del periodo.
+function computeDeductions(periodLosses, costosFijosReal) {
+  const groups = config.expenseGroups;
+  const sumPct = groups.reduce((s, g) => s + (g.budgeted ? Number(config.costosFijos[g.key]) || 0 : 0), 0) || 1;
+
+  let perdidasInventario = 0;
+  const spentByGroup = {};
+  for (const l of periodLosses) {
+    const amt = lossToCordobas(l);
+    if (l.kind === 'expense') {
+      const g = l.group || 'varios';
+      spentByGroup[g] = (spentByGroup[g] || 0) + amt;
+    } else {
+      perdidasInventario += amt; // inventory_loss o legacy
+    }
+  }
+
+  // `excedente` = parte del gasto que efectivamente reduce la ganancia.
+  const byGroup = groups.map((g) => {
+    const spent = spentByGroup[g.key] || 0;
+    if (g.budgeted) {
+      const pool = costosFijosReal * ((Number(config.costosFijos[g.key]) || 0) / sumPct);
+      return {
+        group: g.key, label: g.label, budgeted: true,
+        pool: Math.round(pool), spent: Math.round(spent),
+        saldo: Math.round(pool - spent), excedente: Math.round(Math.max(0, spent - pool)),
+      };
+    }
+    return {
+      group: g.key, label: g.label, budgeted: false,
+      pool: 0, spent: Math.round(spent), saldo: 0, excedente: Math.round(spent),
+    };
+  });
+
+  const excedentes = byGroup.filter((b) => b.budgeted).reduce((s, b) => s + b.excedente, 0);
+  const varios = byGroup.filter((b) => !b.budgeted).reduce((s, b) => s + b.excedente, 0);
+  const total = perdidasInventario + excedentes + varios;
+  return { perdidasInventario: Math.round(perdidasInventario), excedentes, varios, total: Math.round(total), byGroup };
+}
+
 function buildReport({ purchases, sales, migrated = [], losses, year, month }) {
   const approved = sales.filter((s) => s.status === 'approved' || s.status === 'paid');
 
@@ -56,12 +101,15 @@ function buildReport({ purchases, sales, migrated = [], losses, year, month }) {
     costosFijosReal += s.costosFijos || 0;
   }
 
-  const perdidasCordobas = losses
-    .filter((l) => inPeriod(l.date, year, month))
-    .reduce((sum, l) => sum + lossToCordobas(l), 0);
+  // Deducciones del periodo: pérdidas de inventario + excedentes de gasto + gastos varios.
+  const periodLosses = losses.filter((l) => inPeriod(l.date, year, month));
+  const ded = computeDeductions(periodLosses, costosFijosReal);
+  const perdidasCordobas = ded.total; // total que reduce la ganancia (compat. con KPI existente)
 
   const gananciaNetaCordobas = gananciaTiendaSum - perdidasCordobas;
-  const margenPct = ventasCordobas > 0 ? (gananciaNetaCordobas / ventasCordobas) * 100 : 0;
+  // Margen = retorno sobre la inversión recuperada: por cada C$ de inventario que
+  // recuperaste al vender, cuánto ganaste de verdad (ganancia neta / costo de venta).
+  const margenPct = totalCostoVenta > 0 ? (gananciaNetaCordobas / totalCostoVenta) * 100 : 0;
 
   const kpis = {
     inversionUsd, inversionCordobas: inversionUsd * RATE,
@@ -71,6 +119,10 @@ function buildReport({ purchases, sales, migrated = [], losses, year, month }) {
     gananciaTiendaCordobas: Math.round(gananciaTiendaSum),
     totalCostoVentaCordobas: Math.round(totalCostoVenta),
     perdidasCordobas, gananciaNetaCordobas,
+    // Desglose de las deducciones para las tarjetas y la tabla de presupuesto.
+    perdidasInventarioCordobas: ded.perdidasInventario,
+    gastosExcedenteCordobas: ded.excedentes,
+    gastosVariosCordobas: ded.varios,
     margenPct: Math.round(margenPct * 10) / 10,
   };
 
@@ -84,13 +136,14 @@ function buildReport({ purchases, sales, migrated = [], losses, year, month }) {
     const vts = periodSales.reduce((sum, s) => sum + (s.saleTotal || 0), 0);
     const gan = periodSales.reduce((sum, s) => sum + (s.gananciaTienda || 0), 0);
     const com = periodSales.reduce((sum, s) => sum + (s.comisionVendedor || 0), 0);
-    const perdMonth = losses.filter((l) => inMonth(l.date, year, m)).reduce((sum, l) => sum + lossToCordobas(l), 0);
+    const cfRealMonth = periodSales.reduce((sum, s) => sum + (s.costosFijos || 0), 0);
+    const dedMonth = computeDeductions(losses.filter((l) => inMonth(l.date, year, m)), cfRealMonth);
     monthly.push({
       month: monthKey(year, m),
       inversion: Math.round(invUsd * RATE),
       ventas: Math.round(vts),
       ganancia: Math.round(gan),
-      gananciaNeta: Math.round(gan - perdMonth),
+      gananciaNeta: Math.round(gan - dedMonth.total),
       comisiones: Math.round(com),
     });
   }
@@ -116,7 +169,7 @@ function buildReport({ purchases, sales, migrated = [], losses, year, month }) {
     .map((p) => ({ ...p, comisiones: Math.round(p.comisiones) }))
     .sort((a, b) => b.totalVendido - a.totalVendido);
 
-  return { range: { year, month: month == null ? null : month }, kpis, charts: { monthly, costosFijos, performance } };
+  return { range: { year, month: month == null ? null : month }, kpis, charts: { monthly, costosFijos, performance, presupuestoVsGasto: ded.byGroup } };
 }
 
 module.exports = { buildReport };

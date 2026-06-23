@@ -85,7 +85,7 @@ function SortableCard({ item, onEdit, onDelete }: { item: CatalogProduct; onEdit
   const baseName = item.name;
 
   return (
-    <div ref={setNodeRef} style={style} className="relative flex flex-col overflow-hidden rounded-card border border-border bg-surface">
+    <div ref={setNodeRef} style={style} className="relative flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface">
       <div className="absolute left-2 top-2 z-10 flex gap-1">
         <button {...attributes} {...listeners} className="cursor-grab rounded-lg bg-black/50 p-1.5 text-white active:cursor-grabbing" aria-label="Reordenar">
           <GripVertical className="h-4 w-4" />
@@ -96,18 +96,22 @@ function SortableCard({ item, onEdit, onDelete }: { item: CatalogProduct; onEdit
         <button onClick={onDelete} className="rounded-lg bg-black/50 p-1.5 text-white hover:text-red-400" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></button>
       </div>
 
-      <div className="aspect-square bg-surface-2">
+      <div className="aspect-square bg-surface-2 shrink-0">
         {item.images?.[0] ? (
           <img src={item.images[0]} alt={baseName} className="h-full w-full object-cover" />
         ) : (
           <div className="grid h-full place-items-center text-muted"><ImageOff className="h-8 w-8" /></div>
         )}
       </div>
-      <div className="p-3">
-        {item.isPromo && <span className="text-xs font-semibold text-accent-2">Promoción</span>}
-        <p className="line-clamp-2 font-medium leading-snug">{baseName}</p>
-        <p className="mt-1 font-heading font-bold">{formatCordobas(item.price)}</p>
-        <p className="text-xs text-muted">stock {item.stock}</p>
+      <div className="flex flex-1 flex-col p-3">
+        <div className="mb-2">
+          {item.isPromo && <span className="mb-1 block text-xs font-semibold text-accent-2">Promoción</span>}
+          <p className="line-clamp-2 font-medium leading-snug">{baseName}</p>
+        </div>
+        <div className="mt-auto">
+          <p className="font-heading font-bold">{formatCordobas(item.price)}</p>
+          <p className="text-xs text-muted">stock {item.stock}</p>
+        </div>
       </div>
     </div>
   );

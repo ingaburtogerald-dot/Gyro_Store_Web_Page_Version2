@@ -60,6 +60,7 @@ export interface Template {
   id: string;
   name: string;
   category: string;
+  description?: string;
   axes: TemplateAxis[];
   specs: SpecRow[];
 }
@@ -171,6 +172,7 @@ export const catalogApi = baseApi.injectEndpoints({
 export interface TemplateInput {
   name: string;
   category: string;
+  description?: string;
   axes: TemplateAxis[];
   specs: SpecRow[];
 }

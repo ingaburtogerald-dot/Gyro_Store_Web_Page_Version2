@@ -1,9 +1,16 @@
 // Hero del catálogo: personaje protagonista (Gyro) flotando con glow pulsante,
 // destellos y aurora animada; wordmark, lema y buscador.
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, Truck, ShieldCheck, Wallet } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { setSearch } from "~/store/slices/uiSlice";
+
+// Señales de confianza bajo el buscador (estáticas).
+const TRUST = [
+  { icon: Truck, label: "Envío en Managua" },
+  { icon: ShieldCheck, label: "Garantía" },
+  { icon: Wallet, label: "Pago contra entrega" },
+];
 
 // Posición y retraso de cada destello alrededor del personaje.
 const SPARKLES = [
@@ -80,6 +87,15 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
               aria-label="Buscar productos"
               className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted"
             />
+          </div>
+
+          {/* Franja de confianza */}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted">
+            {TRUST.map(({ icon: Icon, label }) => (
+              <span key={label} className="inline-flex items-center gap-1.5">
+                <Icon className="h-4 w-4 text-accent-2" /> {label}
+              </span>
+            ))}
           </div>
 
           <p className="mt-4 text-xs text-muted">{productCount} productos disponibles</p>

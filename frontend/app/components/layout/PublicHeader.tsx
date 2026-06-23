@@ -2,6 +2,7 @@
 import { Link, useLocation } from "@remix-run/react";
 import { Instagram, Facebook, MessageCircle, LogIn, Pencil, LayoutDashboard } from "lucide-react";
 import { Logo } from "~/components/ui/Logo";
+import { SocialLink, TikTokIcon, SOCIAL_BRAND } from "~/components/ui/SocialIcon";
 import { buildWhatsappUrl, cn } from "~/lib/utils";
 import { roleLandingPath } from "~/lib/constants";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
@@ -29,20 +30,16 @@ export function PublicHeader() {
         </Link>
 
         {/* Redes sociales (centro, oculto en móvil) */}
-        <nav className="hidden items-center gap-4 md:flex">
-          <a href={social?.instagram ?? "#"} target="_blank" rel="noreferrer" aria-label="Instagram"
-            className="text-muted transition-colors hover:text-text">
+        <nav className="hidden items-center gap-1.5 rounded-pill border border-border bg-surface/60 p-1 md:flex">
+          <SocialLink href={social?.instagram} label="Instagram" {...SOCIAL_BRAND.instagram}>
             <Instagram className="h-5 w-5" />
-          </a>
-          <a href={social?.facebook ?? "#"} target="_blank" rel="noreferrer" aria-label="Facebook"
-            className="text-muted transition-colors hover:text-text">
+          </SocialLink>
+          <SocialLink href={social?.facebook} label="Facebook" {...SOCIAL_BRAND.facebook}>
             <Facebook className="h-5 w-5" />
-          </a>
-          <a href={social?.tiktok ?? "#"} target="_blank" rel="noreferrer" aria-label="TikTok"
-            className="text-muted transition-colors hover:text-text">
-            {/* Lucide no trae logo de TikTok; usamos un glifo */}
-            <span className="text-sm font-bold">TikTok</span>
-          </a>
+          </SocialLink>
+          <SocialLink href={social?.tiktok} label="TikTok" {...SOCIAL_BRAND.tiktok}>
+            <TikTokIcon className="h-[18px] w-[18px]" />
+          </SocialLink>
         </nav>
 
         <div className="flex items-center gap-2">

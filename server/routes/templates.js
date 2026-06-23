@@ -11,10 +11,11 @@ const TEMPLATES = config.collections.templates;
 
 // Normaliza el cuerpo de una plantilla (compartido por POST y PUT).
 function buildTemplateFields(body) {
-  const { name, category, axes, specs } = body;
+  const { name, category, description, axes, specs } = body;
   return {
     name: String(name || '').trim(),
     category: String(category || '').trim(),
+    description: String(description || '').trim(),
     axes: Array.isArray(axes)
       ? axes
           .map((a) => ({

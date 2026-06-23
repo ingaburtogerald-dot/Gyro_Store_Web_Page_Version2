@@ -13,7 +13,22 @@ export interface ReportKpisData {
   totalCostoVentaCordobas?: number;
   perdidasCordobas: number;
   gananciaNetaCordobas: number;
+  // Desglose de deducciones
+  perdidasInventarioCordobas?: number;
+  gastosExcedenteCordobas?: number;
+  gastosVariosCordobas?: number;
   margenPct: number;
+}
+
+// Una fila de la tabla Presupuesto vs Gasto (por grupo de gasto).
+export interface BudgetRow {
+  group: string;
+  label: string;
+  budgeted: boolean;
+  pool: number;
+  spent: number;
+  saldo: number;
+  excedente: number;
 }
 
 export interface ReportData {
@@ -23,27 +38,67 @@ export interface ReportData {
     monthly: { month: string; inversion: number; ventas: number; ganancia?: number; gananciaNeta?: number; comisiones?: number }[];
     costosFijos: { name: string; value: number }[];
     performance: { sellerName: string; totalVendido: number; comisiones?: number }[];
+    presupuestoVsGasto: BudgetRow[];
   };
 }
 
-export type LossCategory = "robo" | "daño" | "devolucion" | "otro";
+export type LossCategory = "robo" | "daño" | "devolucion";
 
-export interface Loss {
+// Registro almacenado en la colección `losses`: puede ser pérdida de inventario o gasto.
+export interface LossRecord {
   id: string;
+  kind?: "inventory_loss" | "expense";
   date: string;
   amount: number;
   currency: "C$" | "USD";
-  reason: string;
-  category: LossCategory;
+  reason?: string;
   registeredBy?: string;
+  // inventory_loss
+  productCode?: string;
+  productName?: string;
+  quantity?: number;
+  origin?: "native" | "migrated";
+  category?: LossCategory;
+  // expense
+  group?: string;
+  subcategory?: string;
 }
 
-export interface NewLoss {
+export interface LossProduct {
+  id: string;
+  code: string;
+  name: string;
+  stock: number;
+  origin: "native" | "migrated";
+}
+
+export interface ExpenseGroup {
+  key: string;
+  label: string;
+  budgeted: boolean;
+}
+
+export interface ExpenseCategories {
+  groups: ExpenseGroup[];
+  subcategoriesByGroup: Record<string, string[]>;
+}
+
+export interface NewInventoryLoss {
+  date: string;
+  productId: string;
+  origin: "native" | "migrated";
+  quantity: number;
+  category: LossCategory;
+  reason?: string;
+}
+
+export interface NewExpense {
   date: string;
   amount: number;
   currency: "C$" | "USD";
-  reason: string;
-  category: LossCategory;
+  group: string;
+  subcategory?: string;
+  reason?: string;
 }
 
 export const reportsApi = baseApi.injectEndpoints({
@@ -53,15 +108,34 @@ export const reportsApi = baseApi.injectEndpoints({
         month == null ? `/reports?year=${year}` : `/reports?year=${year}&month=${month}`,
       providesTags: ["Report"],
     }),
-    getLosses: build.query<Loss[], void>({
+    getLosses: build.query<LossRecord[], void>({
       query: () => "/reports/losses",
       providesTags: ["Report"],
     }),
-    createLoss: build.mutation<Loss, NewLoss>({
+    getLossProducts: build.query<LossProduct[], void>({
+      query: () => "/reports/products",
+      providesTags: ["Report"],
+    }),
+    getExpenseCategories: build.query<ExpenseCategories, void>({
+      query: () => "/reports/expense-categories",
+      providesTags: ["Report"],
+    }),
+    createLoss: build.mutation<LossRecord, NewInventoryLoss>({
       query: (body) => ({ url: "/reports/losses", method: "POST", body }),
+      invalidatesTags: ["Report"],
+    }),
+    createExpense: build.mutation<LossRecord, NewExpense>({
+      query: (body) => ({ url: "/reports/expenses", method: "POST", body }),
       invalidatesTags: ["Report"],
     }),
   }),
 });
 
-export const { useGetReportQuery, useGetLossesQuery, useCreateLossMutation } = reportsApi;
+export const {
+  useGetReportQuery,
+  useGetLossesQuery,
+  useGetLossProductsQuery,
+  useGetExpenseCategoriesQuery,
+  useCreateLossMutation,
+  useCreateExpenseMutation,
+} = reportsApi;

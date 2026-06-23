@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { MetaFunction } from "@remix-run/node";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useSearchParams } from "@remix-run/react";
 import { PublicHeader } from "~/components/layout/PublicHeader";
 import { PublicFooter } from "~/components/layout/PublicFooter";
@@ -14,13 +14,31 @@ import { selectEditMode, selectIsAdmin, setEditMode } from "~/store/slices/authS
 import { setCategory } from "~/store/slices/uiSlice";
 import { cn } from "~/lib/utils";
 
-export const meta: MetaFunction = () => [
-  { title: "Gyro Store · Electrónica importada en Managua" },
-  {
-    name: "description",
-    content: "Audífonos KZ, adaptadores Bluetooth y accesorios para PC en Managua, Nicaragua.",
-  },
-];
+// Origen absoluto (para construir URLs absolutas de Open Graph desde el servidor).
+export async function loader({ request }: LoaderFunctionArgs) {
+  return { origin: new URL(request.url).origin };
+}
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const origin = data?.origin ?? "";
+  const img = `${origin}/logo.jpg`;
+  const title = "Gyro Store · Electrónica importada en Managua";
+  const description = "Audífonos KZ, adaptadores Bluetooth y accesorios para PC en Managua, Nicaragua.";
+  return [
+    { title },
+    { name: "description", content: description },
+    { property: "og:type", content: "website" },
+    { property: "og:site_name", content: "Gyro Store" },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:image", content: img },
+    { property: "og:url", content: `${origin}/` },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+    { name: "twitter:image", content: img },
+  ];
+};
 
 export default function Index() {
   const { data: config } = useGetConfigQuery();
@@ -49,7 +67,7 @@ export default function Index() {
       <main className="mx-auto w-full max-w-7xl flex-1 px-4">
         {/* Chips de categorías filtrables (se ocultan en modo edición) */}
         {!editing && (
-          <div className="flex flex-wrap gap-2 pb-6">
+          <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <CategoryChip
               label="Todo"
               active={activeCategory === null}
@@ -89,7 +107,8 @@ function CategoryChip({
     <button
       onClick={onClick}
       className={cn(
-        "rounded-pill border px-4 py-1.5 text-sm transition-colors",
+        "shrink-0 snap-start whitespace-nowrap rounded-pill border px-4 py-1.5 text-sm transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
         active
           ? "border-transparent bg-gradient-accent text-white"
           : "border-border bg-surface text-muted hover:text-text",

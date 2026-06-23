@@ -49,8 +49,8 @@ export function ProductGrid() {
 
   return (
     <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3 lg:grid-cols-4">
-      {filtered.map((p) => (
-        <ProductCard key={p.id} product={p} categories={config?.categories ?? []} />
+      {filtered.map((p, i) => (
+        <ProductCard key={p.id} product={p} categories={config?.categories ?? []} index={i} />
       ))}
     </div>
   );

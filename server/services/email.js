@@ -276,11 +276,36 @@ async function sendLogisticsAdminAlert({ toEmails, customerName, trackingNumber,
   return true;
 }
 
-// Notifica al cliente que su paquete cambió de estado.
-async function sendLogisticsStatusEmail({ to, customerName, status, comment }) {
+// Alerta a los admins: el cliente marcó que el proveedor entregó en China (por validar).
+async function sendLogisticsValidateAlert({ toEmails, customerName, trackingNumber }) {
+  if (!config.email.user || !toEmails?.length) return false;
+  await createTransport().sendMail({
+    from: fromAddress(),
+    to: toEmails.join(','),
+    subject: `Gyro Logistics — Entrega por validar de ${customerName}`,
+    html: wrap(`
+      ${header('🏷️ Entrega en China por validar')}
+      <div style="padding:32px;">
+        <p><strong>${customerName}</strong> marcó que su proveedor ya entregó la mercadería en la bodega de China.</p>
+        <p>Por favor validen la recepción en el portal de Gyro Logistics.</p>
+        <div style="background:#12121a;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:20px;margin:24px 0;">
+          <p style="margin:0 0 6px;color:#717a9c;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Tracking</p>
+          <p style="margin:0;font-weight:700;color:#9aa0ff;">${trackingNumber || '—'}</p>
+        </div>
+      </div>
+      ${footer()}
+    `),
+  });
+  return true;
+}
+
+// Notifica al cliente que su paquete cambió de estado. En la llegada a Nicaragua incluye
+// el costo total de envío y la foto si se adjuntaron.
+async function sendLogisticsStatusEmail({ to, customerName, status, comment, shippingCost, shippingCurrency, photoUrl }) {
   if (!config.email.user || await isLocalUser(to)) return false;
   const copy = LOGISTICS_STATUS_COPY[status];
   if (!copy) return false;
+  const sym = shippingCurrency === 'USD' ? '$' : 'C$';
   await createTransport().sendMail({
     from: fromAddress(),
     to,
@@ -291,6 +316,8 @@ async function sendLogisticsStatusEmail({ to, customerName, status, comment }) {
         <p>Hola <strong>${customerName}</strong>,</p>
         <p>${copy.body}</p>
         ${comment ? `<div style="background:#12121a;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:20px;margin:24px 0;"><p style="margin:0 0 6px;color:#717a9c;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Comentario del equipo</p><p style="margin:0;">${comment}</p></div>` : ''}
+        ${Number.isFinite(shippingCost) && shippingCost > 0 ? `<div style="background:#12121a;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:20px;margin:24px 0;"><p style="margin:0 0 6px;color:#717a9c;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Costo total de envío</p><p style="margin:0;font-weight:700;">${sym}${shippingCost}</p></div>` : ''}
+        ${photoUrl ? btn(photoUrl, 'Ver foto de la mercadería') : ''}
       </div>
       ${footer()}
     `),
@@ -307,5 +334,6 @@ module.exports = {
   sendSaleRejected,
   sendPaymentMade,
   sendLogisticsAdminAlert,
+  sendLogisticsValidateAlert,
   sendLogisticsStatusEmail,
 };

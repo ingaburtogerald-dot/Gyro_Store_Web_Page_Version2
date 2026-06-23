@@ -472,6 +472,12 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
             >
               {isEdit ? "Guardar cambios" : "Registrar venta"} · {formatCordobas(result?.saleTotal ?? 0)}
             </Button>
+            {isEdit && sale?.status !== "pending_approval" && !editReason.trim() && (
+              <p className="flex items-center gap-1.5 text-xs text-amber-400">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                Escribe el <strong>motivo de la edición</strong> para habilitar “Guardar cambios”.
+              </p>
+            )}
             {isAdmin && !isEdit && (
               <Button
                 variant="ghost"

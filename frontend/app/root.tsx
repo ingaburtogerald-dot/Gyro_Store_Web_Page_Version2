@@ -34,13 +34,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#0a0a0f" />
-        {/* Imagen de marca al compartir el enlace (WhatsApp, redes). En producción
-            conviene una URL absoluta; relativa funciona en la mayoría de clientes. */}
-        <meta property="og:image" content="/logo.jpg" />
-        <meta property="og:image:width" content="1024" />
-        <meta property="og:image:height" content="1024" />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:image" content="/logo.jpg" />
+        {/* Las etiquetas Open Graph (preview al compartir) las define cada ruta vía
+            su función meta() — homepage y página de producto — con URL absoluta. */}
         <Meta />
         <Links />
         {/* Aplica el tema guardado antes del primer paint para evitar parpadeo */}

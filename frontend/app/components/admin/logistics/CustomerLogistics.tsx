@@ -1,13 +1,24 @@
 // Vista del cliente de Gyro Logistics: registrar paquete + Mis paquetes.
 import { useState } from "react";
+import { toast } from "sonner";
 import { RegisterShipmentForm } from "./RegisterShipmentForm";
 import { ShipmentCard } from "./ShipmentCard";
-import { useGetShipmentsQuery } from "~/store/api/logisticsApi";
+import { useGetShipmentsQuery, useDeliverChinaMutation, type Shipment } from "~/store/api/logisticsApi";
 import { cn } from "~/lib/utils";
 
 export function CustomerLogistics() {
   const [tab, setTab] = useState<"new" | "mine">("new");
   const { data: shipments = [], isLoading } = useGetShipmentsQuery();
+  const [deliverChina] = useDeliverChinaMutation();
+
+  async function handleDeliver(s: Shipment) {
+    try {
+      await deliverChina({ id: s.id }).unwrap();
+      toast.success("¡Gracias! El equipo validará la recepción en China.");
+    } catch (err: any) {
+      toast.error(err?.data?.error || "No se pudo actualizar.");
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -30,7 +41,7 @@ export function CustomerLogistics() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {shipments.map((s) => (
-            <ShipmentCard key={s.id} shipment={s} />
+            <ShipmentCard key={s.id} shipment={s} onDeliverChina={handleDeliver} />
           ))}
         </div>
       )}

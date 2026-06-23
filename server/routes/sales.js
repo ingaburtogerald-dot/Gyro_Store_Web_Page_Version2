@@ -1271,6 +1271,11 @@ router.put('/:id', requireAdmin, upload.single('receipt'), asyncHandler(async (r
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(req.body.saleDate));
     if (m) {
       update.createdAt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0));
+      // Si la venta ya está aprobada/pagada, realinear la semana de pago a la nueva fecha
+      // (de lo contrario la corrección de fecha queda agrupada en la semana vieja).
+      if (order.status === 'approved' || order.status === 'paid') {
+        update.weekOf = getISOWeekString(update.createdAt);
+      }
     }
   }
 

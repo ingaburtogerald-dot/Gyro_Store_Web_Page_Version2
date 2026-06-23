@@ -216,8 +216,11 @@ router.get('/:id', asyncHandler(async (req, res) => {
     const template = tplDoc.exists ? { id: tplDoc.id, ...tplDoc.data() } : { axes: [], specs: [] };
     const { variants, axisLabels } = buildTemplateVariants(template, item);
     const inStock = variants.some((v) => v.stock > 0);
+    const colorImages = Object.values(item.imagesByColor || {}).flat();
+    const images = item.images && item.images.length ? item.images : colorImages;
     return res.json({
       ...item,
+      images,
       variants,
       axisLabels,
       imagesByColor: item.imagesByColor || {},

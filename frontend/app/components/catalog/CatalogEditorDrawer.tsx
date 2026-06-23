@@ -54,7 +54,7 @@ export function CatalogEditorDrawer({
   // Colores encendidos del eje de color de la plantilla.
   const colorAxis = template?.axes.find((a) => a.isColor);
   const colorsForImages = useMemo(() => {
-    if (!colorAxis) return [];
+    if (!colorAxis) return ["General"];
     return colorAxis.options.filter((o) => availability[colorAxis.key]?.[o] !== false);
   }, [colorAxis, availability]);
 
@@ -84,6 +84,7 @@ export function CatalogEditorDrawer({
   // Al cargar la plantilla: inicializa la disponibilidad (todo encendido por
   // defecto, conservando lo ya guardado). Las specs se heredan de la plantilla
   // y se muestran al cliente desde el backend (no se editan por producto).
+  // También precarga la descripción si el producto no tiene una.
   useEffect(() => {
     if (!template) return;
     setAvailability((prev) => {
@@ -94,6 +95,7 @@ export function CatalogEditorDrawer({
       }
       return next;
     });
+    setDescription((prev) => prev || template.description || "");
   }, [template]);
 
   function changeCategory(value: string) {
@@ -135,8 +137,16 @@ export function CatalogEditorDrawer({
       return toast.error("El precio antes de la oferta debe ser mayor al precio base.");
     }
 
+    // Filtrar imagesByColor para que solo guarde las llaves válidas (los colores encendidos, o "General")
+    const validImagesByColor: Record<string, string[]> = {};
+    for (const color of colorsForImages) {
+      if (imagesByColor[color] && imagesByColor[color].length > 0) {
+        validImagesByColor[color] = imagesByColor[color];
+      }
+    }
+
     const body = {
-      name, description, category, imagesByColor, isPromo, published, tiktokUrl,
+      name, description, category, imagesByColor: validImagesByColor, isPromo, published, tiktokUrl,
       compareAtPrice: Number(compareAtPrice) || 0,
       templateId,
       basePrice: Number(basePrice) || 0,
@@ -265,7 +275,9 @@ export function CatalogEditorDrawer({
                     </div>
 
                     <div>
-                      <span className="mb-1.5 block text-sm font-medium">Fotos por color encendido (máx 10 c/u)</span>
+                      <span className="mb-1.5 block text-sm font-medium">
+                        {colorAxis ? "Fotos por color encendido (máx 10 c/u)" : "Fotos del producto (máx 10)"}
+                      </span>
                       <ColorImageManager
                         colors={colorsForImages}
                         imagesByColor={imagesByColor}

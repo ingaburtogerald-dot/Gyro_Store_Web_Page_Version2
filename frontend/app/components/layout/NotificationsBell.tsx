@@ -6,11 +6,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, CheckCircle2, Banknote, XCircle } from "lucide-react";
+import { Bell, CheckCircle2, Banknote, XCircle, Package, PackageCheck } from "lucide-react";
 import { useGetFollowupsQuery } from "~/store/api/followupsApi";
 import { useGetSalesQuery } from "~/store/api/salesApi";
+import { useGetShipmentsQuery } from "~/store/api/logisticsApi";
 import { useAppSelector } from "~/store/hooks";
-import { selectIsAdmin } from "~/store/slices/authSlice";
+import { selectIsAdmin, selectRoles } from "~/store/slices/authSlice";
 import { dueState, isDue, DUE_META } from "~/components/admin/followups/followupUtils";
 import { formatCordobas, cn } from "~/lib/utils";
 
@@ -45,8 +46,11 @@ const SEEN_KEY = "seenSaleNotifs";
 
 export function NotificationsBell() {
   const isAdmin = useAppSelector(selectIsAdmin);
+  const roles = useAppSelector(selectRoles);
+  const isLogisticsAdmin = roles.some((r) => r === "global_admin" || r === "admin" || r === "logistics_admin");
   const { data: followups = [] } = useGetFollowupsQuery();
   const { data: sales = [] } = useGetSalesQuery(undefined, { skip: isAdmin });
+  const { data: shipments = [] } = useGetShipmentsQuery(undefined, { skip: !isLogisticsAdmin });
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(new Set());
   const ref = useRef<HTMLDivElement>(null);
@@ -66,7 +70,7 @@ export function NotificationsBell() {
   );
 
   // Agrupa los avisos de ventas por estado.
-  const { groups, allIds } = useMemo(() => {
+  const { groups, saleIds } = useMemo(() => {
     const map: Record<string, { status: string; count: number; comision: number; ids: string[] }> = {};
     for (const s of sales) {
       if (s.status !== "approved" && s.status !== "paid" && s.status !== "rejected") continue;
@@ -76,8 +80,18 @@ export function NotificationsBell() {
       map[s.status].ids.push(`${s.id}:${s.status}`);
     }
     const groups = SALE_ORDER.filter((st) => map[st]).map((st) => map[st]);
-    return { groups, allIds: groups.flatMap((g) => g.ids) };
+    return { groups, saleIds: groups.flatMap((g) => g.ids) };
   }, [sales]);
+
+  // Avisos de logística para admins: paquetes nuevos y entregas por validar.
+  const logistics = useMemo(() => {
+    if (!isLogisticsAdmin) return [];
+    return shipments
+      .filter((s) => s.status === "compra_registrada" || s.status === "entregado_china")
+      .map((s) => ({ id: s.id, status: s.status, customerName: s.customerName, trackingNumber: s.trackingNumber, notifId: `ship:${s.id}:${s.status}` }));
+  }, [shipments, isLogisticsAdmin]);
+
+  const allIds = useMemo(() => [...saleIds, ...logistics.map((l) => l.notifId)], [saleIds, logistics]);
 
   const unseenCount = allIds.filter((id) => !seen.has(id)).length;
   const badge = due.length + unseenCount;
@@ -106,7 +120,7 @@ export function NotificationsBell() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  const empty = due.length === 0 && groups.length === 0;
+  const empty = due.length === 0 && groups.length === 0 && logistics.length === 0;
 
   return (
     <div className="relative" ref={ref}>
@@ -143,6 +157,40 @@ export function NotificationsBell() {
                 <p className="px-4 py-6 text-center text-sm text-muted">Todo al día 🎉</p>
               ) : (
                 <>
+                  {logistics.length > 0 && (
+                    <>
+                      <p className="bg-surface-2/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                        Gyro Logistics
+                      </p>
+                      {logistics.map((l) => {
+                        const pending = l.status === "entregado_china";
+                        const Icon = pending ? PackageCheck : Package;
+                        return (
+                          <button
+                            key={l.notifId}
+                            onClick={() => {
+                              setOpen(false);
+                              navigate("/admin/logistica");
+                            }}
+                            className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-surface-2"
+                          >
+                            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2", pending ? "text-amber-400" : "text-accent-2")}>
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className={cn("block font-semibold", pending ? "text-amber-400" : "text-accent-2")}>
+                                {pending ? "Entrega en China por validar" : "Nuevo paquete registrado"}
+                              </span>
+                              <span className="block truncate text-xs text-muted">
+                                {l.customerName} · {l.trackingNumber}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+
                   {groups.length > 0 && (
                     <>
                       <p className="bg-surface-2/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
