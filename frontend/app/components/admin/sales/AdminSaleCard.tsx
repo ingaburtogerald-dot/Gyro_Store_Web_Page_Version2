@@ -38,6 +38,14 @@ export function AdminSaleCard({ sale }: { sale: any }) {
       <p className="truncate text-xs text-muted" title={items.map((i: any) => i.name).join(", ")}>
         {qty} u · {items.map((i: any) => i.name).join(", ")}
       </p>
+      {items.some((i: any) => i.code) && (
+        <p
+          className="truncate font-mono text-[11px] text-muted/80"
+          title={items.map((i: any) => i.code).filter(Boolean).join(", ")}
+        >
+          {items.map((i: any) => i.code).filter(Boolean).join(", ")}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3">
         <Metric label="Precio venta" value={formatCordobas(sale.saleTotal)} className="font-semibold text-text" />

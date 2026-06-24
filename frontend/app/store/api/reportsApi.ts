@@ -124,8 +124,16 @@ export const reportsApi = baseApi.injectEndpoints({
       query: (body) => ({ url: "/reports/losses", method: "POST", body }),
       invalidatesTags: ["Report"],
     }),
+    updateLoss: build.mutation<LossRecord, { id: string; date: string; category: LossCategory; reason?: string }>({
+      query: ({ id, ...body }) => ({ url: `/reports/losses/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["Report"],
+    }),
     createExpense: build.mutation<LossRecord, NewExpense>({
       query: (body) => ({ url: "/reports/expenses", method: "POST", body }),
+      invalidatesTags: ["Report"],
+    }),
+    updateExpense: build.mutation<LossRecord, NewExpense & { id: string }>({
+      query: ({ id, ...body }) => ({ url: `/reports/expenses/${id}`, method: "PATCH", body }),
       invalidatesTags: ["Report"],
     }),
   }),
@@ -137,5 +145,7 @@ export const {
   useGetLossProductsQuery,
   useGetExpenseCategoriesQuery,
   useCreateLossMutation,
+  useUpdateLossMutation,
   useCreateExpenseMutation,
+  useUpdateExpenseMutation,
 } = reportsApi;

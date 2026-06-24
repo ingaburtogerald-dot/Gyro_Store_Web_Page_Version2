@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Check, X, Receipt, AlertTriangle, Pencil, Trash2, Plus, Loader2 } from "lucide-react";
+import { Check, X, AlertTriangle, Pencil, Trash2, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { Modal } from "~/components/ui/Modal";
@@ -57,11 +57,6 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
 
   const pending = sales;
 
-  async function handleApprove(id: string) {
-    const sale = pending.find(p => p.id === id);
-    if (sale) setPayFor([sale]);
-  }
-
   async function handleBulkApprove() {
     const salesToApprove = pending.filter(p => selectedSales.has(p.id));
     if (salesToApprove.length === 0) return;
@@ -115,6 +110,21 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
         cell: (c) => (c.getValue() ? new Date(c.getValue()).toLocaleDateString("es-NI") : "—")
       },
       {
+        id: "code",
+        header: "Código",
+        enableSorting: false,
+        cell: (c) => {
+          const items = c.row.original.items || [];
+          return (
+            <div className="text-xs">
+              {items.map((it: any, idx: number) => (
+                <div key={idx} className="font-mono text-muted">{it.code || "—"}</div>
+              ))}
+            </div>
+          );
+        }
+      },
+      {
         id: "products",
         header: "Producto(s)",
         enableSorting: false,
@@ -122,11 +132,14 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
           const items = c.row.original.items || [];
           return (
             <div className="max-w-[350px] min-w-[200px] text-xs">
-              {items.map((it: any, idx: number) => (
-                <div key={idx} className="truncate text-muted" title={`${it.name} ${it.variantName !== "Estándar" ? `(${it.variantName})` : ""}`}>
-                  {it.name} {it.variantName !== "Estándar" ? `(${it.variantName})` : ""}
-                </div>
-              ))}
+              {items.map((it: any, idx: number) => {
+                const variant = it.variantName && it.variantName !== "Estándar" ? ` (${it.variantName})` : "";
+                return (
+                  <div key={idx} className="truncate text-muted" title={`${it.name}${variant}`}>
+                    {it.name}{variant}
+                  </div>
+                );
+              })}
             </div>
           );
         }
@@ -200,48 +213,9 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
         header: "Ganancia tienda",
         enableSorting: false,
         cell: (c) => <span className="font-bold text-whatsapp">{c.getValue() !== undefined ? formatCordobas(c.getValue()) : "—"}</span>
-      },
-      {
-        id: "actions",
-        header: "Acciones",
-        enableSorting: false,
-        cell: (c) => {
-          const s = c.row.original;
-          return (
-            <div className="flex items-center gap-1.5">
-              {s.receiptPhotoUrl && (
-                <a
-                  href={s.receiptPhotoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="rounded-lg p-1.5 text-muted hover:text-text hover:bg-surface-hover"
-                  title="Ver comprobante de venta"
-                >
-                  <Receipt className="h-4 w-4" />
-                </a>
-              )}
-              <button
-                onClick={(e) => { e.stopPropagation(); setRejectFor([s]); }}
-                className="flex items-center gap-1 rounded-lg bg-rose-500/10 px-2 py-1.5 text-xs font-semibold text-rose-400 hover:bg-rose-500/20"
-                title="Rechazar venta"
-              >
-                <X className="h-3 w-3" /> Rechazar
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleApprove(s.id); }}
-                disabled={approving || !!s.insufficientStockError}
-                className="flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-30 disabled:hover:bg-emerald-500/10"
-                title={s.insufficientStockError ? `No se puede aprobar: ${s.insufficientStockError}` : "Aprobar venta"}
-              >
-                <Check className="h-3 w-3" /> Aprobar
-              </button>
-            </div>
-          );
-        }
       }
     ],
-    [approving]
+    []
   );
 
   const totals = useMemo(() => {

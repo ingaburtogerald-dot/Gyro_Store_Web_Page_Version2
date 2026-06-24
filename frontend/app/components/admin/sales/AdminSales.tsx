@@ -14,6 +14,7 @@ import { AdminSalesHistory } from "./AdminSalesHistory";
 import { StatCard } from "~/components/ui/StatCard";
 import { AnimatedTabs } from "~/components/ui/AnimatedTabs";
 import { UnifiedDatePicker } from "~/components/ui/UnifiedDatePicker";
+import { FilterSelect, type FilterSelectOption } from "~/components/ui/FilterSelect";
 import { useGetSalesPaginatedQuery } from "~/store/api/salesApi";
 import { useGetUsersQuery } from "~/store/api/usersApi";
 import { formatCordobas, usdFromCordobas } from "~/lib/utils";
@@ -91,6 +92,20 @@ export function AdminSales() {
 
   const { data: users = [] } = useGetUsersQuery();
 
+  // Solo en el tab "Ventas pendientes" marcamos con un punto a los vendedores que tienen pendientes.
+  const showPendingDots = section === "ventas" && sub === "pending";
+  const { data: pendingData } = useGetSalesPaginatedQuery(
+    { page: 1, limit: 200, status: "pending_approval", sellerEmail: "all", date: selectedDate },
+    { skip: !showPendingDots },
+  );
+  const pendingSellerEmails = useMemo(() => {
+    const set = new Set<string>();
+    (pendingData?.data ?? []).forEach((s) => {
+      if (s.sellerEmail) set.add(s.sellerEmail);
+    });
+    return set;
+  }, [pendingData]);
+
   const sales = salesData?.data ?? [];
 
   // Guardar en sessionStorage para retener el filtro si el usuario navega a otras partes
@@ -121,6 +136,18 @@ export function AdminSales() {
     });
     return Array.from(map.entries()).map(([email, name]) => ({ email, name }));
   }, [users]);
+
+  // Opciones del filtro de vendedor (con punto indicador de pendientes en el tab correspondiente)
+  const sellerOptions = useMemo<FilterSelectOption[]>(() => {
+    return [
+      { value: "all", label: "Todos los vendedores" },
+      ...uniqueSellers.map((s) => ({
+        value: s.email,
+        label: s.name,
+        dot: showPendingDots && pendingSellerEmails.has(s.email),
+      })),
+    ];
+  }, [uniqueSellers, showPendingDots, pendingSellerEmails]);
 
   // Las ventas ya vienen filtradas desde el servidor
   const filteredSales = sales;
@@ -182,7 +209,7 @@ export function AdminSales() {
       {/* Panel de KPIs y Filtros — solo en Ventas / Reportería (no en Inventario) */}
       {section !== "inventory" && (
       <div className="space-y-4">
-        <div className="glass flex flex-wrap items-center justify-between gap-4 rounded-card p-4">
+        <div className="glass relative z-40 flex flex-wrap items-center justify-between gap-4 rounded-card p-4">
           <div>
             <h2 className="text-base font-semibold text-text">Filtros del Historial</h2>
             <p className="text-xs text-muted">Ajusta los criterios para auditar las ventas.</p>
@@ -198,21 +225,16 @@ export function AdminSales() {
             </div>
 
             {/* Selector de Vendedor */}
-            <label className="block w-full sm:w-52">
+            <div className="block w-full sm:w-52">
               <span className="mb-1 block text-xs text-muted">Vendedor</span>
-              <select
-                className="input"
+              <FilterSelect
                 value={selectedSeller}
-                onChange={(e) => setSelectedSeller(e.target.value)}
-              >
-                <option value="all">Todos los vendedores</option>
-                {uniqueSellers.map((s) => (
-                  <option key={s.email} value={s.email}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={(val) => setSelectedSeller(val)}
+                options={sellerOptions}
+                placeholder="Todos los vendedores"
+                dotTitle="Tiene ventas pendientes de aprobación"
+              />
+            </div>
           </div>
         </div>
 

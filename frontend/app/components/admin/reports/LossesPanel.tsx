@@ -9,8 +9,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { type ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { Pencil } from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { DataTable } from "~/components/ui/DataTable";
+import { Modal } from "~/components/ui/Modal";
 import { DateField } from "~/components/ui/DatePicker";
 import { Autocomplete } from "~/components/ui/Autocomplete";
 import {
@@ -18,7 +20,9 @@ import {
   useGetLossProductsQuery,
   useGetExpenseCategoriesQuery,
   useCreateLossMutation,
+  useUpdateLossMutation,
   useCreateExpenseMutation,
+  useUpdateExpenseMutation,
   type LossRecord,
   type LossCategory,
 } from "~/store/api/reportsApi";
@@ -69,9 +73,23 @@ const lossSchema = z.object({
 });
 type LossInput = z.infer<typeof lossSchema>;
 
+// Extrae el número del código ("IN12" → 12, "M-IN58" → 58) para ordenar.
+function codeNum(code?: string): number {
+  const m = code?.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+}
+
 function LossForm() {
   const { data: products = [] } = useGetLossProductsQuery();
   const [createLoss, { isLoading }] = useCreateLossMutation();
+
+  // Ordenar por código (IN1, IN2, …); nativos antes que migrados.
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => {
+      if (a.origin !== b.origin) return a.origin === "migrated" ? 1 : -1;
+      return codeNum(a.code) - codeNum(b.code);
+    });
+  }, [products]);
   const { register, control, handleSubmit, reset, formState: { errors } } = useForm<LossInput>({
     resolver: zodResolver(lossSchema),
     defaultValues: { date: today(), category: "daño", quantity: 1 },
@@ -96,9 +114,9 @@ function LossForm() {
       <Field label="Producto" error={errors.product?.message} className="lg:col-span-2">
         <select className="input" {...register("product")}>
           <option value="">Selecciona…</option>
-          {products.map((p) => (
+          {sortedProducts.map((p) => (
             <option key={`${p.origin}:${p.id}`} value={`${p.origin}:${p.id}`}>
-              {p.name} ({p.code}) · stock {p.stock}{p.origin === "migrated" ? " · migrado" : ""}
+              {p.code} — {p.name} · stock {p.stock}{p.origin === "migrated" ? " · migrado" : ""}
             </option>
           ))}
         </select>
@@ -127,14 +145,100 @@ function LossForm() {
 }
 
 function LossTable({ data }: { data: LossRecord[] }) {
+  const [editFor, setEditFor] = useState<LossRecord | null>(null);
   const columns = useMemo<ColumnDef<LossRecord, any>[]>(() => [
     { accessorKey: "date", header: "Fecha" },
     { accessorKey: "productName", header: "Producto", cell: (c) => `${c.row.original.productName ?? ""}${c.row.original.productCode ? ` (${c.row.original.productCode})` : ""}` },
     { accessorKey: "quantity", header: "Cant." },
     { accessorKey: "category", header: "Tipo", cell: (c) => LOSS_CATEGORY_LABEL[c.getValue() as LossCategory] ?? c.getValue() },
     { accessorKey: "amount", header: "Costo real", cell: (c) => money(c.row.original) },
+    {
+      id: "actions",
+      header: "",
+      enableSorting: false,
+      cell: (c) => (
+        <button
+          type="button"
+          onClick={() => setEditFor(c.row.original)}
+          className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-text"
+          title="Editar pérdida"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+      ),
+    },
   ], []);
-  return <DataTable columns={columns} data={data} searchPlaceholder="Buscar pérdida…" emptyText="Sin pérdidas registradas." />;
+  return (
+    <>
+      <DataTable columns={columns} data={data} searchPlaceholder="Buscar pérdida…" emptyText="Sin pérdidas registradas." />
+      {editFor && (
+        <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar pérdida">
+          <LossEditForm loss={editFor} onDone={() => setEditFor(null)} />
+        </Modal>
+      )}
+    </>
+  );
+}
+
+// Edición de metadatos de una pérdida: fecha, tipo y nota (producto/cantidad son de solo lectura).
+const lossEditSchema = z.object({
+  date: z.string().min(1, "Fecha requerida"),
+  category: z.enum(["robo", "daño", "devolucion"]),
+  reason: z.string().optional(),
+});
+type LossEditInput = z.infer<typeof lossEditSchema>;
+
+function LossEditForm({ loss, onDone }: { loss: LossRecord; onDone: () => void }) {
+  const [updateLoss, { isLoading }] = useUpdateLossMutation();
+  const { register, control, handleSubmit, formState: { errors } } = useForm<LossEditInput>({
+    resolver: zodResolver(lossEditSchema),
+    defaultValues: { date: loss.date, category: (loss.category as LossCategory) ?? "daño", reason: loss.reason || "" },
+  });
+
+  async function onSubmit(data: LossEditInput) {
+    try {
+      await updateLoss({ id: loss.id, ...data }).unwrap();
+      toast.success("Pérdida actualizada.");
+      onDone();
+    } catch (err: any) {
+      toast.error(err?.data?.error || "No se pudo actualizar.");
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-3 sm:grid-cols-2">
+      <Field label="Producto" className="sm:col-span-2">
+        <input
+          className="input opacity-60"
+          value={`${loss.productCode ? `${loss.productCode} — ` : ""}${loss.productName ?? ""}`}
+          disabled
+          readOnly
+        />
+      </Field>
+      <Field label="Fecha" error={errors.date?.message}>
+        <DateField control={control} name="date" invalid={!!errors.date} />
+      </Field>
+      <Field label="Cantidad">
+        <input className="input opacity-60" value={loss.quantity ?? ""} disabled readOnly />
+      </Field>
+      <Field label="Tipo">
+        <select className="input" {...register("category")}>
+          <option value="daño">Daño</option>
+          <option value="robo">Robo</option>
+          <option value="devolucion">Devolución</option>
+        </select>
+      </Field>
+      <Field label="Nota (opcional)" className="sm:col-span-2">
+        <input className="input" placeholder="Descripción…" {...register("reason")} />
+      </Field>
+      <p className="text-xs text-muted sm:col-span-2">
+        El producto y la cantidad no se editan aquí: afectan el stock y el costo real. Para corregirlos, registra una nueva pérdida.
+      </p>
+      <div className="flex justify-end sm:col-span-2">
+        <Button type="submit" loading={isLoading}>Guardar cambios</Button>
+      </div>
+    </form>
+  );
 }
 
 // ── Gasto operativo ─────────────────────────────────────────────────────────
@@ -148,13 +252,24 @@ const expenseSchema = z.object({
 });
 type ExpenseInput = z.infer<typeof expenseSchema>;
 
-function ExpenseForm() {
+function ExpenseForm({ expense, onDone }: { expense?: LossRecord; onDone?: () => void }) {
+  const isEdit = !!expense;
   const { data: cats } = useGetExpenseCategoriesQuery();
-  const [createExpense, { isLoading }] = useCreateExpenseMutation();
+  const [createExpense, { isLoading: creating }] = useCreateExpenseMutation();
+  const [updateExpense, { isLoading: updating }] = useUpdateExpenseMutation();
   const groups = cats?.groups ?? [];
   const { register, control, handleSubmit, reset, watch, formState: { errors } } = useForm<ExpenseInput>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: { date: today(), currency: "C$", group: "", subcategory: "" },
+    defaultValues: expense
+      ? {
+          date: expense.date,
+          currency: expense.currency,
+          group: expense.group || "",
+          subcategory: expense.subcategory || "",
+          amount: expense.amount,
+          reason: expense.reason || "",
+        }
+      : { date: today(), currency: "C$", group: "", subcategory: "" },
   });
 
   const group = watch("group");
@@ -162,16 +277,28 @@ function ExpenseForm() {
 
   async function onSubmit(data: ExpenseInput) {
     try {
-      await createExpense(data).unwrap();
-      toast.success("Gasto registrado.");
-      reset({ date: today(), currency: "C$", group: "", subcategory: "", amount: undefined as any, reason: "" });
+      if (isEdit) {
+        await updateExpense({ id: expense.id, ...data }).unwrap();
+        toast.success("Gasto actualizado.");
+      } else {
+        await createExpense(data).unwrap();
+        toast.success("Gasto registrado.");
+        reset({ date: today(), currency: "C$", group: "", subcategory: "", amount: undefined as any, reason: "" });
+      }
+      onDone?.();
     } catch (err: any) {
       toast.error(err?.data?.error || "No se pudo registrar.");
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-3 rounded-card border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className={cn(
+        "grid gap-3 sm:grid-cols-2 lg:grid-cols-6",
+        !isEdit && "rounded-card border border-border bg-surface p-4",
+      )}
+    >
       <Field label="Fecha" error={errors.date?.message}>
         <DateField control={control} name="date" invalid={!!errors.date} />
       </Field>
@@ -205,17 +332,22 @@ function ExpenseForm() {
         <input className="input" placeholder="Descripción…" {...register("reason")} />
       </Field>
       <div className="flex items-end">
-        <Button type="submit" loading={isLoading}>Registrar gasto</Button>
+        <Button type="submit" loading={creating || updating}>
+          {isEdit ? "Guardar cambios" : "Registrar gasto"}
+        </Button>
       </div>
-      <p className="text-xs text-muted lg:col-span-6">
-        Mientras el gasto del grupo no supere su pozo de presupuesto del mes, no afecta la ganancia. Solo el excedente la reduce. Los grupos "sin pozo" la reducen por completo.
-      </p>
+      {!isEdit && (
+        <p className="text-xs text-muted lg:col-span-6">
+          Mientras el gasto del grupo no supere su pozo de presupuesto del mes, no afecta la ganancia. Solo el excedente la reduce. Los grupos "sin pozo" la reducen por completo.
+        </p>
+      )}
     </form>
   );
 }
 
 function ExpenseTable({ data }: { data: LossRecord[] }) {
   const { data: cats } = useGetExpenseCategoriesQuery();
+  const [editFor, setEditFor] = useState<LossRecord | null>(null);
   const groupLabel = useMemo(() => {
     const map: Record<string, string> = {};
     (cats?.groups ?? []).forEach((g) => { map[g.key] = g.label; });
@@ -228,8 +360,33 @@ function ExpenseTable({ data }: { data: LossRecord[] }) {
     { accessorKey: "subcategory", header: "Subcategoría" },
     { accessorKey: "amount", header: "Monto", cell: (c) => money(c.row.original) },
     { accessorKey: "reason", header: "Nota" },
+    {
+      id: "actions",
+      header: "",
+      enableSorting: false,
+      cell: (c) => (
+        <button
+          type="button"
+          onClick={() => setEditFor(c.row.original)}
+          className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-text"
+          title="Editar gasto"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+      ),
+    },
   ], [groupLabel]);
-  return <DataTable columns={columns} data={data} searchPlaceholder="Buscar gasto…" emptyText="Sin gastos registrados." />;
+
+  return (
+    <>
+      <DataTable columns={columns} data={data} searchPlaceholder="Buscar gasto…" emptyText="Sin gastos registrados." />
+      {editFor && (
+        <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar gasto">
+          <ExpenseForm expense={editFor} onDone={() => setEditFor(null)} />
+        </Modal>
+      )}
+    </>
+  );
 }
 
 // ── UI helpers ──────────────────────────────────────────────────────────────

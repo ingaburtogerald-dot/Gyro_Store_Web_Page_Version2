@@ -138,6 +138,35 @@ router.post('/losses', requireAdmin, asyncHandler(async (req, res) => {
   res.status(201).json({ id: ref.id, ...doc, createdAt: null });
 }));
 
+// PATCH /api/reports/losses/:id — edita los metadatos de una pérdida.
+// Solo fecha, tipo y nota: producto y cantidad afectan stock/costo y no se editan
+// (la pérdida no guarda los lotes FIFO consumidos, así que no es reversible con exactitud).
+const lossEditSchema = z.object({
+  date: z.string().min(1, 'Fecha requerida'),
+  category: z.enum(['robo', 'daño', 'devolucion']),
+  reason: z.string().max(200).optional().default(''),
+});
+
+router.patch('/losses/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const parsed = lossEditSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Datos inválidos.' });
+
+  const ref = db.collection(LOSSES).doc(req.params.id);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data().kind === 'expense') {
+    return res.status(404).json({ error: 'Pérdida no encontrada.' });
+  }
+
+  const update = {
+    ...parsed.data,
+    reason: (parsed.data.reason || '').trim(),
+    updatedBy: req.user.email,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  await ref.update(update);
+  res.json({ id: ref.id, ...snap.data(), ...update, updatedAt: null });
+}));
+
 // ── Gastos operativos: monto + grupo (con pozo) + subcategoría libre ──
 const expenseSchema = z.object({
   date: z.string().min(1, 'Fecha requerida'),
@@ -162,6 +191,27 @@ router.post('/expenses', requireAdmin, asyncHandler(async (req, res) => {
   };
   const ref = await db.collection(LOSSES).add(doc);
   res.status(201).json({ id: ref.id, ...doc, createdAt: null });
+}));
+
+// PATCH /api/reports/expenses/:id — edita un gasto operativo.
+router.patch('/expenses/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const parsed = expenseSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Datos inválidos.' });
+
+  const ref = db.collection(LOSSES).doc(req.params.id);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data().kind !== 'expense') {
+    return res.status(404).json({ error: 'Gasto no encontrado.' });
+  }
+
+  const update = {
+    ...parsed.data,
+    subcategory: (parsed.data.subcategory || '').trim(),
+    updatedBy: req.user.email,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  await ref.update(update);
+  res.json({ id: ref.id, kind: 'expense', ...update, updatedAt: null });
 }));
 
 module.exports = router;

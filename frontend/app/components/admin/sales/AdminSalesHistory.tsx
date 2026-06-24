@@ -62,6 +62,17 @@ export function AdminSalesHistory({
         cell: (c) => <span className="font-semibold text-text">{c.getValue()}</span>,
       },
       {
+        id: "code",
+        header: "Código",
+        cell: (c) => {
+          const items = c.row.original.items || [];
+          const codes = items.map((i: any) => i.code).filter(Boolean);
+          return (
+            <span className="font-mono text-xs text-muted">{codes.length ? codes.join(", ") : "—"}</span>
+          );
+        },
+      },
+      {
         id: "products",
         header: "Productos",
         cell: (c) => {
