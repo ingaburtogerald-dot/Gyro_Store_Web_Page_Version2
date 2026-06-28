@@ -21,10 +21,10 @@ export function SocialLink({
       target="_blank"
       rel="noreferrer"
       aria-label={label}
-      whileHover={{ y: -3, scale: 1.15, color, backgroundColor: tint }}
-      whileTap={{ scale: 0.9 }}
+      whileHover={{ y: -3, scale: 1.12, color, backgroundColor: tint, boxShadow: `0 8px 20px -6px ${color}66`, borderColor: `${color}55` }}
+      whileTap={{ scale: 0.92 }}
       transition={{ type: "spring", stiffness: 420, damping: 17 }}
-      className="grid h-9 w-9 place-items-center rounded-full text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="grid h-9 w-9 place-items-center rounded-full border border-border bg-surface-2/70 text-muted shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       {children}
     </motion.a>
