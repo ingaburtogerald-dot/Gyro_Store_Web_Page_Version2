@@ -1,13 +1,13 @@
-// Grid de productos del catálogo. Aplica el filtro de categoría (servidor) y la
-// búsqueda por texto (cliente). Muestra skeletons mientras carga y un estado vacío.
+// Grid de productos del catálogo. Los productos llegan por props desde el loader
+// SSR de la ruta (_index). El filtrado (categoría, búsqueda, precio, oferta, stock)
+// y el orden se hacen en cliente sobre esa lista, usando el estado de UI de Redux.
 import { useMemo } from "react";
 import { PackageSearch } from "lucide-react";
 import { ProductCardMobile } from "./ProductCardMobile";
-import { ProductCardSkeleton } from "./ProductCardSkeleton";
-import { useGetCatalogQuery, useGetConfigQuery } from "~/store/api/catalogApi";
+import { useGetConfigQuery, type CatalogProduct } from "~/store/api/catalogApi";
 import { useAppSelector } from "~/store/hooks";
 
-export function ProductGrid() {
+export function ProductGrid({ products }: { products: CatalogProduct[] }) {
   const category = useAppSelector((s) => s.ui.activeCategory);
   const search = useAppSelector((s) => s.ui.search).trim().toLowerCase();
   const priceMin = useAppSelector((s) => s.ui.priceMin);
@@ -17,14 +17,11 @@ export function ProductGrid() {
   const onlyInStock = useAppSelector((s) => s.ui.onlyInStock);
 
   const { data: config } = useGetConfigQuery();
-  const { data: products, isLoading, isError } = useGetCatalogQuery(
-    category ? { category } : undefined,
-  );
 
-  // Filtros en cliente (búsqueda + filtros avanzados del bottom sheet) y orden.
+  // Filtros en cliente (categoría + búsqueda + filtros avanzados) y orden.
   const filtered = useMemo(() => {
-    if (!products) return [];
     const result = products.filter((p) => {
+      if (category && p.category !== category) return false;
       if (search && !p.name.toLowerCase().includes(search)) return false;
       if (priceMin != null && p.price < priceMin) return false;
       if (priceMax != null && p.price > priceMax) return false;
@@ -35,21 +32,7 @@ export function ProductGrid() {
     if (sort === "price-asc") result.sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") result.sort((a, b) => b.price - a.price);
     return result;
-  }, [products, search, priceMin, priceMax, onlyInStock, onlyOnSale, sort]);
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <ProductCardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
-
-  if (isError) {
-    return <EmptyState text="No se pudo cargar el catálogo. Intenta de nuevo." />;
-  }
+  }, [products, category, search, priceMin, priceMax, onlyInStock, onlyOnSale, sort]);
 
   if (filtered.length === 0) {
     return (
