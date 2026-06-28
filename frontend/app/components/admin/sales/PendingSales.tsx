@@ -9,7 +9,6 @@ import { DataTable } from "~/components/ui/DataTable";
 import { AdminSaleCard } from "./AdminSaleCard";
 import { SaleEditor } from "./SaleEditor";
 import {
-  useGetSalesPaginatedQuery,
   useApproveSaleMutation,
   useApproveAndPayBulkMutation,
   useRejectSaleMutation,
@@ -19,15 +18,9 @@ import {
 } from "~/store/api/salesApi";
 import { formatCordobas } from "~/lib/utils";
 
-export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: { selectedSeller: string; selectedMonth: string; onRegisterSale?: () => void }) {
-  const { data: salesData, isLoading } = useGetSalesPaginatedQuery({
-    page: 1,
-    limit: 100,
-    status: "pending_approval",
-    sellerEmail: selectedSeller,
-    date: selectedMonth,
-  });
-  const sales = salesData?.data ?? [];
+// La lista de ventas pendientes llega por props desde AdminSales (misma fuente que
+// alimenta los KPIs), para que las tarjetas y la tabla muestren SIEMPRE lo mismo.
+export function PendingSales({ sales, isLoading, onRegisterSale }: { sales: Sale[]; isLoading: boolean; onRegisterSale?: () => void }) {
   const [approve, { isLoading: approving }] = useApproveSaleMutation();
   const [approveAndPayBulk] = useApproveAndPayBulkMutation();
   const [reject, { isLoading: rejecting }] = useRejectSaleMutation();
@@ -218,21 +211,6 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
     []
   );
 
-  const totals = useMemo(() => {
-    let cant = 0, venta = 0, costo = 0, utilBruta = 0, costosFijos = 0, utilNeta = 0, comision = 0, ganancia = 0;
-    for (const s of pending) {
-      cant += s.items?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0;
-      venta += s.saleTotal || 0;
-      costo += s.totalCostReal || 0;
-      utilBruta += s.totalUtilidadBruta || 0;
-      costosFijos += s.totalCostosFijos || 0;
-      utilNeta += s.totalUtilidadNeta || 0;
-      comision += s.comisionVendedor || 0;
-      ganancia += s.gananciaTienda || 0;
-    }
-    return { cant, venta, costo, utilBruta, costosFijos, utilNeta, comision, ganancia };
-  }, [pending]);
-
   return (
     <div className="space-y-4 rounded-card border border-border bg-surface p-4 relative">
       <div className="sticky top-0 z-30 flex flex-col lg:flex-row items-start justify-between gap-4 bg-surface pb-2">
@@ -241,26 +219,8 @@ export function PendingSales({ selectedSeller, selectedMonth, onRegisterSale }: 
           <p className="text-xs text-muted">Revisa las transacciones reportadas y audita sus utilidades. Selecciona una fila para editarla o eliminarla.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {pending.length > 0 && (
-            <div className="flex items-center gap-4 rounded-lg border border-border bg-surface-2 px-4 py-2 text-xs shadow-sm">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-muted uppercase font-bold">Cantidades</span>
-                <span className="text-sm font-semibold text-text">{totals.cant}</span>
-              </div>
-              <div className="flex flex-col border-l border-border pl-4">
-                <span className="text-[10px] text-muted uppercase font-bold">Venta Total</span>
-                <span className="text-sm font-semibold text-text">{formatCordobas(totals.venta)}</span>
-              </div>
-              <div className="flex flex-col border-l border-border pl-4">
-                <span className="text-[10px] text-muted uppercase font-bold">Comisión</span>
-                <span className="text-sm font-semibold text-emerald-400">{formatCordobas(totals.comision)}</span>
-              </div>
-              <div className="flex flex-col border-l border-border pl-4">
-                <span className="text-[10px] text-muted uppercase font-bold">Ganancia</span>
-                <span className="text-sm font-bold text-whatsapp">{formatCordobas(totals.ganancia)}</span>
-              </div>
-            </div>
-          )}
+          {/* El mini-resumen se eliminó: ahora los totales viven en los KPIs grandes
+              de arriba (SalesKpis), que suman exactamente esta misma lista. */}
           {onRegisterSale && (
             <button
               onClick={onRegisterSale}

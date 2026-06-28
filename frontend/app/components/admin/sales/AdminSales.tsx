@@ -11,6 +11,7 @@ import { IncomingInventory } from "./IncomingInventory";
 import { PricingConfigModal } from "./PricingConfigModal";
 import { Modal } from "~/components/ui/Modal";
 import { AdminSalesHistory } from "./AdminSalesHistory";
+import { SalesKpis } from "./SalesKpis";
 import { StatCard } from "~/components/ui/StatCard";
 import { AnimatedTabs } from "~/components/ui/AnimatedTabs";
 import { UnifiedDatePicker } from "~/components/ui/UnifiedDatePicker";
@@ -83,12 +84,26 @@ export function AdminSales() {
 
   const [page, setPage] = useState(1);
 
-  const { data: salesData, isLoading: loadingSales } = useGetSalesPaginatedQuery({
-    page,
-    limit: 50,
-    sellerEmail: selectedSeller,
-    date: selectedDate,
-  });
+  const inVentas = section === "ventas";
+  const inReporteria = section === "reporteria";
+
+  // Datos del tab "Ventas pendientes": alimentan KPIs Y tabla desde la MISMA fuente.
+  const { data: pendingTab, isLoading: loadingPending } = useGetSalesPaginatedQuery(
+    { page: 1, limit: 200, status: "pending_approval", sellerEmail: selectedSeller, date: selectedDate },
+    { skip: !(inVentas && sub === "pending") },
+  );
+
+  // Datos del tab "Ventas aprobadas": KPIs + tabla paginada. status=history → approved+paid.
+  const { data: approvedData, isLoading: loadingApproved } = useGetSalesPaginatedQuery(
+    { page, limit: 50, status: "history", sellerEmail: selectedSeller, date: selectedDate },
+    { skip: !(inVentas && sub === "approved") },
+  );
+
+  // Resumen para los KPIs de Reportería (pagos / performance) — comportamiento previo.
+  const { data: reporteriaData } = useGetSalesPaginatedQuery(
+    { page: 1, limit: 50, sellerEmail: selectedSeller, date: selectedDate },
+    { skip: !inReporteria },
+  );
 
   const { data: users = [] } = useGetUsersQuery();
 
@@ -106,7 +121,7 @@ export function AdminSales() {
     return set;
   }, [pendingData]);
 
-  const sales = salesData?.data ?? [];
+  const pendingList = pendingTab?.data ?? [];
 
   // Guardar en sessionStorage para retener el filtro si el usuario navega a otras partes
   useEffect(() => {
@@ -149,12 +164,9 @@ export function AdminSales() {
     ];
   }, [uniqueSellers, showPendingDots, pendingSellerEmails]);
 
-  // Las ventas ya vienen filtradas desde el servidor
-  const filteredSales = sales;
-
-  // Normalizar campos financieros
+  // Normalizar campos financieros de las ventas aprobadas (para la tabla del historial).
   const normalizedSales = useMemo(() => {
-    return filteredSales.map((s) => ({
+    return (approvedData?.data ?? []).map((s) => ({
       ...s,
       displayCostReal: s.costReal ?? s.totalCostReal ?? 0,
       displayUtilidadBruta: s.utilidadBruta ?? s.totalUtilidadBruta ?? 0,
@@ -163,11 +175,11 @@ export function AdminSales() {
       displayComisionVendedor: s.comisionVendedor ?? 0,
       displayGananciaTienda: s.gananciaTienda ?? 0,
     }));
-  }, [filteredSales]);
+  }, [approvedData]);
 
-  // Calcular KPIs desde el resumen global del servidor
+  // KPIs de Reportería desde el resumen global del servidor.
   const dynamicSummary = useMemo(() => {
-    return salesData?.summary ?? {
+    return reporteriaData?.summary ?? {
       ventasAprobadas: 0,
       totalVendido: 0,
       comisiones: 0,
@@ -175,7 +187,7 @@ export function AdminSales() {
       inversionRecuperada: 0,
       enRevision: 0,
     };
-  }, [salesData]);
+  }, [reporteriaData]);
 
   return (
     <div className="space-y-6">
@@ -238,60 +250,25 @@ export function AdminSales() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {/* Disciplina de color: neutral por defecto; color solo con significado.
-              Indigo = métrica protagonista · Emerald = ganancia · Amber = atención. */}
-          <StatCard
-            icon={ShoppingBag}
-            label="Total Vendido"
-            countTo={dynamicSummary.totalVendido}
-            format={formatCordobas}
-            sub={usdFromCordobas(dynamicSummary.totalVendido)}
-            color="indigo"
-            delay={0}
-          />
-          <StatCard
-            icon={PiggyBank}
-            label="Inversión Recuperada"
-            countTo={dynamicSummary.inversionRecuperada}
-            format={formatCordobas}
-            sub={usdFromCordobas(dynamicSummary.inversionRecuperada)}
-            color="neutral"
-            delay={0.05}
-          />
-          <StatCard
-            icon={Coins}
-            label="Comisiones Vendedor"
-            countTo={dynamicSummary.comisiones}
-            format={formatCordobas}
-            sub={usdFromCordobas(dynamicSummary.comisiones)}
-            color="neutral"
-            delay={0.1}
-          />
-          <StatCard
-            icon={Landmark}
-            label="Ganancia Tienda"
-            countTo={dynamicSummary.gananciaTienda}
-            format={formatCordobas}
-            sub={usdFromCordobas(dynamicSummary.gananciaTienda)}
-            color="emerald"
-            delay={0.15}
-          />
-          <StatCard
-            icon={CheckCircle2}
-            label="Ventas Aprobadas"
-            countTo={dynamicSummary.ventasAprobadas}
-            color="neutral"
-            delay={0.2}
-          />
-          <StatCard
-            icon={Clock}
-            label="Ventas en Revisión"
-            countTo={dynamicSummary.enRevision}
-            color="amber"
-            delay={0.25}
-          />
-        </div>
+        {/* KPIs de Ventas: esclavos de la lista del tab activo (calculados en SalesKpis). */}
+        {inVentas && sub === "pending" && (
+          <SalesKpis status="pending" sales={pendingList} ticketCount={pendingTab?.total ?? pendingList.length} />
+        )}
+        {inVentas && sub === "approved" && (
+          <SalesKpis status="approved" sales={approvedData?.data ?? []} ticketCount={approvedData?.total ?? 0} />
+        )}
+
+        {/* Reportería conserva el resumen global del servidor (pagos / performance). */}
+        {inReporteria && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <StatCard icon={ShoppingBag} label="Total Vendido" countTo={dynamicSummary.totalVendido} format={formatCordobas} sub={usdFromCordobas(dynamicSummary.totalVendido)} color="indigo" delay={0} />
+            <StatCard icon={PiggyBank} label="Inversión Recuperada" countTo={dynamicSummary.inversionRecuperada} format={formatCordobas} sub={usdFromCordobas(dynamicSummary.inversionRecuperada)} color="neutral" delay={0.05} />
+            <StatCard icon={Coins} label="Comisiones Vendedor" countTo={dynamicSummary.comisiones} format={formatCordobas} sub={usdFromCordobas(dynamicSummary.comisiones)} color="neutral" delay={0.1} />
+            <StatCard icon={Landmark} label="Ganancia Tienda" countTo={dynamicSummary.gananciaTienda} format={formatCordobas} sub={usdFromCordobas(dynamicSummary.gananciaTienda)} color="emerald" delay={0.15} />
+            <StatCard icon={CheckCircle2} label="Ventas Aprobadas" countTo={dynamicSummary.ventasAprobadas} color="neutral" delay={0.2} />
+            <StatCard icon={Clock} label="Ventas en Revisión" countTo={dynamicSummary.enRevision} color="amber" delay={0.25} />
+          </div>
+        )}
       </div>
       )}
 
@@ -300,17 +277,17 @@ export function AdminSales() {
         {sub === "available" && <AvailableInventory />}
         {sub === "migrated" && <MigratedAvailable />}
         {sub === "incoming" && <IncomingInventory />}
-        {sub === "pending" && <PendingSales selectedSeller={selectedSeller} selectedMonth={selectedDate} onRegisterSale={() => setSaleOpen(true)} />}
+        {sub === "pending" && <PendingSales sales={pendingList} isLoading={loadingPending} onRegisterSale={() => setSaleOpen(true)} />}
         {sub === "performance" && <SalesPerformance selectedMonth={selectedDate} />}
         {sub === "payments" && <PaymentHistory selectedSeller={selectedSeller} />}
         {sub === "approved" && (
           <AdminSalesHistory
             filteredSales={normalizedSales}
-            isLoading={loadingSales}
+            isLoading={loadingApproved}
             page={page}
-            totalPages={salesData?.totalPages ?? 1}
+            totalPages={approvedData?.totalPages ?? 1}
             onPageChange={setPage}
-            totalCount={salesData?.total ?? 0}
+            totalCount={approvedData?.total ?? 0}
             onRegisterSale={() => setSaleOpen(true)}
           />
         )}
