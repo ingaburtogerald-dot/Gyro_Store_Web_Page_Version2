@@ -397,6 +397,7 @@ export default function ProductDetail() {
                       const t = discounts.find((d) => b.qty >= d.minQty && (d.maxQty == null || b.qty <= d.maxQty)) ?? null;
                       const pct = t?.discountPercent ?? 0;
                       const u = Math.round(price * (1 - pct / 100));
+                      const saved = Math.round((price - u) * b.qty); // ahorro total del bundle (C$)
                       const active = qty === b.qty;
                       return (
                         <motion.button
@@ -415,10 +416,10 @@ export default function ProductDetail() {
                           <span className={cn("text-xs font-semibold uppercase tracking-wide", active ? "text-accent" : "text-muted")}>{b.label}</span>
                           <span className="mt-0.5 text-[10px] text-muted">{b.qty} unidades</span>
                           <span className="mt-1.5 font-heading text-xl font-bold text-text">{formatCordobas(u)}</span>
-                          <span className="text-[10px] font-medium text-muted">c/u</span>
-                          {pct > 0 ? (
+                          <span className="text-[10px] font-medium text-muted">por unidad</span>
+                          {saved > 0 ? (
                             <div className="mt-2 w-full rounded-md bg-emerald-950/60 py-1 text-[11px] font-bold text-emerald-400">
-                              Ahorras {pct}%
+                              Ahorras {formatCordobas(saved)}
                             </div>
                           ) : (
                             <div className="mt-2 w-full py-1 text-[11px] font-medium text-muted/70">Precio normal</div>
