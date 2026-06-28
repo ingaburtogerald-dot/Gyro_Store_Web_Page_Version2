@@ -12,24 +12,29 @@ import { FilterFab } from "~/components/catalog/FilterFab";
 import { FilterSheet } from "~/components/catalog/FilterSheet";
 import { CartFab } from "~/components/cart/CartFab";
 import { CartDrawer } from "~/components/cart/CartDrawer";
-import type { CatalogProduct } from "~/store/api/catalogApi";
+import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectEditMode, selectIsAdmin, setEditMode } from "~/store/slices/authSlice";
 
-// SSR: el catálogo se obtiene en el servidor (no en el cliente) para mejorar SEO y
-// FCP, y evitar el parpadeo de carga. El endpoint /api/catalog es PÚBLICO, así que
-// no necesita el token de Firebase. Express sirve el SSR en el mismo proceso, por lo
-// que este fetch al origin propio es local (la API ya cachea el catálogo en memoria).
+// SSR: catálogo Y categorías se obtienen en el servidor (no en el cliente) para
+// mejorar SEO y FCP, y evitar el parpadeo de carga. /api/catalog y /api/config son
+// PÚBLICOS (no necesitan el token de Firebase). Express sirve el SSR en el mismo
+// proceso, por lo que estos fetch al origin propio son locales (la API cachea).
 export async function loader({ request }: LoaderFunctionArgs) {
   const origin = new URL(request.url).origin;
   let products: CatalogProduct[] = [];
+  let categories: Category[] = [];
   try {
-    const res = await fetch(`${origin}/api/catalog`);
-    if (res.ok) products = (await res.json()) as CatalogProduct[];
+    const [pRes, cRes] = await Promise.all([
+      fetch(`${origin}/api/catalog`),
+      fetch(`${origin}/api/config`),
+    ]);
+    if (pRes.ok) products = (await pRes.json()) as CatalogProduct[];
+    if (cRes.ok) categories = ((await cRes.json()) as { categories?: Category[] }).categories ?? [];
   } catch {
     // Si la API falla, la página igual renderiza (grilla vacía con su estado vacío).
   }
-  return { origin, products };
+  return { origin, products, categories };
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -54,7 +59,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export default function Index() {
-  const { products } = useLoaderData<typeof loader>();
+  const { products, categories } = useLoaderData<typeof loader>();
   const dispatch = useAppDispatch();
   const isAdmin = useAppSelector(selectIsAdmin);
   const editMode = useAppSelector(selectEditMode);
@@ -85,11 +90,11 @@ export default function Index() {
         {!editing && (
           <>
             <CatalogSearchBar />
-            <CategoryChips />
+            <CategoryChips categories={categories} />
           </>
         )}
 
-        {editing ? <SortableCatalogGrid /> : <ProductGrid products={products} />}
+        {editing ? <SortableCatalogGrid /> : <ProductGrid products={products} categories={categories} />}
       </main>
 
       <PublicFooter />

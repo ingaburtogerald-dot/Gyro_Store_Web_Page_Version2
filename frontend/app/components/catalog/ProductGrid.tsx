@@ -4,10 +4,10 @@
 import { useMemo } from "react";
 import { PackageSearch } from "lucide-react";
 import { ProductCardMobile } from "./ProductCardMobile";
-import { useGetConfigQuery, type CatalogProduct } from "~/store/api/catalogApi";
+import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useAppSelector } from "~/store/hooks";
 
-export function ProductGrid({ products }: { products: CatalogProduct[] }) {
+export function ProductGrid({ products, categories }: { products: CatalogProduct[]; categories: Category[] }) {
   const category = useAppSelector((s) => s.ui.activeCategory);
   const search = useAppSelector((s) => s.ui.search).trim().toLowerCase();
   const priceMin = useAppSelector((s) => s.ui.priceMin);
@@ -15,8 +15,6 @@ export function ProductGrid({ products }: { products: CatalogProduct[] }) {
   const sort = useAppSelector((s) => s.ui.sort);
   const onlyOnSale = useAppSelector((s) => s.ui.onlyOnSale);
   const onlyInStock = useAppSelector((s) => s.ui.onlyInStock);
-
-  const { data: config } = useGetConfigQuery();
 
   // Filtros en cliente (categoría + búsqueda + filtros avanzados) y orden.
   const filtered = useMemo(() => {
@@ -49,7 +47,7 @@ export function ProductGrid({ products }: { products: CatalogProduct[] }) {
   return (
     <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3 lg:grid-cols-4">
       {filtered.map((p) => (
-        <ProductCardMobile key={p.id} product={p} categories={config?.categories ?? []} />
+        <ProductCardMobile key={p.id} product={p} categories={categories} />
       ))}
     </div>
   );

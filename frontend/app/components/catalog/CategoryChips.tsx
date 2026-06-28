@@ -2,14 +2,14 @@
 // Extraído de la ruta _index para reutilizarlo y mantener la vista limpia.
 // La barra de scroll se oculta; los chips usan snap para "engancharse" al deslizar.
 import { useEffect, useRef } from "react";
-import { useGetConfigQuery } from "~/store/api/catalogApi";
+import type { Category } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { setCategory } from "~/store/slices/uiSlice";
 import { cn } from "~/lib/utils";
 
-export function CategoryChips() {
+// Las categorías llegan por props desde el loader SSR (sin parpadeo en el primer paint).
+export function CategoryChips({ categories }: { categories: Category[] }) {
   const dispatch = useAppDispatch();
-  const { data: config } = useGetConfigQuery();
   const activeCategory = useAppSelector((s) => s.ui.activeCategory);
   const activeRef = useRef<HTMLButtonElement>(null);
 
@@ -21,7 +21,7 @@ export function CategoryChips() {
   // [id | null, etiqueta] de cada chip: "Todo" + las categorías del negocio.
   const chips: Array<[string | null, string]> = [
     [null, "Todo"],
-    ...(config?.categories ?? []).map((c) => [c.id, `${c.icon} ${c.name}`] as [string, string]),
+    ...categories.map((c) => [c.id, `${c.icon} ${c.name}`] as [string, string]),
   ];
 
   return (
