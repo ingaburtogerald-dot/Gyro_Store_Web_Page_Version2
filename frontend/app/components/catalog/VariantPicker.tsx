@@ -3,6 +3,7 @@
 // en el backend): una opción se muestra "agotada" si no existe ninguna combinación
 // con stock=1 (encendida) que coincida con lo ya elegido en los otros ejes.
 import { useEffect, useMemo, useState } from "react";
+import { Check } from "lucide-react";
 import { cn } from "~/lib/utils";
 import type { CatalogVariant } from "~/store/api/catalogApi";
 
@@ -130,55 +131,107 @@ export function VariantPicker({
   }, [JSON.stringify(selected), variants]);
 
   return (
-    <div className="mt-5 space-y-4">
+    <div className="mt-5 space-y-5">
       {axisLabels.map((label, axis) => {
         if (options[axis].length === 0) return null;
         const isColorAxis = label.toLowerCase().trim() === "color";
+        const selectedLabel = selected[axis];
+
         return (
           <div key={label}>
-            <p className="mb-2 text-sm font-medium text-text/80">{label}</p>
-            <div className="flex flex-wrap gap-2">
-              {options[axis].map((opt) => {
-                const isSel = selected[axis] === opt;
-                const enabled = isOptionAvailable(selected, axis, opt);
-                const colorKey = opt.toLowerCase().trim();
-                const colorVal = COLOR_MAP[colorKey];
-                const isTransparente = colorKey === "transparente" || colorKey === "clear";
+            <p className="mb-2.5 text-sm font-medium text-text/80">
+              {label}
+              {selectedLabel && <span className="ml-2 text-muted">· {selectedLabel}</span>}
+            </p>
 
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    disabled={!enabled && !isSel}
-                    onClick={() => pick(axis, opt)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-pill border px-3.5 py-1.5 text-sm font-medium transition-all active:scale-95 cursor-pointer",
-                      isSel
-                        ? "border-transparent bg-gradient-accent text-white shadow-md shadow-accent/25"
-                        : enabled
-                          ? "border-border bg-surface-2 text-muted hover:border-accent/40 hover:text-text"
-                          : "cursor-not-allowed border-border/30 bg-surface-2/45 text-muted/30 line-through",
-                    )}
-                  >
-                    {isColorAxis && (colorVal || isTransparente) && (
+            {isColorAxis ? (
+              // ── Color Swatches: círculo con el color aproximado + etiqueta debajo ──
+              <div className="flex flex-wrap gap-3">
+                {options[axis].map((opt) => {
+                  const isSel = selected[axis] === opt;
+                  const enabled = isOptionAvailable(selected, axis, opt);
+                  const colorKey = opt.toLowerCase().trim();
+                  const colorVal = COLOR_MAP[colorKey];
+                  const isTransparente = colorKey === "transparente" || colorKey === "clear";
+                  // Fallback para colores fuera del mapa: superficie neutra (la etiqueta
+                  // debajo siempre dice el nombre, así nunca queda inutilizable).
+                  const swatchBg = isTransparente
+                    ? "repeating-conic-gradient(#52525b 0% 25%, #a1a1aa 0% 50%) 50% / 8px 8px"
+                    : colorVal ?? "var(--color-surface-2)";
+
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      disabled={!enabled && !isSel}
+                      onClick={() => pick(axis, opt)}
+                      title={opt}
+                      aria-label={opt}
+                      aria-pressed={isSel}
+                      className="group flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:cursor-not-allowed"
+                    >
                       <span
                         className={cn(
-                          "h-3.5 w-3.5 rounded-full border shadow-inner shrink-0",
-                          colorKey === "blanco" ? "border-muted/50" : "border-white/10"
+                          "relative grid h-10 w-10 place-items-center rounded-full border shadow-inner transition-all",
+                          isSel
+                            ? "border-transparent ring-2 ring-accent ring-offset-2 ring-offset-bg"
+                            : "border-white/10 group-hover:border-accent/40",
+                          !enabled && !isSel && "opacity-40",
                         )}
-                        style={{
-                          background: isTransparente
-                            ? "repeating-conic-gradient(#52525b 0% 25%, #a1a1aa 0% 50%) 50% / 6px 6px"
-                            : colorVal,
-                        }}
-                      />
-                    )}
-                    <span>{opt}</span>
-                    {!enabled && !isSel && <span className="ml-0.5 text-[10px] opacity-75">· agotado</span>}
-                  </button>
-                );
-              })}
-            </div>
+                        style={{ background: swatchBg }}
+                      >
+                        {/* Color desconocido: marca discreta para que no parezca vacío */}
+                        {!colorVal && !isTransparente && (
+                          <span className="text-[10px] font-bold text-muted">?</span>
+                        )}
+                        {/* Agotado: línea diagonal sobre el swatch */}
+                        {!enabled && !isSel && (
+                          <span className="absolute h-px w-[150%] -rotate-45 bg-muted/70" />
+                        )}
+                      </span>
+                      <span
+                        className={cn(
+                          "max-w-[5rem] truncate text-xs",
+                          isSel ? "font-medium text-text" : "text-muted",
+                        )}
+                      >
+                        {opt}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              // ── Radio Cards: cajas seleccionables sólidas (Conexión / Micrófono / etc.) ──
+              <div className="flex flex-wrap gap-2.5">
+                {options[axis].map((opt) => {
+                  const isSel = selected[axis] === opt;
+                  const enabled = isOptionAvailable(selected, axis, opt);
+
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      disabled={!enabled && !isSel}
+                      onClick={() => pick(axis, opt)}
+                      aria-pressed={isSel}
+                      className={cn(
+                        "flex min-w-[5rem] items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all active:scale-95",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                        isSel
+                          ? "border-accent bg-accent/10 text-text shadow-sm shadow-accent/10 ring-1 ring-accent"
+                          : enabled
+                            ? "border-border bg-surface-2 text-muted hover:border-accent/40 hover:text-text"
+                            : "cursor-not-allowed border-border/30 bg-surface-2/45 text-muted/30 line-through",
+                      )}
+                    >
+                      {isSel && <Check className="h-4 w-4 shrink-0 text-accent" />}
+                      <span>{opt}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}

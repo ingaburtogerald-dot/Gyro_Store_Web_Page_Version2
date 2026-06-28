@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
-import { useParams, Link } from "@remix-run/react";
+import { useParams, Link, useLoaderData } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ImageOff, MessageCircle, ShoppingBag, Loader2, X, ShieldCheck, Check } from "lucide-react";
+import { ChevronRight, ImageOff, MessageCircle, ShoppingBag, X, ShieldCheck, Check, Bike, Package, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { PublicHeader } from "~/components/layout/PublicHeader";
 import { PublicFooter } from "~/components/layout/PublicFooter";
@@ -11,7 +11,7 @@ import { CartDrawer } from "~/components/cart/CartDrawer";
 import { VariantPicker, type VariantSelection } from "~/components/catalog/VariantPicker";
 import { TikTokButton } from "~/components/catalog/TikTokButton";
 import { Button } from "~/components/ui/Button";
-import { useGetCatalogItemQuery, useGetConfigQuery } from "~/store/api/catalogApi";
+import { useGetConfigQuery, type CatalogDetail } from "~/store/api/catalogApi";
 import { useAppDispatch } from "~/store/hooks";
 import { addItem, openCart } from "~/store/slices/cartSlice";
 import { formatCordobas, buildWhatsappUrl, cn } from "~/lib/utils";
@@ -21,12 +21,12 @@ import { formatCordobas, buildWhatsappUrl, cn } from "~/lib/utils";
 // debe estar en el HTML renderizado por el servidor.
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const origin = new URL(request.url).origin;
-  let product: any = null;
+  let product: CatalogDetail | null = null;
   try {
     const res = await fetch(`${origin}/api/catalog/${params.id}`);
-    if (res.ok) product = await res.json();
+    if (res.ok) product = (await res.json()) as CatalogDetail;
   } catch {
-    /* el componente vuelve a pedirlo en cliente */
+    /* product queda null → el componente muestra "no encontrado" */
   }
   return { product, url: request.url, origin };
 }
@@ -84,16 +84,18 @@ const itemFade = {
 
 export default function ProductDetail() {
   const { id } = useParams();
+  // El producto viene del loader SSR (mejor FCP y meta para compartir). Ya no se
+  // re-pide en cliente con RTK Query: era un fetch duplicado.
+  const { product } = useLoaderData<typeof loader>();
   const [lightbox, setLightbox] = useState(false);
   const dispatch = useAppDispatch();
-  const { data: product, isLoading, isError } = useGetCatalogItemQuery(id!, { skip: !id });
   const { data: config } = useGetConfigQuery();
 
   const [activeImage, setActiveImage] = useState(0);
   const [selection, setSelection] = useState<VariantSelection | null>(null);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const [isHovered, setIsHovered] = useState(false);
-  const [activeTab, setActiveTab] = useState<"desc" | "specs" | "shipping">("desc");
+  const [activeTab, setActiveTab] = useState<"desc" | "specs">("desc");
   const [isAdded, setIsAdded] = useState(false);
 
   const selectedVariant = selection?.variant ?? product?.variants[0];
@@ -114,12 +116,14 @@ export default function ProductDetail() {
     [discounts, qty],
   );
   const unitPrice = Math.round(price * (1 - (tier?.discountPercent ?? 0) / 100));
-  
-  // Filas de la tabla de precios (agrega la fila de 1 unidad si no existe).
-  const tierRows = useMemo(() => {
-    const hasOne = discounts.some((d) => d.minQty <= 1);
-    return hasOne ? discounts : [{ minQty: 1, maxQty: 1, discountPercent: 0 }, ...discounts];
-  }, [discounts]);
+
+  // Bundles fijos para "Ahorra comprando más" (Fase 3): el % sale del tier que aplica
+  // a esa cantidad según la config de mayoreo.
+  const bulkBundles = [
+    { label: "Tercios", qty: 3 },
+    { label: "Media docena", qty: 6 },
+    { label: "Docena", qty: 12 },
+  ];
 
   const nextTier = useMemo(() => {
     return discounts.find((d) => d.minQty > qty) ?? null;
@@ -161,17 +165,23 @@ export default function ProductDetail() {
       <PublicHeader />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 md:pb-12">
-        <div className="sticky top-[4.5rem] z-30 mb-6 w-fit">
-          <Link to="/" className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-2/90 px-4 py-2 text-sm font-semibold text-muted shadow-lg backdrop-blur-md transition-all hover:border-accent/50 hover:bg-surface hover:text-text">
-            <ArrowLeft className="h-4 w-4" /> Volver al catálogo
-          </Link>
-        </div>
+        {/* Migas de pan (breadcrumbs) minimalistas. La columna de la imagen es sticky,
+            así que no hace falta un botón "Volver" flotante. */}
+        <nav aria-label="Migas de pan" className="mb-6 flex items-center gap-1.5 text-sm text-muted">
+          <Link to="/" className="transition-colors hover:text-text">Inicio</Link>
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
+          <Link to="/" className="transition-colors hover:text-text">Catálogo</Link>
+          {baseName && (
+            <>
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
+              <span className="max-w-[55vw] truncate font-medium text-text/90" aria-current="page">
+                {baseName}
+              </span>
+            </>
+          )}
+        </nav>
 
-        {isLoading ? (
-          <div className="grid place-items-center py-24">
-            <Loader2 className="h-8 w-8 animate-spin text-accent" />
-          </div>
-        ) : isError || !product ? (
+        {!product ? (
           <p className="py-24 text-center text-muted">Producto no encontrado.</p>
         ) : (
           <div className="grid gap-10 md:grid-cols-2 items-start">
@@ -376,45 +386,42 @@ export default function ProductDetail() {
                 </div>
               </motion.div>
 
-              {/* Tarjetas de precios por cantidad */}
-              {tierRows.length > 1 && (
+              {/* Bundles de mayoreo: exactamente 3 cards (Tercios / Media docena / Docena) */}
+              {discounts.length > 0 && (
                 <motion.div variants={itemFade} className="mt-8">
                   <p className="mb-3 text-sm font-semibold flex items-center gap-2 text-text/80">
                     <ShieldCheck className="h-4 w-4 text-accent" /> Ahorra comprando más
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {tierRows.map((d, i) => {
-                      const range = d.maxQty == null ? `${d.minQty}+ uds` : d.minQty === d.maxQty ? `${d.minQty} ud` : `${d.minQty}–${d.maxQty} uds`;
-                      const u = Math.round(price * (1 - d.discountPercent / 100));
-                      const active = qty >= d.minQty && (d.maxQty == null || qty <= d.maxQty);
+                  <div className="grid grid-cols-3 gap-3">
+                    {bulkBundles.map((b) => {
+                      const t = discounts.find((d) => b.qty >= d.minQty && (d.maxQty == null || b.qty <= d.maxQty)) ?? null;
+                      const pct = t?.discountPercent ?? 0;
+                      const u = Math.round(price * (1 - pct / 100));
+                      const active = qty === b.qty;
                       return (
                         <motion.button
                           whileHover={{ scale: 1.02, y: -2 }}
                           whileTap={{ scale: 0.98 }}
                           type="button"
-                          key={i}
-                          onClick={() => setQty(d.minQty)}
+                          key={b.qty}
+                          onClick={() => setQty(b.qty)}
                           className={cn(
                             "relative flex flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all overflow-hidden",
-                            active 
-                              ? "border-accent bg-accent/5 ring-1 ring-accent shadow-md shadow-accent/10" 
-                              : "border-border hover:border-accent/30 bg-surface-2"
+                            active
+                              ? "border-accent bg-accent/5 ring-1 ring-accent shadow-md shadow-accent/10"
+                              : "border-border hover:border-accent/30 bg-surface-2",
                           )}
                         >
-                          {active && (
-                            <span className="absolute top-0 right-0 rounded-bl-lg bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
-                              Activo
-                            </span>
-                          )}
-                          <span className={cn("text-xs font-semibold mb-1.5 uppercase tracking-wide", active ? "text-accent" : "text-muted")}>{range}</span>
-                          <span className="font-heading text-xl font-bold text-text">
-                            {formatCordobas(u)}
-                          </span>
-                          <span className="text-[10px] font-medium text-muted">unidad</span>
-                          {d.discountPercent > 0 && (
-                            <div className="mt-2 w-full rounded-md bg-whatsapp/15 py-1 text-[11px] font-bold text-whatsapp">
-                              Ahorras {d.discountPercent}%
+                          <span className={cn("text-xs font-semibold uppercase tracking-wide", active ? "text-accent" : "text-muted")}>{b.label}</span>
+                          <span className="mt-0.5 text-[10px] text-muted">{b.qty} unidades</span>
+                          <span className="mt-1.5 font-heading text-xl font-bold text-text">{formatCordobas(u)}</span>
+                          <span className="text-[10px] font-medium text-muted">c/u</span>
+                          {pct > 0 ? (
+                            <div className="mt-2 w-full rounded-md bg-emerald-950/60 py-1 text-[11px] font-bold text-emerald-400">
+                              Ahorras {pct}%
                             </div>
+                          ) : (
+                            <div className="mt-2 w-full py-1 text-[11px] font-medium text-muted/70">Precio normal</div>
                           )}
                         </motion.button>
                       );
@@ -478,36 +485,31 @@ export default function ProductDetail() {
                 </a>
               </motion.div>
 
-              {/* Trust Badges Row */}
-              <motion.div variants={itemFade} className="mt-6 grid grid-cols-3 gap-3">
-                <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-surface-2/40 border border-border/40 text-center backdrop-blur-sm">
-                  <div className="rounded-full bg-accent/10 p-2 text-accent mb-2 shrink-0">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="text-[11px] font-bold text-text mb-0.5">Envío Express</span>
-                  <span className="text-[9px] text-muted">Managua &lt; 24h</span>
+              {/* Trust Box: envíos y garantía consolidados (reemplaza textos sueltos) */}
+              <motion.div variants={itemFade} className="mt-6 space-y-3 rounded-xl bg-zinc-900/50 p-4">
+                <div className="flex items-center gap-3">
+                  <Bike className="h-5 w-5 shrink-0 text-accent" />
+                  <p className="text-sm text-muted">
+                    <span className="font-semibold text-text">Delivery en Managua</span> (costo extra)
+                  </p>
                 </div>
-                
-                <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-surface-2/40 border border-border/40 text-center backdrop-blur-sm">
-                  <div className="rounded-full bg-accent/10 p-2 text-accent mb-2 shrink-0">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                  <span className="text-[11px] font-bold text-text mb-0.5">Pago Contra Entrega</span>
-                  <span className="text-[9px] text-muted">Efectivo o Transfer</span>
+                <div className="flex items-center gap-3">
+                  <Package className="h-5 w-5 shrink-0 text-accent" />
+                  <p className="text-sm text-muted">
+                    Envíos a departamentos por <span className="font-semibold text-text">Cargo Trans</span>
+                  </p>
                 </div>
-
-                <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-surface-2/40 border border-border/40 text-center backdrop-blur-sm">
-                  <div className="rounded-full bg-accent/10 p-2 text-accent mb-2 shrink-0">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                  </div>
-                  <span className="text-[11px] font-bold text-text mb-0.5">Garantía Gyro</span>
-                  <span className="text-[9px] text-muted">Soporte post-venta</span>
+                <div className="flex items-center gap-3">
+                  <Banknote className="h-5 w-5 shrink-0 text-accent" />
+                  <p className="text-sm text-muted">
+                    <span className="font-semibold text-text">Pago contra entrega</span>: efectivo o transferencia
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="h-5 w-5 shrink-0 text-accent" />
+                  <p className="text-sm text-muted">
+                    <span className="font-semibold text-text">Garantía de 1 mes</span> por defectos de fábrica
+                  </p>
                 </div>
               </motion.div>
 
@@ -549,22 +551,6 @@ export default function ProductDetail() {
                       )}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("shipping")}
-                    className={cn(
-                      "relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none cursor-pointer",
-                      activeTab === "shipping" ? "text-text" : "text-muted hover:text-text"
-                    )}
-                  >
-                    <span>Envíos y Garantía</span>
-                    {activeTab === "shipping" && (
-                      <motion.div
-                        layoutId="activeTabUnderline"
-                        className="absolute bottom-0 inset-x-0 h-0.5 bg-accent"
-                      />
-                    )}
-                  </button>
                 </div>
 
                 {/* Contenido de las pestañas con animación de desvanecimiento */}
@@ -617,50 +603,6 @@ export default function ProductDetail() {
                     </motion.div>
                   )}
 
-                  {activeTab === "shipping" && (
-                    <motion.div
-                      key="shipping"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-sm leading-relaxed text-muted space-y-4 focus:outline-none"
-                    >
-                      <div className="flex gap-3.5 items-start">
-                        <div className="rounded-xl bg-accent/10 p-2 text-accent shrink-0 mt-0.5">
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-text mb-1">Tiempos de Entrega</h4>
-                          <p>Hacemos envíos locales express en Managua en menos de 24 horas. Para los departamentos del país, coordinamos envíos rápidos y seguros.</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3.5 items-start">
-                        <div className="rounded-xl bg-accent/10 p-2 text-accent shrink-0 mt-0.5">
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-text mb-1">Métodos de Pago</h4>
-                          <p>Pagá de forma segura al recibir tu pedido (Pago contra entrega) en efectivo o mediante transferencia bancaria rápida en la comodidad de tu hogar.</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3.5 items-start">
-                        <div className="rounded-xl bg-accent/10 p-2 text-accent shrink-0 mt-0.5">
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-text mb-1">Garantía Asegurada</h4>
-                          <p>Todos nuestros productos cuentan con garantía de la tienda por desperfectos de fábrica. Ofrecemos soporte post-venta personalizado vía WhatsApp.</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
                 </AnimatePresence>
               </motion.div>
             </motion.div>
