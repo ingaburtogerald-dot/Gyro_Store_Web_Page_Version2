@@ -2,30 +2,46 @@
 // búsqueda por texto (cliente). Muestra skeletons mientras carga y un estado vacío.
 import { useMemo } from "react";
 import { PackageSearch } from "lucide-react";
-import { ProductCard } from "./ProductCard";
+import { ProductCardMobile } from "./ProductCardMobile";
+import { ProductCardSkeleton } from "./ProductCardSkeleton";
 import { useGetCatalogQuery, useGetConfigQuery } from "~/store/api/catalogApi";
 import { useAppSelector } from "~/store/hooks";
 
 export function ProductGrid() {
   const category = useAppSelector((s) => s.ui.activeCategory);
   const search = useAppSelector((s) => s.ui.search).trim().toLowerCase();
+  const priceMin = useAppSelector((s) => s.ui.priceMin);
+  const priceMax = useAppSelector((s) => s.ui.priceMax);
+  const sort = useAppSelector((s) => s.ui.sort);
+  const onlyOnSale = useAppSelector((s) => s.ui.onlyOnSale);
+  const onlyInStock = useAppSelector((s) => s.ui.onlyInStock);
 
   const { data: config } = useGetConfigQuery();
   const { data: products, isLoading, isError } = useGetCatalogQuery(
     category ? { category } : undefined,
   );
 
+  // Filtros en cliente (búsqueda + filtros avanzados del bottom sheet) y orden.
   const filtered = useMemo(() => {
     if (!products) return [];
-    if (!search) return products;
-    return products.filter((p) => p.name.toLowerCase().includes(search));
-  }, [products, search]);
+    const result = products.filter((p) => {
+      if (search && !p.name.toLowerCase().includes(search)) return false;
+      if (priceMin != null && p.price < priceMin) return false;
+      if (priceMax != null && p.price > priceMax) return false;
+      if (onlyInStock && (p.stock ?? 0) <= 0) return false;
+      if (onlyOnSale && !((p.compareAtPrice ?? 0) > p.price)) return false;
+      return true;
+    });
+    if (sort === "price-asc") result.sort((a, b) => a.price - b.price);
+    else if (sort === "price-desc") result.sort((a, b) => b.price - a.price);
+    return result;
+  }, [products, search, priceMin, priceMax, onlyInStock, onlyOnSale, sort]);
 
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3 lg:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <ProductSkeleton key={i} />
+          <ProductCardSkeleton key={i} />
         ))}
       </div>
     );
@@ -49,19 +65,9 @@ export function ProductGrid() {
 
   return (
     <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3 lg:grid-cols-4">
-      {filtered.map((p, i) => (
-        <ProductCard key={p.id} product={p} categories={config?.categories ?? []} index={i} />
+      {filtered.map((p) => (
+        <ProductCardMobile key={p.id} product={p} categories={config?.categories ?? []} />
       ))}
-    </div>
-  );
-}
-
-function ProductSkeleton() {
-  return (
-    <div className="animate-pulse rounded-card border border-border bg-surface p-3">
-      <div className="aspect-square rounded-xl bg-surface-2" />
-      <div className="mt-3 h-4 w-3/4 rounded bg-surface-2" />
-      <div className="mt-2 h-4 w-1/3 rounded bg-surface-2" />
     </div>
   );
 }

@@ -6,13 +6,15 @@ import { PublicFooter } from "~/components/layout/PublicFooter";
 import { Hero } from "~/components/catalog/Hero";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
+import { CatalogSearchBar } from "~/components/catalog/CatalogSearchBar";
+import { CategoryChips } from "~/components/catalog/CategoryChips";
+import { FilterFab } from "~/components/catalog/FilterFab";
+import { FilterSheet } from "~/components/catalog/FilterSheet";
 import { CartFab } from "~/components/cart/CartFab";
 import { CartDrawer } from "~/components/cart/CartDrawer";
-import { useGetCatalogQuery, useGetConfigQuery } from "~/store/api/catalogApi";
+import { useGetCatalogQuery } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectEditMode, selectIsAdmin, setEditMode } from "~/store/slices/authSlice";
-import { setCategory } from "~/store/slices/uiSlice";
-import { cn } from "~/lib/utils";
 
 // Origen absoluto (para construir URLs absolutas de Open Graph desde el servidor).
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -41,10 +43,8 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export default function Index() {
-  const { data: config } = useGetConfigQuery();
   const { data: products } = useGetCatalogQuery();
   const dispatch = useAppDispatch();
-  const activeCategory = useAppSelector((s) => s.ui.activeCategory);
   const isAdmin = useAppSelector(selectIsAdmin);
   const editMode = useAppSelector(selectEditMode);
   const editing = isAdmin && editMode;
@@ -65,23 +65,12 @@ export default function Index() {
       <Hero productCount={products?.length ?? 0} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4">
-        {/* Chips de categorías filtrables (se ocultan en modo edición) */}
+        {/* Búsqueda + chips de categorías (se ocultan en modo edición del catálogo) */}
         {!editing && (
-          <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <CategoryChip
-              label="Todo"
-              active={activeCategory === null}
-              onClick={() => dispatch(setCategory(null))}
-            />
-            {config?.categories.map((c) => (
-              <CategoryChip
-                key={c.id}
-                label={`${c.icon} ${c.name}`}
-                active={activeCategory === c.id}
-                onClick={() => dispatch(setCategory(c.id))}
-              />
-            ))}
-          </div>
+          <>
+            <CatalogSearchBar />
+            <CategoryChips />
+          </>
         )}
 
         {editing ? <SortableCatalogGrid /> : <ProductGrid />}
@@ -90,31 +79,14 @@ export default function Index() {
       <PublicFooter />
       <CartFab />
       <CartDrawer />
-    </div>
-  );
-}
 
-function CategoryChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "shrink-0 snap-start whitespace-nowrap rounded-pill border px-4 py-1.5 text-sm transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-        active
-          ? "border-transparent bg-gradient-accent text-white"
-          : "border-border bg-surface text-muted hover:text-text",
+      {/* Filtros móviles: FAB + bottom sheet (ocultos en modo edición) */}
+      {!editing && (
+        <>
+          <FilterFab />
+          <FilterSheet />
+        </>
       )}
-    >
-      {label}
-    </button>
+    </div>
   );
 }
