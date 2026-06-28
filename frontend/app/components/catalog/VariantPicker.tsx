@@ -153,11 +153,12 @@ export function VariantPicker({
                   const colorKey = opt.toLowerCase().trim();
                   const colorVal = COLOR_MAP[colorKey];
                   const isTransparente = colorKey === "transparente" || colorKey === "clear";
+                  // "Transparente" se muestra como un círculo BLANCO (conserva su etiqueta).
                   // Fallback para colores fuera del mapa: superficie neutra (la etiqueta
                   // debajo siempre dice el nombre, así nunca queda inutilizable).
-                  const swatchBg = isTransparente
-                    ? "repeating-conic-gradient(#52525b 0% 25%, #a1a1aa 0% 50%) 50% / 8px 8px"
-                    : colorVal ?? "var(--color-surface-2)";
+                  const swatchBg = isTransparente ? "#ffffff" : colorVal ?? "var(--color-surface-2)";
+                  // Los swatches claros (blanco/transparente) necesitan un borde visible.
+                  const isLight = isTransparente || colorVal === "#ffffff";
 
                   return (
                     <button
@@ -175,7 +176,9 @@ export function VariantPicker({
                           "relative grid h-10 w-10 place-items-center rounded-full border shadow-inner transition-all",
                           isSel
                             ? "border-transparent ring-2 ring-accent ring-offset-2 ring-offset-bg"
-                            : "border-white/10 group-hover:border-accent/40",
+                            : isLight
+                              ? "border-muted/50 group-hover:border-accent/40"
+                              : "border-white/10 group-hover:border-accent/40",
                           !enabled && !isSel && "opacity-40",
                         )}
                         style={{ background: swatchBg }}
