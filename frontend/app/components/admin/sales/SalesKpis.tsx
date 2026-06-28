@@ -17,16 +17,30 @@ import { StatCard } from "~/components/ui/StatCard";
 import type { Sale } from "~/store/api/salesApi";
 import { formatCordobas, usdFromCordobas } from "~/lib/utils";
 
+export interface KpiTotals {
+  totalVendido: number;
+  inversion: number;
+  comisiones: number;
+  ganancia: number;
+}
+
 interface SalesKpisProps {
   /** Lista de ventas del tab activo (la misma que muestra la tabla). */
   sales: Sale[];
   status: "pending" | "approved";
   /** Cantidad de tickets del estado (para la tarjeta de conteo). */
   ticketCount: number;
+  /**
+   * Totales precalculados que TIENEN prioridad sobre la suma de `sales`. Se usan
+   * en Aprobadas para reflejar TODO el período (vía summary del servidor) en vez de
+   * solo la página visible. Si se omite, se suma `sales` (caso Pendientes).
+   */
+  overrideTotals?: KpiTotals;
 }
 
-export function SalesKpis({ sales, status, ticketCount }: SalesKpisProps) {
-  const totals = useMemo(() => {
+export function SalesKpis({ sales, status, ticketCount, overrideTotals }: SalesKpisProps) {
+  const totals = useMemo<KpiTotals>(() => {
+    if (overrideTotals) return overrideTotals;
     let totalVendido = 0;
     let inversion = 0;
     let comisiones = 0;
@@ -38,7 +52,7 @@ export function SalesKpis({ sales, status, ticketCount }: SalesKpisProps) {
       ganancia += s.gananciaTienda || 0;
     }
     return { totalVendido, inversion, comisiones, ganancia };
-  }, [sales]);
+  }, [sales, overrideTotals]);
 
   const isPending = status === "pending";
   const suf = isPending ? "(Pendiente)" : "(Aprobado)";

@@ -255,7 +255,21 @@ export function AdminSales() {
           <SalesKpis status="pending" sales={pendingList} ticketCount={pendingTab?.total ?? pendingList.length} />
         )}
         {inVentas && sub === "approved" && (
-          <SalesKpis status="approved" sales={approvedData?.data ?? []} ticketCount={approvedData?.total ?? 0} />
+          <SalesKpis
+            status="approved"
+            sales={approvedData?.data ?? []}
+            ticketCount={approvedData?.summary?.ventasAprobadas ?? 0}
+            overrideTotals={
+              approvedData?.summary
+                ? {
+                    totalVendido: approvedData.summary.totalVendido,
+                    inversion: approvedData.summary.inversionRecuperada,
+                    comisiones: approvedData.summary.comisiones,
+                    ganancia: approvedData.summary.gananciaTienda,
+                  }
+                : undefined
+            }
+          />
         )}
 
         {/* Reportería conserva el resumen global del servidor (pagos / performance). */}
