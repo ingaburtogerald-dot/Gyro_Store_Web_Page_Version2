@@ -233,10 +233,10 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                     value={selectedSellerEmail}
                     onChange={(e) => setSelectedSellerEmail(e.target.value)}
                   >
-                    <option value="">Seleccionar vendedor…</option>
+                    <option value="" className="bg-surface text-text">Seleccionar vendedor…</option>
                     {sellers.map((s) => (
-                      <option key={s.id} value={s.email}>
-                        {s.displayName} ({s.email})
+                      <option key={s.id} value={s.email} className="bg-surface text-text">
+                        {s.displayName}
                       </option>
                     ))}
                   </select>
@@ -290,8 +290,8 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                   </div>
 
                   {/* Fila inferior: cantidad + precio + subtotal */}
-                  <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap">
-                    <label className="block w-24 shrink-0">
+                  <div className="flex flex-wrap gap-3 sm:flex-nowrap sm:items-start">
+                    <label className="block w-20 shrink-0 sm:w-24">
                       <span className="mb-1 block text-xs text-muted">Cantidad</span>
                       <input
                         type="number"
@@ -352,7 +352,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                         onChange={(e) => update(i, { salePrice: e.target.value === "" ? "" : (parseFloat(e.target.value) || 0) })}
                       />
                     </label>
-                    <div className="shrink-0 pt-5 text-right">
+                    <div className="w-full pt-1 text-right sm:w-auto sm:shrink-0 sm:pt-5">
                       <span className="block text-xs text-muted">Subtotal</span>
                       <span className="text-sm font-bold text-text">{formatCordobas(lineSubtotal)}</span>
                     </div>
@@ -393,15 +393,15 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
             })}
 
             {/* Agregar producto + recibo opcional */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
               <button
                 onClick={() => setLines((ls) => [...ls, { ...emptyLine }])}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-accent-2/40 px-3 py-2 text-sm font-semibold text-accent-2 transition-colors hover:bg-accent-2/5"
+                className="inline-flex w-full justify-center items-center gap-1.5 rounded-lg border border-dashed border-accent-2/40 px-3 py-2 text-sm font-semibold text-accent-2 transition-colors hover:bg-accent-2/5 sm:w-auto"
               >
                 <Plus className="h-4 w-4" /> Agregar producto
               </button>
 
-              <label className="flex cursor-pointer items-center gap-2 rounded-pill border border-border bg-background/50 px-3 py-1.5 text-xs text-muted transition-colors hover:text-text">
+              <label className="flex w-full justify-center cursor-pointer items-center gap-2 rounded-pill border border-border bg-background/50 px-3 py-1.5 text-xs text-muted transition-colors hover:text-text sm:w-auto">
                 <Camera className="h-3.5 w-3.5" />
                 {receipt ? receipt.name : isEdit ? "Actualizar foto del recibo" : "Adjuntar foto del recibo"}
                 <input

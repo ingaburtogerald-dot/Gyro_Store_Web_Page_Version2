@@ -187,14 +187,6 @@ export function AdminSales() {
             <Plus className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5" />
             <span>Nueva venta</span>
           </button>
-          <button
-            onClick={() => updateParams({ config: "1" })}
-            className="group flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-text transition-all hover:bg-surface-2"
-            title="Configurar Costos Fijos de la Tienda"
-          >
-            <Settings className="h-4 w-4 transition-transform duration-300 group-hover:rotate-45" />
-            <span>Costos Fijos</span>
-          </button>
         </div>
       </div>
 
