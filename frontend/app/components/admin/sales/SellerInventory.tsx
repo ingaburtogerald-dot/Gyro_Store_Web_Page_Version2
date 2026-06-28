@@ -108,10 +108,10 @@ function AvailableRow({ p, maxDiscount }: { p: any; maxDiscount: number }) {
           className={cn(
             "rounded-full px-2 py-0.5 text-xs font-semibold",
             stock === 0
-              ? "bg-red-500/10 text-red-400"
+              ? "bg-red-500/15 text-red-400"
               : stock <= 3
-                ? "bg-amber-500/10 text-amber-400"
-                : "bg-emerald-500/10 text-emerald-400",
+                ? "bg-amber-500/15 text-amber-400"
+                : "bg-emerald-500/15 text-emerald-400",
           )}
         >
           {stock === 0 ? "Agotado" : stock <= 3 ? `¡Últimas ${stock}!` : `${stock} uds`}
@@ -133,7 +133,7 @@ function AvailableRow({ p, maxDiscount }: { p: any; maxDiscount: number }) {
 
 function IncomingRow({ p }: { p: any }) {
   const label = p.status === "china" ? "En tránsito" : "Pendiente";
-  const cls = p.status === "china" ? "bg-sky-500/10 text-sky-400" : "bg-amber-500/10 text-amber-400";
+  const cls = p.status === "china" ? "bg-sky-500/15 text-sky-400" : "bg-amber-500/15 text-amber-400";
   const date = p.purchaseDate
     ? new Date(p.purchaseDate).toLocaleDateString("es-NI", { day: "2-digit", month: "short" })
     : "—";

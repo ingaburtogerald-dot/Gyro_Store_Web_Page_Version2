@@ -57,6 +57,7 @@ function buildMonthOptions(): FilterSelectOption[] {
 export default function Inventario() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [migratedFormOpen, setMigratedFormOpen] = useState(false);
+  const [purchaseFormOpen, setPurchaseFormOpen] = useState(false);
   const monthOptions = useMemo(buildMonthOptions, []);
 
   // ── Lectura + normalización de los parámetros de la URL ──
@@ -135,8 +136,19 @@ export default function Inventario() {
         <motion.div key={effectiveView} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
           {tab === "purchases" && (
             <>
-              <PurchaseForm />
-              <PurchasesTable period={period} />
+              <PurchasesTable period={period} onOpenForm={() => setPurchaseFormOpen(true)} />
+
+              <Modal
+                open={purchaseFormOpen}
+                onClose={() => setPurchaseFormOpen(false)}
+                title="Registrar compra"
+                maxWidth="max-w-3xl"
+                preventOutsideClose={true}
+              >
+                <div className="max-h-[80vh] overflow-y-auto pr-1">
+                  <PurchaseForm onDone={() => setPurchaseFormOpen(false)} />
+                </div>
+              </Modal>
             </>
           )}
 

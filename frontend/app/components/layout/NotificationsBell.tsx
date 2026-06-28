@@ -128,11 +128,11 @@ export function NotificationsBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={handleToggle}
-        className="relative inline-flex items-center justify-center rounded-pill border border-border p-2 text-muted transition-colors hover:bg-surface-2 hover:text-text"
+        className="relative inline-flex items-center justify-center rounded-pill border border-border p-3 text-muted transition-colors hover:bg-surface-2 hover:text-text"
         title="Notificaciones"
         aria-label="Notificaciones"
       >
-        <Bell className="h-4 w-4" />
+        <Bell className="h-6 w-6" />
         {badge > 0 && (
           <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {badge > 9 ? "9+" : badge}

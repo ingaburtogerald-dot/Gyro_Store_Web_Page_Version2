@@ -64,18 +64,17 @@ export function UserMenu() {
       {/* Disparador: avatar */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-3 rounded-pill p-1 pl-3 transition-colors hover:bg-surface-2"
+        className="flex items-center gap-3 rounded-pill p-1.5 pl-4 transition-colors hover:bg-surface-2"
         aria-haspopup="menu"
         aria-expanded={open}
       >
         <div className="hidden text-right sm:block">
-          <p className="text-sm font-medium leading-tight">{user.name}</p>
-          <p className="text-xs text-muted">{user.email}</p>
+          <p className="text-base font-medium leading-tight">{user.name}</p>
         </div>
         {user.photoURL ? (
-          <img src={user.photoURL} alt="" className="h-9 w-9 rounded-full object-cover" />
+          <img src={user.photoURL} alt="" className="h-12 w-12 rounded-full object-cover" />
         ) : (
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-accent text-sm font-semibold text-white">
+          <div className="grid h-12 w-12 place-items-center rounded-full bg-gradient-accent text-base font-semibold text-white">
             {user.name?.[0]?.toUpperCase() || "?"}
           </div>
         )}

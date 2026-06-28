@@ -109,20 +109,20 @@ export function UsersTable({ onEdit }: { onEdit: (u: ManagedUser) => void }) {
           const val = c.getValue() as string;
           if (val === "google") {
             return (
-              <span className="rounded-pill px-2 py-0.5 text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">
+              <span className="rounded-pill px-2 py-0.5 text-xs bg-rose-500/15 text-rose-400 border border-rose-500/20 font-medium">
                 Google
               </span>
             );
           }
           if (val === "microsoft") {
             return (
-              <span className="rounded-pill px-2 py-0.5 text-xs bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium">
+              <span className="rounded-pill px-2 py-0.5 text-xs bg-sky-500/15 text-sky-400 border border-sky-500/20 font-medium">
                 Microsoft
               </span>
             );
           }
           return (
-            <span className="rounded-pill px-2 py-0.5 text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+            <span className="rounded-pill px-2 py-0.5 text-xs bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 font-medium">
               Local
             </span>
           );

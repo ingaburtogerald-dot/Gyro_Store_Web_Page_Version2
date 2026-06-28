@@ -65,8 +65,23 @@ export interface Template {
   specs: SpecRow[];
 }
 
-// Disponibilidad por opción: { [ejeKey]: { [opción]: on/off } }
-export type Availability = Record<string, Record<string, boolean>>;
+// Disponibilidad por opción: { [ejeKey]: { [opción]: { enabled: boolean, sku?: string } | boolean } }
+export type Availability = Record<string, Record<string, { enabled: boolean; sku?: string } | boolean>>;
+
+// Mapeo de combinaciones a SKUs de bodega. Una combinación puede apuntar a VARIOS
+// códigos de bodega que son la misma variante en distintas tandas (ej: IN13 e IN98
+// = "KZ EDX Pro X / Jack 3.5mm / Negro"); el stock del catálogo es la suma de todos.
+// Formato nuevo: { skus: ["IN13","IN98"] }. Se mantiene compat con el viejo { sku: "IN13" }.
+export type VariantMapping = { sku?: string; skus?: string[] };
+export type VariantMappings = Record<string, VariantMapping>;
+
+// Normaliza una entrada de mapeo a la lista de códigos (lee ambos formatos).
+export function variantSkus(entry?: VariantMapping): string[] {
+  if (!entry) return [];
+  if (Array.isArray(entry.skus)) return entry.skus.filter(Boolean);
+  if (entry.sku) return [entry.sku];
+  return [];
+}
 
 export interface CatalogVariant {
   id: string;
@@ -74,6 +89,7 @@ export interface CatalogVariant {
   variantName: string;
   axisValues?: string[];
   price: number;
+  sku?: string;
   stock: number;
   specs?: string[];
 }
@@ -90,6 +106,7 @@ export interface CatalogDetail extends CatalogProduct {
   templateId?: string;
   basePrice?: number;
   availability?: Availability;
+  variantMappings?: VariantMappings;
 }
 
 export const catalogApi = baseApi.injectEndpoints({
@@ -166,6 +183,12 @@ export const catalogApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/templates/${id}`, method: "DELETE" }),
       invalidatesTags: ["Template"],
     }),
+
+    // ── Productos de bodega (para combobox del admin) ──
+    getWarehouseProducts: build.query<WarehouseProduct[], void>({
+      query: () => "/catalog/warehouse-products",
+      providesTags: ["Product"],
+    }),
   }),
 });
 
@@ -175,6 +198,13 @@ export interface TemplateInput {
   description?: string;
   axes: TemplateAxis[];
   specs: SpecRow[];
+}
+
+export interface WarehouseProduct {
+  id: string;
+  code: string;
+  name: string;
+  stock: number;
 }
 
 export interface CatalogItemInput {
@@ -191,6 +221,7 @@ export interface CatalogItemInput {
   templateId?: string;
   basePrice?: number;
   availability?: Availability;
+  variantMappings?: VariantMappings;
 }
 
 export const {
@@ -209,4 +240,5 @@ export const {
   useCreateTemplateMutation,
   useUpdateTemplateMutation,
   useDeleteTemplateMutation,
+  useGetWarehouseProductsQuery,
 } = catalogApi;

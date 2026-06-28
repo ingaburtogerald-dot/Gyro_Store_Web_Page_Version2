@@ -2,7 +2,7 @@
 // ve el cotizador en vivo (utilidad, comisión, ganancia) y registra la venta con
 // foto de recibo opcional. El servidor recalcula todo al cotizar y al registrar.
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Camera, Tag, CreditCard, AlertTriangle, Check, User, CalendarDays, Package, ShoppingCart } from "lucide-react";
+import { Plus, Trash2, Camera, Tag, CreditCard, AlertTriangle, Check, CheckCircle2, User, CalendarDays, Package, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { Modal } from "~/components/ui/Modal";
@@ -229,7 +229,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                 <label className="block">
                   <span className="mb-1 block text-xs font-medium text-muted">Registrar a nombre de</span>
                   <select
-                    className="input"
+                    className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
                     value={selectedSellerEmail}
                     onChange={(e) => setSelectedSellerEmail(e.target.value)}
                   >
@@ -297,7 +297,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                         type="number"
                         min={1}
                         max={p?.stock}
-                        className="input"
+                        className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
                         placeholder="0"
                         value={line.quantity}
                         onChange={(e) => update(i, { quantity: e.target.value === "" ? "" : (parseInt(e.target.value, 10) || 0) })}
@@ -327,7 +327,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                             return (
                               <div className="flex items-center gap-2">
                                 {discountPercent > 0 && (
-                                  <span className="rounded-pill bg-emerald-500/10 px-1.5 py-0.5 font-semibold text-emerald-500">
+                                  <span className="rounded-pill bg-emerald-500/15 px-1.5 py-0.5 font-semibold text-emerald-400">
                                     −{discountPercent}% mayoreo
                                   </span>
                                 )}
@@ -346,7 +346,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                       <input
                         type="number"
                         min={0}
-                        className="input"
+                        className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
                         placeholder="Precio..."
                         value={line.salePrice}
                         onChange={(e) => update(i, { salePrice: e.target.value === "" ? "" : (parseFloat(e.target.value) || 0) })}
@@ -451,7 +451,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                   Motivo de la edición (Obligatorio)
                 </span>
                 <textarea
-                  className="input border-accent-2/40 focus:border-accent-2 focus:ring-accent-2 w-full"
+                  className="input w-full bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent-2 border-accent-2/40"
                   rows={2}
                   value={editReason}
                   onChange={(e) => setEditReason(e.target.value)}
@@ -465,11 +465,12 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
           {/* Acciones principales */}
           <div className="flex flex-col gap-3">
             <Button
-              className="w-full py-5 text-sm font-bold"
+              className="group w-full gap-2 py-5 text-sm font-bold shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30"
               onClick={registerSale}
               loading={reporting || updating}
               disabled={!saleDate || validLines.length === 0 || hasOverStock || isMixed || !!errorMsg || (isEdit && sale?.status !== 'pending_approval' && !editReason.trim())}
             >
+              <CheckCircle2 className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5" />
               {isEdit ? "Guardar cambios" : "Registrar venta"} · {formatCordobas(result?.saleTotal ?? 0)}
             </Button>
             {isEdit && sale?.status !== "pending_approval" && !editReason.trim() && (
@@ -481,11 +482,11 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
             {isAdmin && !isEdit && (
               <Button
                 variant="ghost"
-                className="flex w-full items-center justify-center gap-1.5 border border-border"
+                className="group flex w-full items-center justify-center gap-1.5 border border-border"
                 onClick={() => setInstallmentOpen(true)}
                 disabled={validLines.length === 0 || hasOverStock}
               >
-                <CreditCard className="h-4 w-4" /> Vender en cuotas
+                <CreditCard className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" /> Vender en cuotas
               </Button>
             )}
           </div>

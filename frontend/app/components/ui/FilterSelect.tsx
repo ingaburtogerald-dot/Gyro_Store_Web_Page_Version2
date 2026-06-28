@@ -21,6 +21,8 @@ export interface FilterSelectProps {
   dotTitle?: string;
   /** Ícono opcional a la izquierda del valor (da identidad visual al filtro). */
   icon?: React.ReactNode;
+  /** "ghost" = sin bordes ni fondo, para usar como título de columna. */
+  variant?: "default" | "ghost";
 }
 
 export function FilterSelect({
@@ -30,6 +32,7 @@ export function FilterSelect({
   placeholder = "Seleccionar",
   dotTitle,
   icon,
+  variant = "default",
 }: FilterSelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -64,17 +67,34 @@ export function FilterSelect({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "input flex items-center gap-2 text-left transition-all duration-200",
-          open && "border-accent/30",
+          "flex items-center gap-1 text-left transition-all duration-200",
+          variant === "ghost"
+            ? "bg-transparent border-none p-0 text-sm font-semibold text-text hover:text-accent-2"
+            : cn("input gap-2", open && "border-accent/30"),
         )}
       >
         <span className="flex flex-1 items-center gap-2 truncate text-sm">
           {icon && <span className="shrink-0 text-accent-2">{icon}</span>}
           {selected?.dot && <Dot />}
-          <span className="truncate">{selected ? selected.label : placeholder}</span>
+          <span className="truncate">
+            {variant === "ghost" ? (
+              <>
+                {placeholder}
+                {selected && selected.value !== "all" && (
+                  <span className="ml-1 font-normal text-muted/70">: {selected.label}</span>
+                )}
+              </>
+            ) : (
+              selected ? selected.label : placeholder
+            )}
+          </span>
         </span>
         <ChevronDown
-          className={cn("h-4 w-4 shrink-0 text-muted transition-transform duration-200", open && "rotate-180")}
+          className={cn(
+            "shrink-0 transition-transform duration-200",
+            variant === "ghost" ? "h-3.5 w-3.5 text-muted" : "h-4 w-4 text-muted",
+            open && "rotate-180",
+          )}
         />
       </button>
 
@@ -85,7 +105,7 @@ export function FilterSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-0 right-0 z-50 mt-2 max-h-64 overflow-y-auto rounded-card border border-border bg-surface p-1 shadow-2xl"
+            className="absolute left-0 z-50 mt-2 min-w-[180px] w-max max-w-[300px] max-h-64 overflow-y-auto rounded-card border border-border bg-surface p-1 shadow-2xl"
           >
             {options.map((o) => {
               const isSel = o.value === value;

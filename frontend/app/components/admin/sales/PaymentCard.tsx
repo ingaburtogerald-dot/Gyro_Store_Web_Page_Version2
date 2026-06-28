@@ -52,7 +52,7 @@ export function PaymentCard({ payment: p }: { payment: MySellerPayment }) {
             <span className="text-xs text-muted">Método</span>
             <span className="flex items-center gap-1.5 text-sm font-medium">
               {p.paymentMethod === "cash" ? "💵 Efectivo" : "🏦 Depósito"}
-              {isSettlement && <span className="ml-1 rounded-pill bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-400">Ajuste</span>}
+              {isSettlement && <span className="ml-1 rounded-pill bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-400">Ajuste</span>}
             </span>
           </div>
         </div>

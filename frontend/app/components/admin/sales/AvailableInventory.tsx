@@ -39,7 +39,7 @@ export function AvailableInventory() {
         accessorKey: "available",
         header: "Cantidad disponible",
         cell: (c) => (
-          <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+          <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
             {c.getValue()} uds
           </span>
         )
@@ -105,7 +105,7 @@ export function AvailableInventory() {
                 <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-muted">{row.code}</span>
                 <p className="mt-1 font-medium text-text">{row.productName}</p>
               </div>
-              <span className="shrink-0 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+              <span className="shrink-0 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
                 {row.available} uds
               </span>
             </div>
@@ -190,7 +190,7 @@ function WholesaleCell({
                     <span className="text-muted">{qtyText}</span>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-text">{formatCordobas(price)}</span>
-                      <span className="rounded-pill bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                      <span className="rounded-pill bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
                         -{d.discountPercent}%
                       </span>
                     </div>

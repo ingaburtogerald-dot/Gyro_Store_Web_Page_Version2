@@ -102,6 +102,7 @@ export default function ProductDetail() {
   const baseName = product?.name ?? "";
   const price = selectedVariant?.price ?? product?.price ?? 0;
   const inStock = selection ? selection.inStock : (product?.stock ?? 0) > 0;
+  const stockCount = selectedVariant?.stock ?? product?.stock ?? 0;
   const compareAt = product?.compareAtPrice ?? 0;
   const onSale = compareAt > price;
 
@@ -344,8 +345,8 @@ export default function ProductDetail() {
                 </motion.p>
               )}
               
-              <motion.p variants={itemFade} className={`mt-2 text-sm font-semibold tracking-wide ${inStock ? "text-whatsapp" : "text-red-400"}`}>
-                {inStock ? "● Disponible en inventario" : "● Agotado"}
+              <motion.p variants={itemFade} className={`mt-2 text-sm font-semibold tracking-wide ${inStock ? "text-orange-500 dark:text-orange-400" : "text-red-400"}`}>
+                {inStock ? `🔥 Solo quedan ${stockCount} unidades disponibles` : "Agotado"}
               </motion.p>
 
               {/* Selector de variantes multi-eje */}

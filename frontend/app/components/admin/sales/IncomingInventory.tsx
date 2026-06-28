@@ -29,8 +29,8 @@ export function IncomingInventory() {
           const val = c.getValue();
           const label = val === "china" ? "En tránsito" : "Pendiente de aprobación";
           const cls = val === "china" 
-            ? "bg-sky-500/10 text-sky-400 border border-sky-500/20" 
-            : "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+            ? "bg-sky-500/15 text-sky-400 border border-sky-500/20" 
+            : "bg-amber-500/15 text-amber-400 border border-amber-500/20";
           return (
             <span className={`rounded-pill px-2.5 py-0.5 text-xs font-semibold ${cls}`}>
               {label}
@@ -64,8 +64,8 @@ export function IncomingInventory() {
           const label = row.status === "china" ? "En tránsito" : "Pendiente de aprobación";
           const cls =
             row.status === "china"
-              ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-              : "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+              ? "bg-sky-500/15 text-sky-400 border border-sky-500/20"
+              : "bg-amber-500/15 text-amber-400 border border-amber-500/20";
           const date = row.purchaseDate ? new Date(row.purchaseDate).toLocaleDateString("es-NI") : "—";
           return (
             <div className="space-y-2 rounded-card border border-border bg-surface p-4">

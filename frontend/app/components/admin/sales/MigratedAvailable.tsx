@@ -34,7 +34,7 @@ export function MigratedAvailable() {
         accessorKey: "stock",
         header: "Cantidad disponible",
         cell: (c) => (
-          <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+          <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
             {c.getValue()} uds
           </span>
         ),

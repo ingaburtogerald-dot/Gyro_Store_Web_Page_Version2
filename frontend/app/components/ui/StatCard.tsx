@@ -7,6 +7,8 @@ import { CountUp } from "./CountUp";
 
 export type StatCardColor = "neutral" | "indigo" | "sky" | "amber" | "emerald" | "rose" | "purple" | "red";
 
+const BASE_CARD = "bg-surface-2/30 border-border hover:border-white/10";
+
 const COLOR_MAP: Record<StatCardColor, {
   card: string;
   icon: string;
@@ -14,52 +16,52 @@ const COLOR_MAP: Record<StatCardColor, {
   value: string;
 }> = {
   neutral: {
-    card: "stat-card-neutral bg-gradient-to-br from-surface to-surface-2 border-border hover:border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]",
+    card: `stat-card-neutral ${BASE_CARD}`,
     icon: "stat-card-icon text-muted",
     label: "text-muted/90",
     value: "text-text",
   },
   indigo: {
-    card: "stat-card-indigo bg-gradient-to-br from-[#16162a] to-[#20224d] border-indigo-500/20 hover:border-indigo-500/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),0_4px_24px_rgba(99,102,241,0.06)]",
+    card: `stat-card-indigo ${BASE_CARD} hover:border-indigo-500/30`,
     icon: "stat-card-icon text-indigo-400",
-    label: "text-indigo-300/80",
-    value: "text-white font-bold",
+    label: "text-muted/90",
+    value: "text-indigo-400",
   },
   sky: {
-    card: "stat-card-sky bg-gradient-to-br from-[#0f1c2b] to-[#122e4c] border-sky-500/20 hover:border-sky-500/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),0_4px_24px_rgba(14,165,233,0.06)]",
+    card: `stat-card-sky ${BASE_CARD} hover:border-sky-500/30`,
     icon: "stat-card-icon text-sky-400",
-    label: "text-sky-300/80",
-    value: "text-white font-bold",
+    label: "text-muted/90",
+    value: "text-sky-400",
   },
   amber: {
-    card: "stat-card-amber bg-gradient-to-br from-[#221a10] to-[#402a14] border-amber-500/20 hover:border-amber-500/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),0_4px_24px_rgba(245,158,11,0.06)]",
+    card: `stat-card-amber ${BASE_CARD} hover:border-amber-500/30`,
     icon: "stat-card-icon text-amber-400",
-    label: "text-amber-300/80",
-    value: "text-white font-bold",
+    label: "text-muted/90",
+    value: "text-amber-400",
   },
   emerald: {
-    card: "stat-card-emerald bg-gradient-to-br from-[#0a2318] to-[#123f26] border-emerald-500/20 hover:border-emerald-500/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),0_4px_24px_rgba(16,185,129,0.06)]",
+    card: `stat-card-emerald ${BASE_CARD} hover:border-emerald-500/30`,
     icon: "stat-card-icon text-emerald-400",
-    label: "text-emerald-300/80",
-    value: "text-white font-bold",
+    label: "text-muted/90",
+    value: "text-emerald-400",
   },
   rose: {
-    card: "stat-card-rose bg-gradient-to-br from-[#241217] to-[#471a25] border-rose-500/20 hover:border-rose-500/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),0_4px_24px_rgba(244,63,94,0.06)]",
+    card: `stat-card-rose ${BASE_CARD} hover:border-rose-500/30`,
     icon: "stat-card-icon text-rose-400",
-    label: "text-rose-300/80",
-    value: "text-white font-bold",
+    label: "text-muted/90",
+    value: "text-rose-400",
   },
   purple: {
-    card: "stat-card-purple bg-gradient-to-br from-[#1c122c] to-[#361a59] border-purple-500/20 hover:border-purple-500/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),0_4px_24px_rgba(168,85,247,0.06)]",
+    card: `stat-card-purple ${BASE_CARD} hover:border-purple-500/30`,
     icon: "stat-card-icon text-purple-400",
-    label: "text-purple-300/80",
-    value: "text-white font-bold",
+    label: "text-muted/90",
+    value: "text-purple-400",
   },
   red: {
-    card: "stat-card-red bg-gradient-to-br from-[#2c1212] to-[#4c1616] border-red-500/20 hover:border-red-500/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03),0_4px_24px_rgba(239,68,68,0.06)]",
+    card: `stat-card-red ${BASE_CARD} hover:border-red-500/30`,
     icon: "stat-card-icon text-red-400",
-    label: "text-red-300/80",
-    value: "text-white font-bold",
+    label: "text-muted/90",
+    value: "text-red-400",
   },
 };
 

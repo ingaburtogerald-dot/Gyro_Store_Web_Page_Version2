@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { SALE_STATUS_META } from "./saleStatus";
 import { DataTable } from "~/components/ui/DataTable";
@@ -34,6 +34,7 @@ export function AdminSalesHistory({
   const [editFor, setEditFor] = useState<Sale | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [selectedSales, setSelectedSales] = useState<Set<string>>(new Set());
+  const [nameQuery, setNameQuery] = useState("");
   const [del, { isLoading: deleting }] = useDeleteSaleMutation();
 
   async function handleDelete() {
@@ -178,22 +179,48 @@ export function AdminSalesHistory({
     return filteredSales.filter((s) => s.status !== "pending_approval" && s.status !== "rejected");
   }, [filteredSales]);
 
+  // Búsqueda por nombre (o código) de los productos vendidos en cada transacción.
+  const displayedSales = useMemo(() => {
+    const q = nameQuery.trim().toLowerCase();
+    if (!q) return finalSales;
+    return finalSales.filter((s) =>
+      (s.items || []).some((it: any) =>
+        (it.name || "").toLowerCase().includes(q) || (it.code || "").toLowerCase().includes(q),
+      ),
+    );
+  }, [finalSales, nameQuery]);
+
   const totals = useMemo(() => {
     let venta = 0, comision = 0, ganancia = 0;
-    for (const s of finalSales) {
+    for (const s of displayedSales) {
       venta += s.saleTotal || 0;
       comision += s.displayComisionVendedor || s.comisionVendedor || 0;
       ganancia += s.displayGananciaTienda || s.gananciaTienda || 0;
     }
     return { venta, comision, ganancia };
-  }, [finalSales]);
+  }, [displayedSales]);
 
   return (
     <div className="rounded-card border border-border bg-surface p-4 relative">
       <div className="sticky top-0 z-30 flex flex-col lg:flex-row items-start justify-between gap-4 bg-surface pb-2">
         <h2 className="text-lg font-bold text-text">Desglose Detallado de Transacciones</h2>
         <div className="flex flex-wrap items-center gap-3">
-          {finalSales.length > 0 && (
+          {/* Búsqueda por nombre del producto vendido */}
+          <div className="flex items-center gap-2 rounded-pill border border-border bg-surface-2 px-3 w-full sm:w-64">
+            <Search className="h-4 w-4 shrink-0 text-muted" />
+            <input
+              value={nameQuery}
+              onChange={(e) => setNameQuery(e.target.value)}
+              placeholder="Buscar producto vendido…"
+              className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted"
+            />
+            {nameQuery && (
+              <button onClick={() => setNameQuery("")} aria-label="Limpiar" className="shrink-0 text-muted hover:text-text">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {displayedSales.length > 0 && (
             <div className="flex items-center gap-4 rounded-lg border border-border bg-surface-2 px-4 py-2 text-xs shadow-sm">
               <div className="flex flex-col">
                 <span className="text-[10px] text-muted uppercase font-bold">Venta Total</span>
@@ -285,10 +312,10 @@ export function AdminSalesHistory({
 
       <DataTable
         columns={columns}
-        data={finalSales}
+        data={displayedSales}
         isLoading={isLoading}
         hideSearch={true}
-        emptyText="No se encontraron transacciones con los filtros seleccionados."
+        emptyText={nameQuery ? `Sin transacciones que incluyan «${nameQuery}».` : "No se encontraron transacciones con los filtros seleccionados."}
         onRowClick={(row) => {
           setSelectedSales((prev) => {
             const next = new Set(prev);
@@ -299,10 +326,10 @@ export function AdminSalesHistory({
         }}
         selectedRowIds={selectedSales}
         onSelectAll={(select) => {
-          if (select) setSelectedSales(new Set(finalSales.map(p => p.id)));
+          if (select) setSelectedSales(new Set(displayedSales.map(p => p.id)));
           else setSelectedSales(new Set());
         }}
-        allSelected={finalSales.length > 0 && selectedSales.size === finalSales.length}
+        allSelected={displayedSales.length > 0 && selectedSales.size === displayedSales.length}
         initialSorting={[{ id: "createdAt", desc: false }]}
         mobileCard={(s) => <AdminSaleCard sale={s} />}
       />

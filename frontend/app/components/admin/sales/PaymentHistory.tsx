@@ -85,7 +85,7 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
             <span className="text-xs text-muted">Método</span>
             <span className="flex items-center gap-1.5 text-sm font-medium">
               {p.paymentMethod === "cash" ? "💵 Efectivo" : "🏦 Depósito"}
-              {isSettlement && <span className="ml-1 rounded-pill bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-400">Ajuste</span>}
+              {isSettlement && <span className="ml-1 rounded-pill bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-400">Ajuste</span>}
             </span>
           </div>
         </div>
@@ -294,7 +294,7 @@ export function PaymentHistory({ selectedSeller }: { selectedSeller: string }) {
 
       {/* Resumen del período */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-card border border-border bg-surface p-4 shadow-sm">
+        <div className="rounded-card border border-whatsapp/30 bg-whatsapp/5 p-4 shadow-sm">
           <p className="text-xs font-semibold text-muted">Total Pagado</p>
           <p className="mt-1 text-2xl font-bold text-whatsapp drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]">{formatCordobas(summary.total)}</p>
         </div>
@@ -313,14 +313,14 @@ export function PaymentHistory({ selectedSeller }: { selectedSeller: string }) {
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
-            className="input w-full pl-9"
+            className="input w-full bg-surface-2/30 pl-9 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
             placeholder="Buscar por vendedor…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <select
-          className="input font-medium sm:w-56"
+          className="input bg-surface-2/30 font-medium hover:bg-surface-2 focus:ring-1 focus:ring-accent sm:w-56"
           value={groupBy}
           onChange={(e) => setGroupBy(e.target.value as GroupBy)}
         >

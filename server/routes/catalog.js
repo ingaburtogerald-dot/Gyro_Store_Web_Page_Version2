@@ -1,7 +1,9 @@
-// Catálogo público basado en PLANTILLAS (catálogo visual, sin enlazar inventario).
-// Un ítem del catálogo referencia una plantilla (`templateId`), un precio base y
-// un mapa de disponibilidad por opción. El detalle genera variantes "virtuales"
-// desde la plantilla; lo apagado se muestra "agotado" al cliente. No toca `products`.
+// Catálogo público basado en PLANTILLAS con enlace a inventario real.
+// Un ítem del catálogo referencia una plantilla (`templateId`), un precio base,
+// un mapa de disponibilidad por opción (toggles on/off) y un `variantMappings`
+// que asigna un SKU de bodega a cada COMBINACIÓN exacta de variante.
+// El detalle genera variantes "virtuales" desde la plantilla y consulta el stock
+// real de cada SKU en la colección `products` (bodega).
 const router = require('express').Router();
 const multer = require('multer');
 const { db, FieldValue } = require('../firebase');
@@ -12,6 +14,7 @@ const storage = require('../services/storage');
 
 const CATALOG = config.collections.catalog;
 const TEMPLATES = config.collections.templates;
+const PRODUCTS = config.collections.products;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 
 // Caché en memoria para el catálogo público
@@ -33,14 +36,27 @@ function enrich(item) {
   return { ...item, images, stock: 0, price: item.price || 0 };
 }
 
+// Normaliza una entrada de variantMappings a la lista de códigos. Soporta el
+// formato nuevo { skus: [...] } y el viejo { sku: "X" }.
+function mappingSkus(entry) {
+  if (!entry) return [];
+  if (Array.isArray(entry.skus)) return entry.skus.filter(Boolean);
+  if (entry.sku) return [entry.sku];
+  return [];
+}
+
 // Genera variantes "virtuales" (producto cartesiano de los ejes de la plantilla).
-// Una combinación tiene stock=1 si TODAS sus opciones están encendidas en
-// `availability`; si alguna está apagada, stock=0 → el VariantPicker la muestra
-// "agotada" (grayed out). No toca el inventario real.
+// Los SKU de cada combinación se resuelven desde `variantMappings` (puede haber
+// VARIOS códigos por combinación: la misma variante en distintas tandas). Si no hay
+// `variantMappings`, se usa un fallback legacy desde availability SKUs.
+// Una combinación tiene stock preliminar=1 si TODAS sus opciones están encendidas
+// en `availability`; si alguna está apagada, stock=0. El stock real se resuelve
+// después consultando la colección `products` y SUMANDO el stock de todos sus SKU.
 function buildTemplateVariants(template, item) {
   const axes = template.axes || [];
   const axisLabels = axes.map((a) => a.label);
   const availability = item.availability || {};
+  const variantMappings = item.variantMappings || {};
   const basePrice = item.basePrice || 0;
 
   let combos = [[]];
@@ -54,16 +70,38 @@ function buildTemplateVariants(template, item) {
 
   const variants = combos.map((combo, idx) => {
     const axisValues = combo.map((c) => c.opt);
+    const variantName = axisValues.join(' / ');
+
+    // Determinar si todas las opciones están encendidas
     const allOn = combo.every((c) => {
       const m = availability[c.key];
-      return m ? m[c.opt] !== false : true; // sin registro = encendido por defecto
+      if (!m || m[c.opt] === undefined) return true;
+      const val = m[c.opt];
+      if (typeof val === 'object' && val !== null) return val.enabled !== false;
+      return val !== false;
     });
+
+    // Resolver SKU(s): primero desde variantMappings (puede ser varios), fallback a legacy.
+    let skus = mappingSkus(variantMappings[variantName]);
+    if (skus.length === 0) {
+      // Fallback legacy: tomar el primer SKU encontrado en los ejes del availability
+      for (const c of combo) {
+        const val = availability[c.key]?.[c.opt];
+        if (typeof val === 'object' && val !== null && val.sku) {
+          skus = [val.sku];
+          break;
+        }
+      }
+    }
+
     return {
       id: `tpl-${idx}`,
       name: item.name,
-      variantName: axisValues.join(' / '),
+      variantName,
       axisValues,
       price: basePrice,
+      sku: skus[0] || null, // representativo (compat)
+      skus,
       stock: allOn ? 1 : 0,
       specs: [],
     };
@@ -100,6 +138,20 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // ── Endpoints de administración (modo edición del catálogo) ──
 
+// GET /api/catalog/warehouse-products — productos de bodega para el combobox del admin.
+// Devuelve la lista completa de productos (code, name, stock) sin requerir rol seller.
+router.get('/warehouse-products', requireAdmin, asyncHandler(async (req, res) => {
+  const snap = await db.collection(PRODUCTS).get();
+  const items = snap.docs
+    .map((d) => {
+      const p = d.data();
+      return { id: d.id, code: p.code, name: p.name, stock: p.stock || 0 };
+    })
+    .filter((p) => !p.deletedAt)
+    .sort((a, b) => String(a.code || '').localeCompare(String(b.code || ''), undefined, { numeric: true }));
+  res.json(items);
+}));
+
 // POST /api/catalog/upload — sube imágenes del producto y devuelve sus URLs.
 router.post('/upload', requireAdmin, upload.array('images', 10), asyncHandler(async (req, res) => {
   if (!req.files?.length) return res.status(400).json({ error: 'No se enviaron imágenes.' });
@@ -130,7 +182,7 @@ router.patch('/reorder', requireAdmin, asyncHandler(async (req, res) => {
 function buildCatalogFields(body) {
   const { name, description, category, images, isPromo,
     imagesByColor, badges, tiktokUrl, compareAtPrice, specs, published,
-    templateId, basePrice, availability } = body;
+    templateId, basePrice, availability, variantMappings } = body;
   return {
     name: String(name).trim(),
     description: String(description || '').trim(),
@@ -143,10 +195,12 @@ function buildCatalogFields(body) {
     specs: Array.isArray(specs) ? specs.filter((s) => s && s.label) : [],
     published: published !== false,
     isPromo: Boolean(isPromo),
-    // ── Plantilla (catálogo visual, sin enlazar inventario) ──
+    // ── Plantilla ──
     templateId: String(templateId || '').trim(),
     basePrice: Number(basePrice) || 0,
     availability: availability && typeof availability === 'object' ? availability : {},
+    // Mapeo de combinaciones a SKUs de bodega: { "opt1 / opt2 / opt3": { sku: "CODE" } }
+    variantMappings: variantMappings && typeof variantMappings === 'object' ? variantMappings : {},
   };
 }
 
@@ -214,7 +268,34 @@ router.get('/:id', asyncHandler(async (req, res) => {
   if (item.templateId) {
     const tplDoc = await db.collection(TEMPLATES).doc(item.templateId).get();
     const template = tplDoc.exists ? { id: tplDoc.id, ...tplDoc.data() } : { axes: [], specs: [] };
-    const { variants, axisLabels } = buildTemplateVariants(template, item);
+    let { variants, axisLabels } = buildTemplateVariants(template, item);
+
+    // Consulta de stock real en bodega por SKU (juntando todos los códigos de todas las variantes)
+    const skusToFetch = [...new Set(variants.flatMap(v => v.skus || []).filter(Boolean))];
+    const stockBySku = {};
+
+    if (skusToFetch.length > 0) {
+      const batches = [];
+      for (let i = 0; i < skusToFetch.length; i += 10) {
+        const batch = skusToFetch.slice(i, i + 10);
+        batches.push(db.collection(config.collections.products).where('code', 'in', batch).get());
+      }
+      const snaps = await Promise.all(batches);
+      snaps.forEach(snap => {
+        snap.docs.forEach(d => {
+          const prodData = d.data();
+          stockBySku[prodData.code] = prodData.stock || 0;
+        });
+      });
+    }
+
+    variants = variants.map(v => {
+      if (v.stock === 0) return v; // si ya estaba apagada, sigue 0
+      // Stock de la variante = SUMA del stock de todos sus códigos de bodega.
+      v.stock = (v.skus || []).reduce((sum, code) => sum + (stockBySku[code] || 0), 0);
+      return v;
+    });
+
     const inStock = variants.some((v) => v.stock > 0);
     const colorImages = Object.values(item.imagesByColor || {}).flat();
     const images = item.images && item.images.length ? item.images : colorImages;

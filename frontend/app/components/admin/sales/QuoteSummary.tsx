@@ -27,9 +27,11 @@ export function QuoteSummary({ result, loading, errorMsg }: { result: QuoteResul
         </div>
       ) : (
         <>
-          {/* Total "hero" */}
-          <p className="text-xs text-muted">Importe total</p>
-          <p className="mb-3 text-3xl font-bold text-text">{formatCordobas(result.saleTotal)}</p>
+          {/* Ticket de importe total */}
+          <div className="mb-4 flex flex-col gap-1 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+            <span className="text-xs text-muted/70">Importe total</span>
+            <span className="font-heading text-3xl font-bold text-emerald-400">{formatCordobas(result.saleTotal)}</span>
+          </div>
 
           {/* Barra de proporción costo / costos fijos / comisión / ganancia (solo admin) */}
           {isAdmin && result.saleTotal > 0 && (() => {

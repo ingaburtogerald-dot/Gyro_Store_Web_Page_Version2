@@ -63,22 +63,22 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
       { 
         accessorKey: "quantity", 
         header: "Compradas",
-        cell: (c) => <span className="font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        cell: (c) => <span className="font-semibold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
       { 
         accessorKey: "quantitySold", 
         header: "Salidas",
-        cell: (c) => <span className="font-semibold text-rose-400 bg-rose-400/10 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        cell: (c) => <span className="font-semibold text-rose-400 bg-rose-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
       { 
         accessorKey: "quantityReserved", 
         header: "Reservas",
-        cell: (c) => <span className="font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        cell: (c) => <span className="font-semibold text-amber-400 bg-amber-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
       { 
         accessorKey: "stock", 
         header: "Stock",
-        cell: (c) => <span className="font-bold text-sky-400 bg-sky-400/10 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        cell: (c) => <span className="font-bold text-sky-400 bg-sky-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
       { accessorKey: "priceBaseUsd", header: "P. Base", cell: (c) => formatUsd(c.getValue(), 4) },
       { accessorKey: "shippingUnitUsd", header: "Envío Unit.", cell: (c) => formatUsd(c.getValue(), 4) },
@@ -127,7 +127,7 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
                 <Button
                   variant="ghost"
                   onClick={() => setDeleteFor(selectedItem)}
-                  className="h-8 bg-surface-2 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-400"
+                  className="h-8 bg-surface-2 text-xs text-red-400 hover:bg-red-500/15 hover:text-red-400"
                 >
                   <Trash2 className="mr-2 h-3.5 w-3.5" /> Eliminar
                 </Button>

@@ -5,13 +5,12 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronLeft, ChevronRight, Search, Check } from "lucide-react";
+import { Search, Check } from "lucide-react";
 import { TableSkeleton } from "./Skeleton";
 
 interface DataTableProps<T> {
@@ -38,7 +37,6 @@ export function DataTable<T>({
   columns,
   data,
   searchPlaceholder = "Buscar…",
-  pageSize = 50,
   emptyText = "Sin registros.",
   isLoading = false,
   initialSorting = [],
@@ -67,8 +65,7 @@ export function DataTable<T>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
+    // Sin paginación: se muestran TODAS las filas (la tabla scrollea dentro de su contenedor).
   });
 
   return (
@@ -112,14 +109,17 @@ export function DataTable<T>({
                 )}
                 {hg.headers.map((header) => (
                   <th key={header.id} className="whitespace-nowrap px-3 py-2.5 font-medium">
-                    {header.isPlaceholder ? null : (
+                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
                       <button
-                        className={`flex items-center gap-1 ${header.column.getCanSort() ? "cursor-pointer select-none hover:text-text" : ""}`}
+                        className="flex items-center gap-1 cursor-pointer select-none hover:text-text"
                         onClick={header.column.getToggleSortingHandler()}
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() && <ArrowUpDown className="h-3 w-3 opacity-50" />}
                       </button>
+                    ) : (
+                      <div className="flex items-center gap-1 font-semibold">
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                      </div>
                     )}
                   </th>
                 ))}
@@ -229,30 +229,6 @@ export function DataTable<T>({
         )}
       </div>
       </>
-      )}
-
-      {table.getPageCount() > 1 && (
-        <div className="flex items-center justify-between text-sm text-muted">
-          <span>
-            Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="rounded-lg border border-border p-1.5 disabled:opacity-40"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="rounded-lg border border-border p-1.5 disabled:opacity-40"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );

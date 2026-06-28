@@ -57,9 +57,11 @@ export function Autocomplete({
               key={opt}
               type="button"
               className="w-full rounded-md px-3 py-2 text-left text-sm text-muted hover:bg-white/5 hover:text-text transition-colors"
+              onMouseDown={(e) => e.preventDefault()} // evita blur del input antes de que onChange se ejecute
               onClick={() => {
                 onChange(opt);
                 setOpen(false);
+                setTimeout(() => onBlur?.(), 0); // dispara validación con el valor ya actualizado
               }}
             >
               {opt}

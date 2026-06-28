@@ -2,11 +2,13 @@
 // En tránsito → Reportar llegada / Eliminar; Pendiente → Aprobar recepción.
 import { useMemo, useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { PlaneTakeoff, Pencil, Trash2 } from "lucide-react";
+import { Ship, Pencil, Trash2, Plus, Warehouse } from "lucide-react";
+import { PurchaseCommandPalette } from "./PurchaseCommandPalette";
 import { toast } from "sonner";
 import { DataTable } from "~/components/ui/DataTable";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { FilterSelect, type FilterSelectOption } from "~/components/ui/FilterSelect";
 import { ArrivalModal } from "./ArrivalModal";
 import { EditPurchaseModal } from "./EditPurchaseModal";
 import {
@@ -21,13 +23,60 @@ const STATUS_META: Record<Purchase["status"], { label: string; cls: string }> = 
   received: { label: "Recibido", cls: "bg-whatsapp/15 text-whatsapp" },
 };
 
-export function PurchasesTable({ period = "all" }: { period?: string }) {
+const ALL_OPT: FilterSelectOption = { value: "all", label: "Todos" };
+
+const STATUS_OPTIONS: FilterSelectOption[] = [
+  ALL_OPT,
+  { value: "china", label: "En tránsito" },
+  { value: "received", label: "Recibido" },
+];
+
+export function PurchasesTable({ period = "all", onOpenForm }: { period?: string; onOpenForm?: () => void }) {
   const { data: purchases = [], isLoading } = useGetPurchasesQuery(period);
   const [del, { isLoading: deleting }] = useDeletePurchaseMutation();
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  const [filterDate, setFilterDate] = useState("all");
+  const [filterLot, setFilterLot] = useState("all");
+  const [filterCode, setFilterCode] = useState("all");
+  const [filterProduct, setFilterProduct] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const [arrivalFor, setArrivalFor] = useState<Purchase | null>(null);
   const [editFor, setEditFor] = useState<Purchase | null>(null);
   const [deleteFor, setDeleteFor] = useState<Purchase | null>(null);
+
+  const dateOptions = useMemo<FilterSelectOption[]>(() => {
+    const vals = Array.from(new Set(purchases.map((p) => p.purchaseDate).filter(Boolean))).sort().reverse();
+    return [ALL_OPT, ...vals.map((v) => ({ value: v, label: v }))];
+  }, [purchases]);
+
+  const lotOptions = useMemo<FilterSelectOption[]>(() => {
+    const vals = Array.from(new Set(purchases.map((p) => p.lot).filter(Boolean))).sort();
+    return [ALL_OPT, ...vals.map((v) => ({ value: v, label: v }))];
+  }, [purchases]);
+
+  const codeOptions = useMemo<FilterSelectOption[]>(() => {
+    const vals = Array.from(new Set(purchases.map((p) => p.code).filter(Boolean))).sort();
+    return [ALL_OPT, ...vals.map((v) => ({ value: v, label: v }))];
+  }, [purchases]);
+
+  const productOptions = useMemo<FilterSelectOption[]>(() => {
+    const vals = Array.from(new Set(purchases.map((p) => p.productName).filter(Boolean))).sort();
+    return [ALL_OPT, ...vals.map((v) => ({ value: v, label: v }))];
+  }, [purchases]);
+
+  const filteredPurchases = useMemo(() => {
+    return purchases.filter((p) => {
+      if (filterDate !== "all" && p.purchaseDate !== filterDate) return false;
+      if (filterLot !== "all" && p.lot !== filterLot) return false;
+      if (filterCode !== "all" && p.code !== filterCode) return false;
+      if (filterProduct !== "all" && p.productName !== filterProduct) return false;
+      if (filterStatus !== "all" && p.status !== filterStatus) return false;
+      return true;
+    });
+  }, [purchases, filterDate, filterLot, filterCode, filterProduct, filterStatus]);
 
   async function handleDelete() {
     if (!deleteFor) return;
@@ -42,23 +91,50 @@ export function PurchasesTable({ period = "all" }: { period?: string }) {
 
   const columns = useMemo<ColumnDef<Purchase, any>[]>(
     () => [
-      { accessorKey: "purchaseDate", header: "Fecha" },
-      { accessorKey: "lot", header: "Lote" },
-      { accessorKey: "code", header: "Código" },
-      { accessorKey: "productName", header: "Producto" },
-      { accessorKey: "quantity", header: "Cant." },
-      { accessorKey: "costUnit", header: "P. Base", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "taxUnit", header: "Imp. Unit.", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "priceUnit", header: "P. Unit.", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "total", header: "Total", cell: (c) => formatUsd(c.getValue()) },
+      {
+        accessorKey: "purchaseDate",
+        enableSorting: false,
+        header: () => (
+          <FilterSelect variant="ghost" value={filterDate} onChange={setFilterDate} options={dateOptions} placeholder="Fecha" />
+        ),
+      },
+      {
+        accessorKey: "lot",
+        enableSorting: false,
+        header: () => (
+          <FilterSelect variant="ghost" value={filterLot} onChange={setFilterLot} options={lotOptions} placeholder="Lote" />
+        ),
+      },
+      {
+        accessorKey: "code",
+        enableSorting: false,
+        header: () => (
+          <FilterSelect variant="ghost" value={filterCode} onChange={setFilterCode} options={codeOptions} placeholder="Código" />
+        ),
+      },
+      {
+        accessorKey: "productName",
+        enableSorting: false,
+        header: () => (
+          <FilterSelect variant="ghost" value={filterProduct} onChange={setFilterProduct} options={productOptions} placeholder="Producto" />
+        ),
+      },
       {
         accessorKey: "status",
-        header: "Estado",
+        enableSorting: false,
+        header: () => (
+          <FilterSelect variant="ghost" value={filterStatus} onChange={setFilterStatus} options={STATUS_OPTIONS} placeholder="Estado" />
+        ),
         cell: (c) => {
           const m = STATUS_META[c.getValue() as Purchase["status"]];
           return <span className={`rounded-pill px-2.5 py-1 text-xs font-medium ${m.cls}`}>{m.label}</span>;
         },
       },
+      { accessorKey: "quantity", header: "Cant." },
+      { accessorKey: "costUnit", header: "P. Base", cell: (c) => formatUsd(c.getValue(), 4) },
+      { accessorKey: "taxUnit", header: "Imp. Unit.", cell: (c) => formatUsd(c.getValue(), 4) },
+      { accessorKey: "priceUnit", header: "P. Unit.", cell: (c) => formatUsd(c.getValue(), 4) },
+      { accessorKey: "total", header: "Total", cell: (c) => formatUsd(c.getValue()) },
       {
         id: "actions",
         header: "Acciones",
@@ -70,9 +146,10 @@ export function PurchasesTable({ period = "all" }: { period?: string }) {
               <div className="flex gap-1.5">
                 <button
                   onClick={() => setArrivalFor(p)}
-                  className="inline-flex items-center gap-1 rounded-lg bg-surface-2 px-2 py-1 text-xs hover:text-accent-2"
+                  className="group inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-500/20 transition-all duration-300 hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/40"
                 >
-                  <PlaneTakeoff className="h-3.5 w-3.5" /> Reportar llegada
+                  <Ship className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  Reportar llegada
                 </button>
                 <button
                   onClick={() => setEditFor(p)}
@@ -93,7 +170,11 @@ export function PurchasesTable({ period = "all" }: { period?: string }) {
           }
           if (p.status === "received") {
             return (
-              <div className="flex gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-xs font-semibold text-emerald-400">
+                  <Warehouse className="h-3.5 w-3.5" />
+                  Ingresado a bodega
+                </span>
                 <button
                   onClick={() => setEditFor(p)}
                   aria-label="Editar"
@@ -108,7 +189,7 @@ export function PurchasesTable({ period = "all" }: { period?: string }) {
         },
       },
     ],
-    [],
+    [filterDate, filterLot, filterCode, filterProduct, filterStatus, dateOptions, lotOptions, codeOptions, productOptions],
   );
 
   if (isLoading) {
@@ -117,11 +198,39 @@ export function PurchasesTable({ period = "all" }: { period?: string }) {
 
   return (
     <>
+      {/* Barra de herramientas sticky */}
+      <div className="sticky top-[116px] z-10 -mx-4 bg-bg/90 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex items-center gap-3">
+            {/* Resumen basado en los filtros activos */}
+            <div className="hidden sm:flex items-center divide-x divide-border rounded-xl border border-border bg-surface px-1 py-1">
+              <SummaryPill label="Ítems" value={filteredPurchases.length.toString()} />
+              <SummaryPill label="Cantidades" value={filteredPurchases.reduce((s, p) => s + (p.quantity ?? 0), 0).toString()} />
+              <SummaryPill label="Impuestos" value={formatUsd(filteredPurchases.reduce((s, p) => s + (p.taxUnit ?? 0) * (p.quantity ?? 0), 0))} />
+              <SummaryPill label="Total" value={formatUsd(filteredPurchases.reduce((s, p) => s + (p.total ?? 0), 0))} accent />
+            </div>
+            {onOpenForm && (
+              <Button onClick={onOpenForm} className="flex items-center gap-1.5 whitespace-nowrap">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Registrar compra</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
-        data={purchases}
+        data={filteredPurchases}
         searchPlaceholder="Buscar por código, lote, producto…"
         emptyText="Aún no hay compras registradas."
+        hideSearch
+      />
+      <PurchaseCommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        purchases={purchases}
+        onSelect={(p) => { setEditFor(p); setPaletteOpen(false); }}
       />
       <ArrivalModal purchase={arrivalFor} onClose={() => setArrivalFor(null)} />
       <EditPurchaseModal purchase={editFor} onClose={() => setEditFor(null)} />
@@ -140,5 +249,14 @@ export function PurchasesTable({ period = "all" }: { period?: string }) {
         </div>
       </Modal>
     </>
+  );
+}
+
+function SummaryPill({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="flex flex-col items-center px-3 py-0.5 min-w-[72px]">
+      <span className="text-[10px] uppercase tracking-wide text-muted">{label}</span>
+      <span className={`text-sm font-bold ${accent ? "text-emerald-400" : "text-text"}`}>{value}</span>
+    </div>
   );
 }

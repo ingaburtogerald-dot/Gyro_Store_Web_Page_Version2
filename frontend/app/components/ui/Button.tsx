@@ -4,11 +4,17 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 
-type Variant = "primary" | "whatsapp" | "ghost" | "outline";
+type Variant = "primary" | "submit" | "destructive" | "whatsapp" | "ghost" | "outline";
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
+  // Gradiente — CTAs de página (Nueva venta, Registrar compra…)
   primary: "bg-gradient-accent text-white shadow-lg shadow-accent/20",
+  // Sólido — submits dentro de modales y formularios secundarios
+  submit: "bg-accent text-white hover:bg-accent-2 shadow-md shadow-accent/20",
+  // Destructivo — eliminar, rechazar
+  destructive: "bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white",
+  // WhatsApp — solo para botones que abren un chat de WhatsApp real
   whatsapp: "bg-whatsapp text-[#04201a] font-semibold",
   ghost: "bg-transparent text-muted hover:text-text hover:bg-surface-2",
   outline: "border border-border text-text hover:bg-surface-2",

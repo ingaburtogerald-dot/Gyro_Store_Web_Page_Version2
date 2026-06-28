@@ -592,7 +592,7 @@ router.get('/', requireAnyRole, asyncHandler(async (req, res) => {
 
   if (paginate) {
     page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 50));
+    limit = Math.max(1, Math.min(100000, parseInt(req.query.limit, 10) || 50));
     slicedList = rawList.slice((page - 1) * limit, page * limit);
   }
 

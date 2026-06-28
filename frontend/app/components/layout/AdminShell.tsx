@@ -177,23 +177,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <button
-              onClick={() => window.dispatchEvent(new Event("cmdk:open"))}
-              className="hidden items-center gap-2 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-text sm:flex"
-              title="Buscar y saltar (Ctrl/⌘ + K)"
-              aria-label="Abrir buscador de comandos"
-            >
-              <Search className="h-3.5 w-3.5" />
-              <span>Saltar a…</span>
-              <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px]">⌘K</kbd>
-            </button>
+
             {canCRM && <NotificationsBell />}
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 rounded-pill border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-2 hover:text-text"
+              className="inline-flex items-center gap-2 rounded-pill border border-accent bg-accent/10 px-4 py-2 text-base font-medium text-accent transition-colors hover:bg-accent hover:text-white"
               title="Ver catálogo"
             >
-              <Store className="h-4 w-4" />
+              <Store className="h-5 w-5 transition-colors" />
               <span className="hidden sm:inline">Ver catálogo</span>
             </Link>
             <UserMenu />

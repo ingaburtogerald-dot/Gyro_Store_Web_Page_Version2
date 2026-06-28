@@ -31,15 +31,32 @@ export const checkoutSchema = z
   });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
-// Registro de compra (China). coerce convierte los strings de los inputs a número.
+// Convierte string a número; "" / null / undefined → NaN para que Zod lo rechace.
+const requiredPositiveNumber = (msg = "Requerido") =>
+  z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? NaN : Number(v)),
+    z.number({ invalid_type_error: msg }).positive(msg),
+  );
+
+// Registro de compra (China).
 export const purchaseFormSchema = z.object({
   purchaseDate: z.string().min(1, "Fecha requerida"),
-  lot: z.string().min(1, "Lote requerido"),
-  code: z.string().min(1, "Código requerido"),
+  lot: z
+    .string()
+    .min(1, "Lote requerido")
+    .regex(/^LT\d+$/i, "Formato incorrecto (ej. LT1, LT4)"),
+  code: z
+    .string()
+    .trim()
+    .min(1, "Código requerido")
+    .regex(/^IN\d+$/i, "Formato incorrecto (ej. IN1, IN13)"),
   productName: z.string().min(2, "Nombre requerido"),
-  quantity: z.coerce.number().int().positive("Debe ser mayor a 0"),
-  costUnit: z.coerce.number().nonnegative("No puede ser negativo"),
-  taxUnit: z.coerce.number().nonnegative("No puede ser negativo"),
+  quantity: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? NaN : Number(v)),
+    z.number({ invalid_type_error: "Requerido" }).int("Debe ser entero").positive("Debe ser mayor a 0"),
+  ),
+  costUnit: requiredPositiveNumber("Precio base requerido"),
+  taxUnit: requiredPositiveNumber("Impuesto requerido"),
   suggestedPrice: z.coerce.number().nonnegative("No puede ser negativo").optional(),
 });
 export type PurchaseFormInput = z.infer<typeof purchaseFormSchema>;
