@@ -18,6 +18,11 @@ const { sanitizeBody } = require('./utils/sanitize');
 
 const app = express();
 
+// Render (y cualquier PaaS) sirve detrás de un proxy. Sin esto, express-rate-limit
+// ve la IP del proxy en vez de la del cliente: el límite se compartiría entre todos
+// los usuarios y los logs registrarían la IP equivocada. '1' = confiar en un solo salto.
+app.set('trust proxy', 1);
+
 // ── Seguridad y middleware base ──
 // COOP relajado a 'same-origin-allow-popups': el COOP por defecto de helmet
 // ('same-origin') aísla la ventana y rompe signInWithPopup de Firebase (el popup
