@@ -19,6 +19,8 @@ export interface FilterSelectProps {
   placeholder?: string;
   /** Tooltip del punto indicador (accesibilidad). */
   dotTitle?: string;
+  /** Ícono opcional a la izquierda del valor (da identidad visual al filtro). */
+  icon?: React.ReactNode;
 }
 
 export function FilterSelect({
@@ -27,6 +29,7 @@ export function FilterSelect({
   options,
   placeholder = "Seleccionar",
   dotTitle,
+  icon,
 }: FilterSelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -66,6 +69,7 @@ export function FilterSelect({
         )}
       >
         <span className="flex flex-1 items-center gap-2 truncate text-sm">
+          {icon && <span className="shrink-0 text-accent-2">{icon}</span>}
           {selected?.dot && <Dot />}
           <span className="truncate">{selected ? selected.label : placeholder}</span>
         </span>

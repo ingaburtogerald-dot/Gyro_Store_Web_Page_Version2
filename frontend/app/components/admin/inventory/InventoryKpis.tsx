@@ -9,14 +9,16 @@ import { formatUsd, cordobasFromUsd } from "~/lib/utils";
 
 interface InventoryKpisProps {
   tab: "purchases" | "current" | "migrated";
+  /** Periodo activo de la URL: "all" o "YYYY-MM". Filtra los números mostrados. */
+  period?: string;
 }
 
 const usd4 = (n: number) => formatUsd(n, 4);
 
-export function InventoryKpis({ tab }: InventoryKpisProps) {
-  const { data: k, isLoading: loadingKpis } = useGetInventoryKpisQuery();
-  const { data: rows = [], isLoading: loadingCurrent } = useGetCurrentInventoryQuery();
-  const { data: migratedItems = [], isLoading: loadingMigrated } = useGetMigratedInventoryQuery();
+export function InventoryKpis({ tab, period = "all" }: InventoryKpisProps) {
+  const { data: k, isLoading: loadingKpis } = useGetInventoryKpisQuery(period);
+  const { data: rows = [], isLoading: loadingCurrent } = useGetCurrentInventoryQuery(period);
+  const { data: migratedItems = [], isLoading: loadingMigrated } = useGetMigratedInventoryQuery(period);
 
   const isLoading = tab === "purchases" ? loadingKpis : tab === "current" ? loadingCurrent : loadingMigrated;
 

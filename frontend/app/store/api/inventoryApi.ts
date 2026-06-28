@@ -108,14 +108,20 @@ export interface ArrivalPayload {
   suggestedPrice?: number;
 }
 
+// Añade ?period=YYYY-MM al endpoint cuando hay un mes seleccionado.
+// "all" o vacío = sin filtro (historial completo). El backend leerá este
+// parámetro cuando implementemos el filtrado por fecha en la base de datos.
+const withPeriod = (base: string, period?: string) =>
+  period && period !== "all" ? `${base}?period=${encodeURIComponent(period)}` : base;
+
 export const inventoryApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    getPurchases: build.query<Purchase[], void>({
-      query: () => "/inventory/purchases",
+    getPurchases: build.query<Purchase[], string | void>({
+      query: (period) => withPeriod("/inventory/purchases", period || undefined),
       providesTags: ["Purchase"],
     }),
-    getCurrentInventory: build.query<InventoryRow[], void>({
-      query: () => "/inventory/current",
+    getCurrentInventory: build.query<InventoryRow[], string | void>({
+      query: (period) => withPeriod("/inventory/current", period || undefined),
       providesTags: ["Product"],
     }),
     getAvailableInventory: build.query<InventoryRow[], void>({
@@ -126,8 +132,8 @@ export const inventoryApi = baseApi.injectEndpoints({
       query: () => "/inventory/incoming",
       providesTags: ["Purchase"],
     }),
-    getInventoryKpis: build.query<InventoryKpis, void>({
-      query: () => "/inventory/kpis",
+    getInventoryKpis: build.query<InventoryKpis, string | void>({
+      query: (period) => withPeriod("/inventory/kpis", period || undefined),
       providesTags: ["Purchase"],
     }),
     createPurchase: build.mutation<Purchase, NewPurchase>({
@@ -150,8 +156,8 @@ export const inventoryApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/inventory/purchases/${id}`, method: "DELETE" }),
       invalidatesTags: ["Purchase"],
     }),
-    getMigratedInventory: build.query<MigratedItem[], void>({
-      query: () => "/inventory/migrated",
+    getMigratedInventory: build.query<MigratedItem[], string | void>({
+      query: (period) => withPeriod("/inventory/migrated", period || undefined),
       providesTags: ["Migrated"],
     }),
     createMigratedItem: build.mutation<MigratedItem, NewMigratedItem>({

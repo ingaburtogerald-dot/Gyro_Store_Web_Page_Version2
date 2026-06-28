@@ -16,6 +16,31 @@ function badRequest(res, parsed) {
   return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Datos inválidos.' });
 }
 
+// Traduce ?period=YYYY-MM a un rango [start, end) sobre purchaseDate (string ISO).
+// Devuelve null para "all", vacío o formato inválido (= sin filtro de fecha).
+// Es un rango sobre UN solo campo → no requiere índice compuesto en Firestore.
+function periodRange(period) {
+  const m = /^(\d{4})-(\d{2})$/.exec(period || '');
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]); // 1-12
+  if (month < 1 || month > 12) return null;
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  return {
+    start: `${m[1]}-${m[2]}-01`,
+    end: `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`,
+  };
+}
+
+// Aplica el filtro de periodo (si lo hay) a una consulta de la colección dada.
+function purchasesQuery(collection, period) {
+  const range = periodRange(period);
+  let q = db.collection(collection);
+  if (range) q = q.where('purchaseDate', '>=', range.start).where('purchaseDate', '<', range.end);
+  return q;
+}
+
 // GET /api/inventory/available — items con status 'received' y stock > 0 (seller, admin).
 router.get('/available', requireSeller, asyncHandler(async (req, res) => {
   const snap = await db.collection(PURCHASES).where('status', '==', inv.STATUS.RECEIVED).get();
@@ -75,9 +100,9 @@ router.get('/incoming', requireSeller, asyncHandler(async (req, res) => {
 }));
 
 
-// GET /api/inventory/purchases — todas las compras (ordenadas).
+// GET /api/inventory/purchases — todas las compras (ordenadas). ?period=YYYY-MM filtra por mes.
 router.get('/purchases', requireAdmin, asyncHandler(async (req, res) => {
-  const snap = await db.collection(PURCHASES).get();
+  const snap = await purchasesQuery(PURCHASES, req.query.period).get();
   const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   list.sort((a, b) => {
     const byDate = String(b.purchaseDate || '').localeCompare(String(a.purchaseDate || ''));
@@ -125,9 +150,9 @@ router.post('/purchases', requireAdmin, asyncHandler(async (req, res) => {
 // Las reglas de venta de estos lotes se definirán después.
 // ───────────────────────────────────────────────────────────────────────────
 
-// GET /api/inventory/migrated — lista del inventario migrado (admin).
+// GET /api/inventory/migrated — lista del inventario migrado (admin). ?period=YYYY-MM filtra por mes.
 router.get('/migrated', requireAdmin, asyncHandler(async (req, res) => {
-  const snap = await db.collection(MIGRATED).get();
+  const snap = await purchasesQuery(MIGRATED, req.query.period).get();
   const list = snap.docs.map((d) => inv.computeMigratedRow(d.id, d.data()));
   list.sort((a, b) => String(b.purchaseDate || '').localeCompare(String(a.purchaseDate || '')));
   res.json(list);
@@ -389,17 +414,25 @@ router.delete('/purchases/:id', requireAdmin, asyncHandler(async (req, res) => {
 }));
 
 // GET /api/inventory/current — inventario recibido en bodega (columnas calculadas).
+// ?period=YYYY-MM filtra por mes. Con periodo, el rango va a la query (un campo) y
+// el status 'received' se filtra en memoria para no exigir un índice compuesto.
 router.get('/current', requireAdmin, asyncHandler(async (req, res) => {
-  const snap = await db.collection(PURCHASES).where('status', '==', inv.STATUS.RECEIVED).get();
+  const range = periodRange(req.query.period);
+  const q = range
+    ? db.collection(PURCHASES).where('purchaseDate', '>=', range.start).where('purchaseDate', '<', range.end)
+    : db.collection(PURCHASES).where('status', '==', inv.STATUS.RECEIVED);
+  const snap = await q.get();
   const rows = snap.docs
-    .map((d) => inv.computeInventoryRow({ id: d.id, ...d.data() }))
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((p) => p.status === inv.STATUS.RECEIVED)
+    .map((p) => inv.computeInventoryRow(p))
     .filter((r) => r.available > 0);
   res.json(rows);
 }));
 
-// GET /api/inventory/kpis — KPIs del dashboard de inventario.
+// GET /api/inventory/kpis — KPIs del dashboard de inventario. ?period=YYYY-MM filtra por mes.
 router.get('/kpis', requireAdmin, asyncHandler(async (req, res) => {
-  const snap = await db.collection(PURCHASES).get();
+  const snap = await purchasesQuery(PURCHASES, req.query.period).get();
   res.json(inv.computeKpis(snap.docs.map((d) => d.data())));
 }));
 

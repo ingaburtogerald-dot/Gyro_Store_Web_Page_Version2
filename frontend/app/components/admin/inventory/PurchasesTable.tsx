@@ -21,8 +21,8 @@ const STATUS_META: Record<Purchase["status"], { label: string; cls: string }> = 
   received: { label: "Recibido", cls: "bg-whatsapp/15 text-whatsapp" },
 };
 
-export function PurchasesTable() {
-  const { data: purchases = [], isLoading } = useGetPurchasesQuery();
+export function PurchasesTable({ period = "all" }: { period?: string }) {
+  const { data: purchases = [], isLoading } = useGetPurchasesQuery(period);
   const [del, { isLoading: deleting }] = useDeletePurchaseMutation();
 
   const [arrivalFor, setArrivalFor] = useState<Purchase | null>(null);

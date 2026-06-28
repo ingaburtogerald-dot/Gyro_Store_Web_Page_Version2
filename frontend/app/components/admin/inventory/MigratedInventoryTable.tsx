@@ -16,8 +16,8 @@ import {
 } from "~/store/api/inventoryApi";
 import { formatUsd, formatCordobas } from "~/lib/utils";
 
-export function MigratedInventoryTable({ onOpenForm }: { onOpenForm?: () => void }) {
-  const { data: items = [], isLoading } = useGetMigratedInventoryQuery();
+export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenForm?: () => void; period?: string }) {
+  const { data: items = [], isLoading } = useGetMigratedInventoryQuery(period);
   const [del, { isLoading: deleting }] = useDeleteMigratedItemMutation();
   const [deleteFor, setDeleteFor] = useState<MigratedItem | null>(null);
   const [editFor, setEditFor] = useState<MigratedItem | null>(null);

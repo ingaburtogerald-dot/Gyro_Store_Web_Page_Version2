@@ -18,8 +18,10 @@ import {
 import { formatUsd, formatCordobas } from "~/lib/utils";
 
 
-export function CurrentInventoryTable() {
-  const { data: rows = [], isLoading } = useGetCurrentInventoryQuery();
+export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
+  const { data: rows = [], isLoading } = useGetCurrentInventoryQuery(period);
+  // Las compras se traen sin filtro de periodo: se usan para resolver el lote
+  // detrás de una fila al editar, y ese lote puede ser de cualquier mes.
   const { data: purchases = [] } = useGetPurchasesQuery();
   const [revert] = useRevertPurchaseMutation();
 
