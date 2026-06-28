@@ -1,0 +1,32 @@
+# Dependencias (Crítico)
+node_modules/
+frontend/node_modules/
+
+# Builds y compilados
+frontend/build/
+frontend/dist/
+frontend/.remix/
+dist/
+build/
+
+# Archivos de entorno y secretos
+.env
+.env.*
+serviceAccountKey.json
+*.pem
+*.crt
+
+# Archivos lock (a menos que haya problemas de instalación)
+package-lock.json
+frontend/package-lock.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Git
+.git/
+
+# Cosas del sistema
+.DS_Store
+Thumbs.db

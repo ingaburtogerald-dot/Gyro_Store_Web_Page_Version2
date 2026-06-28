@@ -15,7 +15,7 @@ services:
       - key: PORT
         value: 3000
       - key: APP_URL
-        sync: false
+        value: https://gyro-store.onrender.com
       # Firebase Admin (pegar el JSON del service account)
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false

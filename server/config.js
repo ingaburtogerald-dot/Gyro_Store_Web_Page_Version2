@@ -13,7 +13,15 @@ module.exports = {
   env: process.env.NODE_ENV || 'development',
   isProd: process.env.NODE_ENV === 'production',
   port: Number(process.env.PORT) || 3000,
-  appUrl: process.env.RENDER_EXTERNAL_URL || process.env.APP_URL || `http://localhost:${Number(process.env.PORT) || 3000}`,
+  // URL pública de la app. Los botones de los correos salen de aquí, así que
+  // en producción NUNCA debe caer a localhost: si faltan las variables de
+  // entorno, se usa el dominio real como respaldo.
+  appUrl:
+    process.env.RENDER_EXTERNAL_URL ||
+    process.env.APP_URL ||
+    (process.env.NODE_ENV === 'production'
+      ? 'https://gyro-store.onrender.com'
+      : `http://localhost:${Number(process.env.PORT) || 3000}`),
 
   // Credenciales de Firebase Admin
   serviceAccountPath: process.env.SERVICE_ACCOUNT_PATH || './server/serviceAccountKey.json',
