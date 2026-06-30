@@ -27,6 +27,15 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 *
 
 const isAdminLike = (u) => u.roles.includes('admin') || u.roles.includes('global_admin');
 
+// Quita campos de costo/utilidad confidenciales de las líneas antes de responder a
+// un no-admin (el vendedor nunca debe ver costo real ni utilidades de la tienda).
+function publicItems(items) {
+  return (items || []).map((it) => {
+    const { unitCostReal, costReal, utilidadBruta, costosFijos, utilidadNeta, ...rest } = it;
+    return rest;
+  });
+}
+
 function getISOWeekString(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7;
@@ -158,15 +167,21 @@ router.post('/quote', requireSeller, asyncHandler(async (req, res) => {
   if (!lines.length) return res.status(400).json({ error: 'Selecciona al menos un producto.' });
 
   try {
+    let full;
     if (saleOrigin === 'migrated') {
       // Migrado: costo ya conocido, sin FIFO ni costos fijos (lógica M1/M2 por línea).
-      const fin = migratedFinancialsFromLines(lines, saleTotal);
-      return res.json({ saleTotal, saleOrigin, costosFijosPct: 0, ...fin });
+      full = { saleTotal, saleOrigin, costosFijosPct: 0, ...migratedFinancialsFromLines(lines, saleTotal) };
+    } else {
+      await validatePriceFloor(lines);
+      const realCost = await realCostForItems(lines.map((l) => ({ code: l.code, quantity: l.quantity })), false);
+      const pct = await getCostosFijosPct();
+      full = { saleTotal, saleOrigin: 'native', costosFijosPct: pct, ...computeFinancials({ saleTotal, realCost, costosFijosPct: pct }) };
     }
-    await validatePriceFloor(lines);
-    const realCost = await realCostForItems(lines.map((l) => ({ code: l.code, quantity: l.quantity })), false);
-    const pct = await getCostosFijosPct();
-    res.json({ saleTotal, saleOrigin: 'native', costosFijosPct: pct, ...computeFinancials({ saleTotal, realCost, costosFijosPct: pct }) });
+    // El vendedor solo ve el total y su comisión; el desglose de costo/utilidad es confidencial.
+    if (!isAdminLike(req.user)) {
+      return res.json({ saleTotal: full.saleTotal, saleOrigin: full.saleOrigin, comisionVendedor: full.comisionVendedor });
+    }
+    res.json(full);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -233,7 +248,9 @@ router.post('/report', requireSeller, upload.single('receipt'), asyncHandler(asy
   }
 
   const ref = await db.collection(ORDERS).add(order);
-  res.status(201).json({ id: ref.id, ...order });
+  // No filtrar costos de las líneas migradas al vendedor que registra la venta.
+  const responseItems = isAdminLike(req.user) ? order.items : publicItems(order.items);
+  res.status(201).json({ id: ref.id, ...order, items: responseItems });
 }));
 
 // POST /api/sales — registra una venta (seller, admin), con foto opcional y admin register on behalf.
@@ -330,7 +347,9 @@ router.post('/', requireSeller, upload.single('receipt'), asyncHandler(async (re
   }
 
   const ref = await db.collection(ORDERS).add(order);
-  res.status(201).json({ id: ref.id, ...order });
+  // No filtrar costos de las líneas migradas al vendedor que registra la venta.
+  const responseItems = isAdminLike(req.user) ? order.items : publicItems(order.items);
+  res.status(201).json({ id: ref.id, ...order, items: responseItems });
 }));
 
 // GET /api/sales/my-summary — resumen mensual del vendedor.
@@ -386,12 +405,38 @@ router.get('/my-balance', requireSeller, asyncHandler(async (req, res) => {
     }
   });
 
+  // Comisión ESTIMADA de las ventas aún EN REVISIÓN (no aprobadas). La comisión real
+  // se fija al aprobar; aquí la estimamos igual que la vista de admin (sin exponer
+  // costo). Si una venta tiene stock insuficiente u otro problema, no suma.
+  let comisionPendiente = 0;
+  let ventasPendientes = 0;
+  const pct = await getCostosFijosPct();
+  for (const d of snap.docs) {
+    const o = d.data();
+    if (o.status !== 'pending_approval') continue;
+    ventasPendientes++;
+    try {
+      const est = o.saleOrigin === 'migrated'
+        ? migratedFinancialsFromLines(o.items, o.saleTotal)
+        : computeFinancials({
+            saleTotal: o.saleTotal,
+            realCost: await realCostForItems((o.items || []).map((l) => ({ code: l.code, quantity: l.quantity })), false),
+            costosFijosPct: pct,
+          });
+      comisionPendiente += est.comisionVendedor || 0;
+    } catch {
+      /* venta no estimable (p. ej. stock insuficiente): se omite de la estimación */
+    }
+  }
+
   const { balance: saldo } = await getPendingBalance(req.user.email);
   const proximoPago = Math.max(0, round(comisionPorCobrar + saldo));
 
   res.json({
     comisionPorCobrar: round(comisionPorCobrar),
     ventasPorCobrar,
+    comisionPendiente: round(comisionPendiente),
+    ventasPendientes,
     saldo: round(saldo),
     proximoPago,
   });
@@ -676,6 +721,7 @@ router.get('/', requireAnyRole, asyncHandler(async (req, res) => {
           delete copy.utilidadBruta;
           delete copy.costosFijos;
           delete copy.utilidadNeta;
+          delete copy.unitCostReal; // costo unitario migrado: confidencial
           return copy;
         });
       }
@@ -714,8 +760,9 @@ router.get('/', requireAnyRole, asyncHandler(async (req, res) => {
         ventasAprobadas: totalVentasAprobadas,
         totalVendido: totalVendidoAmount,
         comisiones: totalComisionAmount,
-        gananciaTienda: totalGananciaTienda,
-        inversionRecuperada: totalInversionRecuperada,
+        // Ganancia de tienda e inversión/costo son confidenciales: solo admin.
+        gananciaTienda: isUserAdmin ? totalGananciaTienda : 0,
+        inversionRecuperada: isUserAdmin ? totalInversionRecuperada : 0,
         enRevision: totalVentasEnRevision
       }
     });
@@ -1563,6 +1610,102 @@ router.get('/performance', requireSeller, asyncHandler(async (req, res) => {
   }
 
   res.json({ data: results, companyTotalSales });
+}));
+
+// GET /api/sales/timeseries — serie temporal de ventas para el dashboard (Resumen).
+// Granularidad y ventana derivadas del filtro `date` (relleno de ceros sin huecos):
+//   - 'all'        → desde la 1ª venta hasta hoy, agrupado por MES (cap 24 meses)
+//   - 'YYYY-MM'    → ese mes completo, agrupado por DÍA
+//   - 'YYYY-MM-DD' → ese único día (1 punto)
+// Solo cuenta ventas approved|paid. ventas = Σ saleTotal, ganancia = Σ gananciaTienda.
+// Usa el MISMO acceso a datos que GET '/' (query simple + agregación en memoria) para
+// no exigir índices compuestos nuevos; el dataset del negocio es chico.
+router.get('/timeseries', requireAnyRole, asyncHandler(async (req, res) => {
+  const isUserAdmin = isAdminLike(req.user);
+  const sellerEmail = req.query.sellerEmail;
+  const dateStr = req.query.date && req.query.date !== 'all' ? String(req.query.date) : null;
+
+  // Granularidad + ventana [start, end) en UTC.
+  let granularity = 'day';
+  let start, end;
+  // Sin filtro: vista por mes desde la PRIMERA venta hasta hoy (start se calcula
+  // tras leer los datos, para no arrastrar meses vacíos previos al primer registro).
+  const allTime = !dateStr;
+  if (allTime) {
+    granularity = 'month';
+    const now = new Date();
+    end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  } else if (/^\d{4}-\d{2}$/.test(dateStr)) {
+    const [y, m] = dateStr.split('-').map(Number);
+    start = new Date(Date.UTC(y, m - 1, 1));
+    end = new Date(Date.UTC(m === 12 ? y + 1 : y, m === 12 ? 0 : m, 1));
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    start = new Date(Date.UTC(y, m - 1, d));
+    end = new Date(Date.UTC(y, m - 1, d + 1));
+  } else {
+    return res.status(400).json({ error: 'Parámetro date inválido.' });
+  }
+
+  // Acceso a datos: idéntico a GET '/' (sin índices compuestos).
+  let docs;
+  if (isUserAdmin) {
+    if (sellerEmail && sellerEmail !== 'all') {
+      docs = (await db.collection(ORDERS).where('sellerEmail', '==', sellerEmail).get()).docs;
+    } else {
+      docs = (await db.collection(ORDERS).where('type', 'in', ['seller_report', 'admin_report']).get()).docs;
+    }
+  } else {
+    docs = (await db.collection(ORDERS).where('sellerEmail', '==', req.user.email).get()).docs;
+  }
+
+  // Vista "todo el tiempo": el inicio es el mes de la primera venta aprobada/pagada
+  // (cap de 24 meses para no generar un eje X gigante). Sin ventas → solo el mes actual.
+  if (allTime) {
+    let earliest = null;
+    for (const doc of docs) {
+      const o = doc.data();
+      if (o.status !== 'approved' && o.status !== 'paid') continue;
+      const created = o.createdAt?.toDate?.();
+      if (created && created < end && (!earliest || created < earliest)) earliest = created;
+    }
+    start = earliest
+      ? new Date(Date.UTC(earliest.getUTCFullYear(), earliest.getUTCMonth(), 1))
+      : new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - 1, 1));
+    const cap = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - 24, 1));
+    if (start < cap) start = cap;
+  }
+
+  // Acumular en buckets (clave por mes YYYY-MM o por día YYYY-MM-DD), solo
+  // aprobadas/pagadas dentro de la ventana.
+  const sliceLen = granularity === 'month' ? 7 : 10;
+  const buckets = new Map();
+  for (const doc of docs) {
+    const o = doc.data();
+    if (o.status !== 'approved' && o.status !== 'paid') continue;
+    const created = o.createdAt?.toDate?.();
+    if (!created || created < start || created >= end) continue;
+    const key = created.toISOString().slice(0, sliceLen);
+    const acc = buckets.get(key) || { ventas: 0, ganancia: 0, comision: 0 };
+    acc.ventas += o.saleTotal || 0;
+    acc.comision += o.comisionVendedor || 0; // comisión del vendedor (no confidencial)
+    acc.ganancia += isUserAdmin ? (o.gananciaTienda || 0) : 0; // ganancia tienda: confidencial
+    buckets.set(key, acc);
+  }
+
+  // Relleno continuo de ceros entre start y end (serie sin huecos para el chart).
+  const data = [];
+  const cursor = new Date(start);
+  while (cursor < end) {
+    const key = cursor.toISOString().slice(0, sliceLen);
+    const acc = buckets.get(key) || { ventas: 0, ganancia: 0, comision: 0 };
+    // Siempre devolvemos `date` como YYYY-MM-DD (el primer día del bucket).
+    data.push({ date: `${key}${granularity === 'month' ? '-01' : ''}`, ventas: round(acc.ventas), comision: round(acc.comision), ganancia: round(acc.ganancia) });
+    if (granularity === 'month') cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    else cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  res.json({ data, granularity, isMock: false });
 }));
 
 module.exports = router;

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
-import { Settings, CheckCircle2, Coins, Clock, ShoppingBag, Landmark, Plus, PiggyBank } from "lucide-react";
+import { CheckCircle2, Coins, Clock, ShoppingBag, Landmark, Plus, PiggyBank } from "lucide-react";
 import { PendingSales } from "./PendingSales";
 import { PaymentHistory } from "./PaymentHistory";
 import { SalesPerformance } from "./SalesPerformance";
@@ -9,9 +9,13 @@ import { SaleEditor } from "./SaleEditor";
 import { AvailableInventory } from "./AvailableInventory";
 import { MigratedAvailable } from "./MigratedAvailable";
 import { IncomingInventory } from "./IncomingInventory";
+import { SellerInventory } from "./SellerInventory";
+import { SellerMySales } from "./SellerMySales";
+import { SellerPayments } from "./SellerPayments";
 import { PricingConfigModal } from "./PricingConfigModal";
 import { Modal } from "~/components/ui/Modal";
 import { AdminSalesHistory } from "./AdminSalesHistory";
+import { AdminSalesDashboard } from "./dashboard/AdminSalesDashboard";
 import { SalesKpis } from "./SalesKpis";
 import { StatCard } from "~/components/ui/StatCard";
 import { AnimatedTabs } from "~/components/ui/AnimatedTabs";
@@ -19,15 +23,23 @@ import { UnifiedDatePicker } from "~/components/ui/UnifiedDatePicker";
 import { FilterSelect, type FilterSelectOption } from "~/components/ui/FilterSelect";
 import { useGetSalesPaginatedQuery } from "~/store/api/salesApi";
 import { useGetUsersQuery } from "~/store/api/usersApi";
+import { useAppSelector } from "~/store/hooks";
+import { selectIsAdmin } from "~/store/slices/authSlice";
 import { formatCordobas, usdFromCordobas } from "~/lib/utils";
 
-type SectionId = "inventory" | "ventas" | "reporteria";
+type SectionId = "resumen" | "inventory" | "ventas" | "reporteria";
 type SubId =
+  | "overview"
   | "available" | "migrated" | "incoming"
-  | "pending" | "approved"
+  | "pending" | "approved" | "mine"
   | "payments" | "performance";
 
-const SECTIONS: { id: SectionId; label: string; subs: { id: SubId; label: string }[] }[] = [
+type Section = { id: SectionId; label: string; subs: { id: SubId; label: string }[] };
+
+// El shell es el mismo para admin y vendedor; cambian las secciones disponibles y
+// el contenido de cada una (siempre enfocado a lo que el vendedor hace).
+const ADMIN_SECTIONS: Section[] = [
+  { id: "resumen", label: "Resumen", subs: [{ id: "overview", label: "Vista general" }] },
   {
     id: "inventory",
     label: "Inventario",
@@ -55,17 +67,37 @@ const SECTIONS: { id: SectionId; label: string; subs: { id: SubId; label: string
   },
 ];
 
-const SECTION_ITEMS = SECTIONS.map((s) => ({ id: s.id, label: s.label }));
-const VALID_SECTIONS = SECTIONS.map((s) => s.id);
+const SELLER_SECTIONS: Section[] = [
+  { id: "resumen", label: "Resumen", subs: [{ id: "overview", label: "Vista general" }] },
+  {
+    id: "inventory",
+    label: "Inventario",
+    subs: [
+      { id: "available", label: "Inventario" },
+      { id: "incoming", label: "Próximamente" },
+    ],
+  },
+  { id: "ventas", label: "Ventas", subs: [{ id: "mine", label: "Mis ventas" }] },
+  {
+    id: "reporteria",
+    label: "Reportería de ventas y pagos",
+    subs: [{ id: "payments", label: "Mis pagos" }],
+  },
+];
 
 export function AdminSales() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const isAdmin = useAppSelector(selectIsAdmin);
+
+  const SECTIONS = isAdmin ? ADMIN_SECTIONS : SELLER_SECTIONS;
+  const SECTION_ITEMS = useMemo(() => SECTIONS.map((s) => ({ id: s.id, label: s.label })), [SECTIONS]);
+  const VALID_SECTIONS = useMemo(() => SECTIONS.map((s) => s.id), [SECTIONS]);
 
   // ── Lectura + normalización de params ──
   const rawSection = searchParams.get("section") ?? "";
   const section: SectionId = VALID_SECTIONS.includes(rawSection as SectionId)
     ? (rawSection as SectionId)
-    : "inventory";
+    : "resumen";
 
   const currentSubs = SECTIONS.find((s) => s.id === section)!.subs;
   const validSubIds = currentSubs.map((s) => s.id);
@@ -102,25 +134,25 @@ export function AdminSales() {
   const inVentas = section === "ventas";
   const inReporteria = section === "reporteria";
 
-  // ── Queries (misma lógica que antes, ahora con params de URL) ──
+  // ── Queries de admin (skip para vendedor: no aplican o exponen datos ajenos) ──
   const { data: pendingTab, isLoading: loadingPending } = useGetSalesPaginatedQuery(
     { page: 1, limit: 200, status: "pending_approval", sellerEmail: selectedSeller, date: selectedDate },
-    { skip: !(inVentas && sub === "pending") },
+    { skip: !(isAdmin && inVentas && sub === "pending") },
   );
 
   const { data: approvedData, isLoading: loadingApproved } = useGetSalesPaginatedQuery(
     { page: 1, limit: 100000, status: "history", sellerEmail: selectedSeller, date: selectedDate },
-    { skip: !(inVentas && sub === "approved") },
+    { skip: !(isAdmin && inVentas && sub === "approved") },
   );
 
   const { data: reporteriaData } = useGetSalesPaginatedQuery(
     { page: 1, limit: 50, sellerEmail: selectedSeller, date: selectedDate },
-    { skip: !inReporteria },
+    { skip: !(isAdmin && inReporteria) },
   );
 
-  const { data: users = [] } = useGetUsersQuery();
+  const { data: users = [] } = useGetUsersQuery(undefined, { skip: !isAdmin });
 
-  const showPendingDots = section === "ventas" && sub === "pending";
+  const showPendingDots = isAdmin && section === "ventas" && sub === "pending";
   const { data: pendingData } = useGetSalesPaginatedQuery(
     { page: 1, limit: 200, status: "pending_approval", sellerEmail: "all", date: selectedDate },
     { skip: !showPendingDots },
@@ -171,13 +203,20 @@ export function AdminSales() {
     },
   [reporteriaData]);
 
+  // El vendedor filtra por período solo en Ventas (Mis pagos no depende de fecha).
+  const showSellerDateBar = !isAdmin && inVentas;
+
   return (
     <div className="space-y-6">
       {/* ── Cabecera ── */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="gradient-text text-2xl font-bold">Gestión de Ventas</h1>
-          <p className="text-muted">Aprobaciones, comisiones de vendedores y configuración de precios.</p>
+          <h1 className="gradient-text text-2xl font-bold">{isAdmin ? "Gestión de Ventas" : "Portal de Ventas"}</h1>
+          <p className="text-muted">
+            {isAdmin
+              ? "Aprobaciones, comisiones de vendedores y configuración de precios."
+              : "Tus ventas, comisiones, pagos e inventario."}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -195,18 +234,20 @@ export function AdminSales() {
         <div className="sticky top-16 z-20 -mx-4 bg-bg/80 px-4 py-2 backdrop-blur md:-mx-6 md:px-6">
           <AnimatedTabs items={SECTION_ITEMS} value={section} onChange={changeSection} layoutId="sales-section" />
         </div>
-        <div key={section} className="-mx-1 overflow-x-auto px-1 pb-1">
-          <AnimatedTabs
-            items={currentSubs}
-            value={sub}
-            onChange={(id) => updateParams({ sub: id, page: null })}
-            layoutId="sales-sub"
-          />
-        </div>
+        {currentSubs.length > 1 && (
+          <div key={section} className="-mx-1 overflow-x-auto px-1 pb-1">
+            <AnimatedTabs
+              items={currentSubs}
+              value={sub}
+              onChange={(id) => updateParams({ sub: id, page: null })}
+              layoutId="sales-sub"
+            />
+          </div>
+        )}
       </div>
 
-      {/* ── Filtros + KPIs (solo Ventas / Reportería) ── */}
-      {section !== "inventory" && (
+      {/* ── Filtros + KPIs de admin (solo Ventas / Reportería) ── */}
+      {isAdmin && (inVentas || inReporteria) && (
         <div className="space-y-4">
           <div className="glass relative z-40 flex flex-wrap items-center justify-between gap-4 rounded-card p-4">
             <div>
@@ -268,11 +309,32 @@ export function AdminSales() {
         </div>
       )}
 
+      {/* ── Filtro de período del vendedor (Ventas / Reportería) ── */}
+      {showSellerDateBar && (
+        <div className="glass relative z-40 flex flex-wrap items-end justify-between gap-4 rounded-card p-4">
+          <div>
+            <h2 className="text-base font-semibold text-text">Período</h2>
+            <p className="text-xs text-muted">Filtra tus registros por fecha.</p>
+          </div>
+          <div className="w-full sm:w-52">
+            <UnifiedDatePicker
+              value={selectedDate}
+              onChange={(val) => updateParams({ date: val, page: null })}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Contenido del sub-tab activo ── */}
-      <motion.div key={sub} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-        {sub === "available" && <AvailableInventory />}
+      <motion.div key={`${section}-${sub}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        {sub === "overview" && <AdminSalesDashboard />}
+
+        {/* Inventario */}
+        {sub === "available" && (isAdmin ? <AvailableInventory /> : <SellerInventory />)}
         {sub === "migrated" && <MigratedAvailable />}
         {sub === "incoming" && <IncomingInventory />}
+
+        {/* Ventas */}
         {sub === "pending" && (
           <PendingSales
             sales={pendingList}
@@ -280,8 +342,6 @@ export function AdminSales() {
             onRegisterSale={() => updateParams({ newSale: "1" })}
           />
         )}
-        {sub === "performance" && <SalesPerformance selectedMonth={selectedDate} />}
-        {sub === "payments" && <PaymentHistory selectedSeller={selectedSeller} />}
         {sub === "approved" && (
           <AdminSalesHistory
             filteredSales={normalizedSales}
@@ -293,7 +353,23 @@ export function AdminSales() {
             onRegisterSale={() => updateParams({ newSale: "1" })}
           />
         )}
+        {sub === "mine" && <SellerMySales selectedMonth={selectedDate} />}
+
+        {/* Reportería */}
+        {sub === "payments" && (isAdmin ? <PaymentHistory selectedSeller={selectedSeller} /> : <SellerPayments />)}
+        {sub === "performance" && isAdmin && <SalesPerformance selectedMonth={selectedDate} />}
       </motion.div>
+
+      {/* FAB móvil para el vendedor (ergonomía one-thumb en celular). */}
+      {!isAdmin && !saleOpen && (
+        <button
+          onClick={() => updateParams({ newSale: "1" })}
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-accent text-white shadow-lg shadow-accent/30 transition-transform active:scale-95 sm:hidden"
+          aria-label="Nueva venta"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
 
       {/* ── Modales ── */}
       {configOpen && (

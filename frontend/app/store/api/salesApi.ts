@@ -75,6 +75,16 @@ export interface QuoteResult {
   costosFijosPct: number;
 }
 
+export interface TimeseriesPoint {
+  /** Día del bucket en formato YYYY-MM-DD (UTC). */
+  date: string;
+  ventas: number;
+  /** Comisión del vendedor en el período (no confidencial). */
+  comision: number;
+  /** Solo presente para roles admin (confidencial); 0 para vendedores. */
+  ganancia: number;
+}
+
 export interface SellerPerformance {
   sellerEmail: string;
   sellerName: string;
@@ -107,6 +117,8 @@ export interface SellerSummary {
 export interface MyBalance {
   comisionPorCobrar: number; // comisión de ventas aprobadas aún no pagadas
   ventasPorCobrar: number;
+  comisionPendiente: number; // comisión ESTIMADA de ventas en revisión (no aprobadas)
+  ventasPendientes: number; // cantidad de ventas en revisión
   saldo: number; // + a favor del vendedor / − en contra
   proximoPago: number; // comisionPorCobrar + saldo (mínimo 0)
 }
@@ -224,6 +236,16 @@ export const salesApi = baseApi.injectEndpoints({
       query: (ids) => ({
         url: "/sales",
         params: { ids: ids.join(",") },
+      }),
+      providesTags: ["Order"],
+    }),
+    getSalesTimeseries: build.query<
+      { data: TimeseriesPoint[]; granularity: "day" | "month"; isMock: boolean },
+      { date?: string; sellerEmail?: string } | void
+    >({
+      query: (arg) => ({
+        url: "/sales/timeseries",
+        params: arg ?? undefined,
       }),
       providesTags: ["Order"],
     }),
@@ -363,6 +385,7 @@ export const {
   useGetSalesQuery,
   useGetSalesPaginatedQuery,
   useGetSalesByIdsQuery,
+  useGetSalesTimeseriesQuery,
   useGetPerformanceQuery,
   useGetSellerSummaryQuery,
   useGetMyBalanceQuery,
