@@ -34,6 +34,7 @@ export interface Sale {
   costosFijos?: number;
   utilidadNeta?: number;
   comisionVendedor?: number;
+  comisionPercent?: number; // % de comisión (lo agrega el backend en ventas pendientes)
   gananciaTienda?: number;
   createdAt: string | null;
   totalCostReal?: number;

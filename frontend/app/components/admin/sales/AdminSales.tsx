@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Coins, Clock, ShoppingBag, Landmark, Plus, PiggyBank } from "lucide-react";
-import { PendingSales } from "./PendingSales";
+import { PendingSalesContainer } from "./PendingSalesContainer";
 import { PaymentHistory } from "./PaymentHistory";
 import { SalesPerformance } from "./SalesPerformance";
 import { SaleEditor } from "./SaleEditor";
@@ -10,7 +10,7 @@ import { AvailableInventory } from "./AvailableInventory";
 import { MigratedAvailable } from "./MigratedAvailable";
 import { IncomingInventory } from "./IncomingInventory";
 import { SellerInventory } from "./SellerInventory";
-import { SellerMySales } from "./SellerMySales";
+import { SellerSalesContainer } from "~/components/seller/sales/SellerSalesContainer";
 import { SellerPayments } from "./SellerPayments";
 import { PricingConfigModal } from "./PricingConfigModal";
 import { Modal } from "~/components/ui/Modal";
@@ -336,7 +336,7 @@ export function AdminSales() {
 
         {/* Ventas */}
         {sub === "pending" && (
-          <PendingSales
+          <PendingSalesContainer
             sales={pendingList}
             isLoading={loadingPending}
             onRegisterSale={() => updateParams({ newSale: "1" })}
@@ -353,7 +353,7 @@ export function AdminSales() {
             onRegisterSale={() => updateParams({ newSale: "1" })}
           />
         )}
-        {sub === "mine" && <SellerMySales selectedMonth={selectedDate} />}
+        {sub === "mine" && <SellerSalesContainer selectedMonth={selectedDate} />}
 
         {/* Reportería */}
         {sub === "payments" && (isAdmin ? <PaymentHistory selectedSeller={selectedSeller} /> : <SellerPayments />)}
