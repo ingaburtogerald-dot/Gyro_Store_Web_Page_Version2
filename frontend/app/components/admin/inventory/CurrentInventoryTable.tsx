@@ -7,6 +7,7 @@ import { Pencil } from "lucide-react";
 import { DataTable } from "~/components/ui/DataTable";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { RowActionsMenu } from "~/components/ui/RowActionsMenu";
 import { EditArrivalModal } from "./EditArrivalModal";
 import {
   useGetCurrentInventoryQuery,
@@ -104,13 +105,13 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
       },
       {
         id: "actions",
-        header: "Acciones",
+        header: "",
         enableSorting: false,
         cell: ({ row }) => {
           const rowData = row.original;
           const p = purchases.find((x) => x.id === rowData.id);
           return (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-end gap-1.5">
               <button
                 onClick={() => setRevertFor(rowData)}
                 className="inline-flex items-center gap-1 rounded-lg bg-surface-2 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
@@ -118,13 +119,7 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
                 Descartar llegada
               </button>
               {p && (
-                <button
-                  onClick={() => setEditFor(p)}
-                  aria-label="Editar"
-                  className="rounded-lg p-1.5 text-muted hover:text-accent transition-colors"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
+                <RowActionsMenu actions={[{ label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => setEditFor(p) }]} />
               )}
             </div>
           );

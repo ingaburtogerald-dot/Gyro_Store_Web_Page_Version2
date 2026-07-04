@@ -1,32 +1,29 @@
-// Ficha del contacto: datos + cambio rápido de etapa + historial de actividades.
+// Ficha del contacto: datos + estado (activo/cerrado) + historial de actividades.
 import { useState } from "react";
 import { toast } from "sonner";
-import { MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { MessageCircle, Pencil, Trash2, CheckCircle2, RotateCcw } from "lucide-react";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
-import { cn, formatCordobas } from "~/lib/utils";
-import {
-  useMoveStageMutation,
-  useDeleteContactMutation,
-  type Contact,
-  type CrmStage,
-} from "~/store/api/contactsApi";
+import { cn } from "~/lib/utils";
+import { useUpdateBoardMutation, useDeleteContactMutation, type Contact } from "~/store/api/contactsApi";
 import { ContactModal } from "./ContactModal";
 import { ActivityTimeline } from "./ActivityTimeline";
-import { STAGE_ORDER, STAGE_META, waLink } from "./crmMeta";
+import { waLink, sourceMeta, tagMeta } from "./crmMeta";
 
 export function ContactDrawer({ contact, onClose }: { contact: Contact; onClose: () => void }) {
-  const [moveStage] = useMoveStageMutation();
+  const [updateBoard, { isLoading: saving }] = useUpdateBoardMutation();
   const [del, { isLoading: deleting }] = useDeleteContactMutation();
   const [editing, setEditing] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
+  const src = sourceMeta(contact.source);
 
-  async function changeStage(stage: CrmStage) {
-    if (stage === contact.stage) return;
+  async function toggleStatus() {
+    const status = contact.status === "closed" ? "active" : "closed";
     try {
-      await moveStage({ id: contact.id, stage, stageOrder: contact.stageOrder }).unwrap();
+      await updateBoard({ id: contact.id, patch: { status } }).unwrap();
+      toast.success(status === "closed" ? "Contacto cerrado." : "Contacto reabierto.");
     } catch (err: any) {
-      toast.error(err?.data?.error || "No se pudo cambiar la etapa.");
+      toast.error(err?.data?.error || "No se pudo cambiar el estado.");
     }
   }
 
@@ -73,39 +70,37 @@ export function ContactDrawer({ contact, onClose }: { contact: Contact; onClose:
           {contact.phone && <span>📱 {contact.phone}</span>}
           {contact.email && <span>✉️ {contact.email}</span>}
           {contact.product && <span>🛍️ {contact.product}</span>}
-          {contact.value > 0 && <span className="text-whatsapp">💰 {formatCordobas(contact.value)}</span>}
           <span>👤 {contact.ownerName}</span>
         </div>
 
-        {contact.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {contact.tags.map((t) => (
-              <span key={t} className="rounded-pill bg-surface-2 px-2 py-0.5 text-[11px] text-muted">#{t}</span>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className={cn("rounded-pill px-2 py-0.5 text-[11px] font-medium", src.cls)}>
+            {src.emoji} {src.label}
+          </span>
+          {contact.tags.map((t) => {
+            const m = tagMeta(t);
+            return (
+              <span key={t} className={cn("rounded-pill px-2 py-0.5 text-[11px] font-medium", m.cls)}>
+                {m.label}
+              </span>
+            );
+          })}
+        </div>
 
-        <div>
-          <p className="mb-1.5 text-xs font-medium text-muted">Etapa del embudo</p>
-          <div className="flex flex-wrap gap-1.5">
-            {STAGE_ORDER.map((s) => {
-              const m = STAGE_META[s];
-              const active = contact.stage === s;
-              return (
-                <button
-                  key={s}
-                  onClick={() => changeStage(s)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors",
-                    active ? cn(m.ring, m.accent, "bg-surface-2") : "border-border text-muted hover:text-text",
-                  )}
-                >
-                  <span className={cn("h-1.5 w-1.5 rounded-full", m.dot)} />
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex items-center justify-between rounded-card border border-border bg-surface-2/40 px-3 py-2">
+          <span className="text-sm">
+            Estado:{" "}
+            <strong className={contact.status === "closed" ? "text-emerald-300" : "text-amber-300"}>
+              {contact.status === "closed" ? "Cerrado" : "Activo"}
+            </strong>
+          </span>
+          <Button size="sm" variant="outline" onClick={toggleStatus} loading={saving}>
+            {contact.status === "closed" ? (
+              <><RotateCcw className="h-4 w-4" /> Reabrir</>
+            ) : (
+              <><CheckCircle2 className="h-4 w-4" /> Cerrar seguimiento</>
+            )}
+          </Button>
         </div>
 
         <div className="border-t border-border pt-4">

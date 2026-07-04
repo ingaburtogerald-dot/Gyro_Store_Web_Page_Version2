@@ -62,7 +62,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/admin/inventario", label: "Inventario", icon: Package, roles: ["admin"] },
       { to: "/admin/ventas", label: "Ventas", icon: ShoppingCart, roles: ["admin", "seller"] },
-      { to: "/admin/crm", label: "CRM (Embudo)", icon: KanbanSquare, roles: ["admin", "seller"] },
+      { to: "/admin/crm", label: "Seguimientos", icon: KanbanSquare, roles: ["admin", "seller"] },
       { to: "/admin/cuotas", label: "Cuotas", icon: CreditCard, roles: ["admin"] },
     ],
   },

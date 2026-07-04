@@ -9,6 +9,7 @@ import { DataTable } from "~/components/ui/DataTable";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
 import { FilterSelect, type FilterSelectOption } from "~/components/ui/FilterSelect";
+import { RowActionsMenu } from "~/components/ui/RowActionsMenu";
 import { ArrivalModal } from "./ArrivalModal";
 import { EditPurchaseModal } from "./EditPurchaseModal";
 import {
@@ -138,51 +139,31 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
       { accessorKey: "total", header: "Total", meta: { align: "right" }, cell: (c) => <span className="font-semibold">{formatUsd(c.getValue())}</span> },
       {
         id: "actions",
-        header: "Acciones",
+        header: "",
         enableSorting: false,
         cell: ({ row }) => {
           const p = row.original;
           if (p.status === "china") {
             return (
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => setArrivalFor(p)}
-                  className="group inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-500/20 transition-all duration-300 hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/40"
-                >
-                  <Ship className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                  Reportar llegada
-                </button>
-                <button
-                  onClick={() => setEditFor(p)}
-                  aria-label="Editar"
-                  className="rounded-lg p-1.5 text-muted hover:text-accent"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => setDeleteFor(p)}
-                  aria-label="Eliminar"
-                  className="rounded-lg p-1.5 text-muted hover:text-red-400"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+              <div className="flex justify-end">
+                <RowActionsMenu
+                  actions={[
+                    { label: "Reportar llegada", icon: <Ship className="h-4 w-4" />, onClick: () => setArrivalFor(p) },
+                    { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => setEditFor(p) },
+                    { label: "Eliminar", icon: <Trash2 className="h-4 w-4" />, danger: true, separatorBefore: true, onClick: () => setDeleteFor(p) },
+                  ]}
+                />
               </div>
             );
           }
           if (p.status === "received") {
             return (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center justify-end gap-1.5">
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-xs font-semibold text-emerald-400">
                   <Warehouse className="h-3.5 w-3.5" />
                   Ingresado a bodega
                 </span>
-                <button
-                  onClick={() => setEditFor(p)}
-                  aria-label="Editar"
-                  className="rounded-lg p-1.5 text-muted hover:text-accent"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
+                <RowActionsMenu actions={[{ label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => setEditFor(p) }]} />
               </div>
             );
           }

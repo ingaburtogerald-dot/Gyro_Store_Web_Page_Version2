@@ -1,15 +1,17 @@
-// Modal para crear o editar un contacto/lead del CRM.
+// Modal para registrar o editar un contacto de Seguimientos.
 import { useState } from "react";
 import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { cn } from "~/lib/utils";
 import {
   useCreateContactMutation,
   useUpdateContactMutation,
   type Contact,
-  type CrmStage,
+  type ContactSource,
+  type ContactTag,
 } from "~/store/api/contactsApi";
-import { STAGE_ORDER, STAGE_META } from "./crmMeta";
+import { SOURCE_ORDER, SOURCE_META, TAG_ORDER, TAG_META } from "./crmMeta";
 
 export function ContactModal({ open, onClose, item }: { open: boolean; onClose: () => void; item?: Contact | null }) {
   const isEdit = !!item;
@@ -21,12 +23,14 @@ export function ContactModal({ open, onClose, item }: { open: boolean; onClose: 
     phone: item?.phone ?? "",
     email: item?.email ?? "",
     product: item?.product ?? "",
-    value: item?.value ?? 0,
-    source: item?.source ?? "",
-    stage: (item?.stage ?? "new") as CrmStage,
-    tags: (item?.tags ?? []).join(", "),
+    // Tolera orígenes heredados de la migración que no están en el enum nuevo.
+    source: (item && SOURCE_ORDER.includes(item.source) ? item.source : item ? "other" : "facebook_ads") as ContactSource,
+    tags: (item?.tags ?? []) as ContactTag[],
   });
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
+
+  const toggleTag = (t: ContactTag) =>
+    setForm((f) => ({ ...f, tags: f.tags.includes(t) ? f.tags.filter((x) => x !== t) : [...f.tags, t] }));
 
   async function save() {
     if (form.name.trim().length < 2) return toast.error("El nombre del cliente es obligatorio.");
@@ -35,15 +39,13 @@ export function ContactModal({ open, onClose, item }: { open: boolean; onClose: 
       phone: form.phone.trim(),
       email: form.email.trim(),
       product: form.product.trim(),
-      value: Number(form.value) || 0,
-      source: form.source.trim(),
-      stage: form.stage,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      source: form.source,
+      tags: form.tags,
     };
     try {
       if (isEdit && item) await update({ id: item.id, body }).unwrap();
       else await create(body).unwrap();
-      toast.success(isEdit ? "Contacto actualizado." : "Contacto agregado.");
+      toast.success(isEdit ? "Contacto actualizado." : "Contacto registrado.");
       onClose();
     } catch (err: any) {
       toast.error(err?.data?.error || "No se pudo guardar el contacto.");
@@ -66,8 +68,12 @@ export function ContactModal({ open, onClose, item }: { open: boolean; onClose: 
           <Field label="Correo (opcional)">
             <input className="input" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="cliente@correo.com" />
           </Field>
-          <Field label="Valor estimado (C$)">
-            <input className="input" type="number" min={0} value={form.value} onChange={(e) => set("value", e.target.value)} />
+          <Field label="Origen (cómo llegó)">
+            <select className="input" value={form.source} onChange={(e) => set("source", e.target.value)}>
+              {SOURCE_ORDER.map((s) => (
+                <option key={s} value={s}>{SOURCE_META[s].emoji} {SOURCE_META[s].label}</option>
+              ))}
+            </select>
           </Field>
         </div>
 
@@ -75,27 +81,31 @@ export function ContactModal({ open, onClose, item }: { open: boolean; onClose: 
           <input className="input" value={form.product} onChange={(e) => set("product", e.target.value)} placeholder="Ej. KZ EDX Pro / Mouse Attack Shark" />
         </Field>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Etapa">
-            <select className="input" value={form.stage} onChange={(e) => set("stage", e.target.value)}>
-              {STAGE_ORDER.map((s) => (
-                <option key={s} value={s}>{STAGE_META[s].label}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Origen (opcional)">
-            <input className="input" value={form.source} onChange={(e) => set("source", e.target.value)} placeholder="Ej. WhatsApp, Feria, Referido" />
-          </Field>
-        </div>
-
-        <Field label="Etiquetas (separadas por coma)">
-          <input className="input" value={form.tags} onChange={(e) => set("tags", e.target.value)} placeholder="mayorista, VIP" />
+        <Field label="Etiquetas (varias)">
+          <div className="flex flex-wrap gap-2">
+            {TAG_ORDER.map((t) => {
+              const active = form.tags.includes(t);
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTag(t)}
+                  className={cn(
+                    "rounded-pill border px-3 py-1.5 text-xs font-medium transition-colors",
+                    active ? cn(TAG_META[t].cls, "border-transparent") : "border-border text-muted hover:text-text",
+                  )}
+                >
+                  {TAG_META[t].label}
+                </button>
+              );
+            })}
+          </div>
         </Field>
 
         <div className="flex justify-end gap-2 border-t border-border pt-4">
           <Button variant="ghost" size="sm" onClick={onClose}>Cancelar</Button>
           <Button size="sm" onClick={save} loading={creating || updating}>
-            {isEdit ? "Guardar cambios" : "Agregar contacto"}
+            {isEdit ? "Guardar cambios" : "Registrar contacto"}
           </Button>
         </div>
       </div>

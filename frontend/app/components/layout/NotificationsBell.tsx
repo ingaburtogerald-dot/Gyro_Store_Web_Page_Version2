@@ -12,7 +12,7 @@ import { useGetSalesQuery, useGetSalesPaginatedQuery } from "~/store/api/salesAp
 import { useGetShipmentsQuery } from "~/store/api/logisticsApi";
 import { useAppSelector } from "~/store/hooks";
 import { selectIsAdmin, selectRoles } from "~/store/slices/authSlice";
-import { dueState, isDue, DUE_META, fmtWhen } from "~/components/admin/crm/crmMeta";
+import { dueState, isDue, DUE_META, fmtDate } from "~/components/admin/crm/crmMeta";
 import { formatCordobas, cn } from "~/lib/utils";
 
 const SALE_META: Record<
@@ -290,7 +290,7 @@ export function NotificationsBell() {
                                 <span className={cn("shrink-0 text-[11px] font-medium", m.text)}>{m.label}</span>
                               </span>
                               <span className="block truncate text-xs text-muted">
-                                {c.product || "Seguimiento"} · {fmtWhen(c.nextActivityAt)}
+                                {c.product || "Seguimiento"} · {fmtDate(c.nextActivityAt)}
                               </span>
                             </span>
                           </button>

@@ -4,8 +4,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Clock } from "lucide-react";
 import { cn } from "~/lib/utils";
+import { DatePicker } from "~/components/ui/DatePicker";
 import { useGetActivitiesQuery, useAddActivityMutation, type ActivityType } from "~/store/api/contactsApi";
-import { ACTIVITY_META, fmtWhen } from "./crmMeta";
+import { ACTIVITY_META, fmtWhen, fmtDate, isoFromYmd } from "./crmMeta";
 
 const COMPOSE_TYPES: ActivityType[] = ["call", "whatsapp", "note", "restock", "meeting"];
 
@@ -15,10 +16,10 @@ export function ActivityTimeline({ contactId }: { contactId: string }) {
 
   const [type, setType] = useState<ActivityType>("call");
   const [body, setBody] = useState("");
-  const [dueAt, setDueAt] = useState(""); // datetime-local (con hora) para tareas programadas
+  const [dueDate, setDueDate] = useState(""); // "YYYY-MM-DD" para programar un recordatorio
 
   async function submit() {
-    if (!body.trim() && !dueAt) {
+    if (!body.trim() && !dueDate) {
       toast.error("Escribe qué pasó o programa una fecha.");
       return;
     }
@@ -28,12 +29,11 @@ export function ActivityTimeline({ contactId }: { contactId: string }) {
         body: {
           type,
           body: body.trim(),
-          // datetime-local es hora local; lo pasamos a ISO con offset.
-          dueAt: dueAt ? new Date(dueAt).toISOString() : null,
+          dueAt: isoFromYmd(dueDate),
         },
       }).unwrap();
       setBody("");
-      setDueAt("");
+      setDueDate("");
     } catch (err: any) {
       toast.error(err?.data?.error || "No se pudo registrar la actividad.");
     }
@@ -70,15 +70,12 @@ export function ActivityTimeline({ contactId }: { contactId: string }) {
         />
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs text-muted">
-            <Clock className="h-3.5 w-3.5" /> Programar (opcional)
-            <input
-              type="datetime-local"
-              className="input py-1 text-xs"
-              value={dueAt}
-              onChange={(e) => setDueAt(e.target.value)}
-            />
-          </label>
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <Clock className="h-3.5 w-3.5" /> Recordar el
+          </span>
+          <div className="w-[160px]">
+            <DatePicker value={dueDate} onChange={setDueDate} placeholder="Sin recordatorio" />
+          </div>
           <button
             onClick={submit}
             disabled={saving}
@@ -107,7 +104,7 @@ export function ActivityTimeline({ contactId }: { contactId: string }) {
                   <span className="text-xs font-semibold text-text">{m.label}</span>
                   {a.dueAt && !a.done && (
                     <span className="rounded-pill bg-amber-500/15 px-1.5 text-[10px] font-medium text-amber-300">
-                      programado {fmtWhen(a.dueAt)}
+                      programado {fmtDate(a.dueAt)}
                     </span>
                   )}
                 </div>

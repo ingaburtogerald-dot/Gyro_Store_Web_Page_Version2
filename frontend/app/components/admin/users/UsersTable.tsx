@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { DataTable } from "~/components/ui/DataTable";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { RowActionsMenu } from "~/components/ui/RowActionsMenu";
 import { useGetUsersQuery, useDeleteUserMutation, useGenerateTempPasswordMutation, type ManagedUser } from "~/store/api/usersApi";
 import { ROLE_LABELS, ROLE_BADGE, type Role } from "~/lib/constants";
 
@@ -141,23 +142,18 @@ export function UsersTable({ onEdit }: { onEdit: (u: ManagedUser) => void }) {
           const u = row.original;
           if (u.isProtected) return <span className="text-xs text-muted">Protegido</span>;
           return (
-            <div className="flex justify-end gap-1">
-              {u.provider === "local" && (
-                <button
-                  onClick={() => setConfirmTempFor(u)}
-                  className="rounded-lg p-1.5 text-muted hover:text-accent"
-                  aria-label="Generar contraseña temporal"
-                  title="Generar contraseña temporal"
-                >
-                  <Key className="h-4 w-4" />
-                </button>
-              )}
-              <button onClick={() => onEdit(u)} className="rounded-lg p-1.5 text-muted hover:text-accent-2" aria-label="Editar">
-                <Pencil className="h-4 w-4" />
-              </button>
-              <button onClick={() => setDeleteFor(u)} className="rounded-lg p-1.5 text-muted hover:text-red-400" aria-label="Eliminar">
-                <Trash2 className="h-4 w-4" />
-              </button>
+            <div className="flex justify-end">
+              <RowActionsMenu
+                actions={[
+                  u.provider === "local" && {
+                    label: "Generar contraseña temporal",
+                    icon: <Key className="h-4 w-4" />,
+                    onClick: () => setConfirmTempFor(u),
+                  },
+                  { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => onEdit(u) },
+                  { label: "Eliminar", icon: <Trash2 className="h-4 w-4" />, danger: true, separatorBefore: true, onClick: () => setDeleteFor(u) },
+                ]}
+              />
             </div>
           );
         },

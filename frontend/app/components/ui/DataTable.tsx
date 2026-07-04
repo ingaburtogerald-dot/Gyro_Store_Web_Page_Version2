@@ -125,7 +125,7 @@ export function DataTable<T>({
                       key={header.id}
                       aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined}
                       className={cn(
-                        "whitespace-nowrap px-3 py-2.5 text-xs font-semibold uppercase tracking-wider",
+                        "whitespace-nowrap px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-muted",
                         align === "right" && "text-right",
                         align === "center" && "text-center",
                       )}

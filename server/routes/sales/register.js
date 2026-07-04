@@ -10,22 +10,22 @@ const {
   ORDERS, upload, isAdminLike, publicItems, buildLines, migratedFinancialsFromLines, validatePriceFloor,
 } = require('./helpers');
 
-// Agrupa las líneas en UNA VENTA POR PRODUCTO (código): productos distintos no se
-// mezclan en la misma venta. Dentro del mismo código, las líneas idénticas
-// (mismo precio y modo) se consolidan sumando cantidades; si el precio difiere,
-// quedan como líneas separadas de esa misma venta.
+// Agrupa las líneas en UNA VENTA POR COMBINACIÓN de código + precio: si el mismo
+// producto se vende a precios distintos, cada precio genera una venta independiente.
+// Solo se consolidan (sumando cantidades) líneas con el mismo código, precio y modo.
 function groupLinesByCode(lines) {
-  const groups = new Map(); // code → líneas de ese producto
+  const groups = new Map(); // "code|salePrice" → líneas consolidadas
   for (const line of lines) {
-    const group = groups.get(line.code) || [];
-    const same = group.find((l) => l.salePrice === line.salePrice && l.mode === line.mode);
+    const key = `${line.code}|${line.salePrice}`;
+    const group = groups.get(key) || [];
+    const same = group.find((l) => l.mode === line.mode);
     if (same) {
       same.quantity += line.quantity;
       same.lineTotal += line.lineTotal;
     } else {
       group.push({ ...line });
     }
-    groups.set(line.code, group);
+    groups.set(key, group);
   }
   return [...groups.values()];
 }
@@ -169,8 +169,10 @@ router.post('/', requireSeller, upload.single('receipt'), asyncHandler(async (re
     }
   }
 
-  // ── Una venta por producto: el stock ya quedó reservado atómicamente arriba;
-  // aquí solo se reparten líneas y reservas (ambas llevan `code`) entre las ventas.
+  // ── Una venta por código+precio: el stock ya quedó reservado atómicamente arriba;
+  // aquí se reparten líneas y reservas entre las ventas. Como ahora un mismo código
+  // puede generar múltiples ventas (a precios distintos), las reservas se distribuyen
+  // proporcionalmente por cantidad consumida.
   const lineGroups = groupLinesByCode(lines);
   const reservationsByCode = new Map();
   for (const r of reservations) {
@@ -178,10 +180,46 @@ router.post('/', requireSeller, upload.single('receipt'), asyncHandler(async (re
     arr.push(r);
     reservationsByCode.set(r.code, arr);
   }
+  // Distribuir reservas: para cada código, asigna reservas a los grupos en orden
+  // hasta cubrir la cantidad de cada grupo.
+  const reservationsForGroup = new Map(); // groupIndex → reservations[]
+  const codeReservationCursors = new Map(); // code → { idx, offset } cursor en el array de reservas
+  for (let gi = 0; gi < lineGroups.length; gi++) {
+    const groupLines = lineGroups[gi];
+    const code = groupLines[0].code;
+    const groupQty = groupLines.reduce((s, l) => s + l.quantity, 0);
+    const codeRes = reservationsByCode.get(code) || [];
+    if (!codeReservationCursors.has(code)) codeReservationCursors.set(code, { idx: 0, offset: 0 });
+    const cursor = codeReservationCursors.get(code);
+    const assigned = [];
+    let remaining = groupQty;
+    while (remaining > 0 && cursor.idx < codeRes.length) {
+      const r = codeRes[cursor.idx];
+      const available = r.quantity - cursor.offset;
+      if (available <= remaining) {
+        // Take the rest of this reservation
+        if (cursor.offset > 0) {
+          assigned.push({ ...r, quantity: available });
+        } else {
+          assigned.push({ ...r });
+        }
+        remaining -= available;
+        cursor.idx++;
+        cursor.offset = 0;
+      } else {
+        // Split: take part of this reservation
+        assigned.push({ ...r, quantity: remaining });
+        cursor.offset += remaining;
+        remaining = 0;
+      }
+    }
+    reservationsForGroup.set(gi, assigned);
+  }
 
   const batch = db.batch();
   const created = [];
-  for (const groupLines of lineGroups) {
+  for (let gi = 0; gi < lineGroups.length; gi++) {
+    const groupLines = lineGroups[gi];
     const groupTotal = groupLines.reduce((s, l) => s + l.lineTotal, 0);
     const order = {
       type,
@@ -195,7 +233,7 @@ router.post('/', requireSeller, upload.single('receipt'), asyncHandler(async (re
       totalSaleAmount: groupTotal,
       status: 'pending_approval',
       receiptPhotoUrl,
-      reservations: reservationsByCode.get(groupLines[0].code) || [],
+      reservations: reservationsForGroup.get(gi) || [],
       rejectionReason: null,
       invoiceId: null,
       paymentScreenshotUrl: null,

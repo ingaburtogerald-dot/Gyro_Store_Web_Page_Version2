@@ -1,17 +1,18 @@
-// CRM v2: contactos/leads con historial de actividades.
-//   - `contacts/{id}`            → la persona/lead (etapa del embudo + denormalizados).
+// Seguimientos (CRM ligero): contactos + historial de actividades.
+//   - `contacts/{id}`            → la persona (activo/cerrado + próximo recordatorio).
 //   - `contacts/{id}/activities` → subcolección con cada interacción (el historial).
 // Admin/global_admin ven todos; el vendedor solo los suyos (validado en el server).
-// Convive con /api/followups (legacy) durante la migración.
+// Consultas de igualdad simple + orden/filtrado en memoria: NO requiere índices
+// compuestos (a la escala de una tienda, es más simple y barato).
 const router = require('express').Router();
 const { db, FieldValue, Timestamp } = require('../firebase');
 const config = require('../config');
 const { requireSeller } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
-const { crmContactSchema, crmActivitySchema, CRM_STAGES } = require('../utils/validators');
+const { crmContactSchema, crmActivitySchema, CONTACT_STATUS } = require('../utils/validators');
 
 const CONTACTS = config.collections.contacts;
-const PAGE_SIZE = 25;
+const MAX = 500; // techo de seguridad; a esta escala se carga todo y se procesa en memoria
 const isAdminLike = (u) => u.roles.includes('admin') || u.roles.includes('global_admin');
 
 function badRequest(res, parsed) {
@@ -28,11 +29,9 @@ function serializeContact(id, c) {
     phone: c.phone || '',
     email: c.email || '',
     product: c.product || '',
-    source: c.source || '',
+    source: c.source || 'other',
     tags: c.tags || [],
-    value: c.value || 0,
-    stage: c.stage || 'new',
-    stageOrder: c.stageOrder ?? 0,
+    status: c.status || 'active',
     ownerEmail: c.ownerEmail,
     ownerName: c.ownerName,
     nextActivityAt: iso(c.nextActivityAt),
@@ -72,81 +71,45 @@ async function loadOwned(req, res) {
   return { ref, c };
 }
 
-// GET /api/contacts/metrics?owner= — conteos por etapa + tasa de conversión.
-// Usa agregaciones .count() de Firestore: NO descarga documentos.
-// (Definida antes de las rutas con parámetros para que "metrics" no sea capturado.)
-router.get('/metrics', requireSeller, asyncHandler(async (req, res) => {
-  const scoped = () => {
-    let q = db.collection(CONTACTS);
-    if (!isAdminLike(req.user)) q = q.where('ownerEmail', '==', req.user.email);
-    else if (req.query.owner) q = q.where('ownerEmail', '==', String(req.query.owner));
-    return q;
-  };
-  const counts = await Promise.all(
-    CRM_STAGES.map((s) => scoped().where('stage', '==', s).count().get().then((r) => r.data().count)),
-  );
-  const byStage = Object.fromEntries(CRM_STAGES.map((s, i) => [s, counts[i]]));
-  const closed = byStage.won + byStage.lost;
-  res.json({
-    byStage,
-    total: counts.reduce((a, b) => a + b, 0),
-    conversionRate: closed ? Number(((byStage.won / closed) * 100).toFixed(1)) : 0,
-  });
-}));
-
-// GET /api/contacts/agenda — tareas por atender (para la campana y el badge del menú).
-// Devuelve contactos con próxima actividad pendiente dentro de una ventana holgada;
-// el cliente clasifica exacto (vencido/hoy) con su hora local. Excluye ganados/perdidos.
-router.get('/agenda', requireSeller, asyncHandler(async (req, res) => {
-  // +36h cubre "hoy" en cualquier zona horaria; el front filtra a vencido/hoy.
-  const cutoff = Timestamp.fromMillis(Date.now() + 36 * 3600 * 1000);
+// Query base según rol: el vendedor queda atado a lo suyo; el admin ve todo
+// (o filtra por owner). Solo igualdad → índice de campo único (automático).
+function scopedQuery(req) {
   let q = db.collection(CONTACTS);
   if (!isAdminLike(req.user)) q = q.where('ownerEmail', '==', req.user.email);
-  q = q.where('nextActivityAt', '<=', cutoff).orderBy('nextActivityAt', 'asc').limit(50);
+  else if (req.query.owner) q = q.where('ownerEmail', '==', String(req.query.owner));
+  return q;
+}
 
-  const snap = await q.get();
+// GET /api/contacts/agenda — recordatorios por atender (campana + badge del menú).
+// Devuelve contactos activos con próxima tarea dentro de una ventana holgada; el
+// cliente clasifica exacto (vencido/hoy) con su hora local.
+router.get('/agenda', requireSeller, asyncHandler(async (req, res) => {
+  const cutoff = Date.now() + 36 * 3600 * 1000; // +36h cubre "hoy" en cualquier zona
+  const snap = await scopedQuery(req).limit(MAX).get();
   const items = snap.docs
     .map((d) => serializeContact(d.id, d.data()))
-    .filter((c) => c.stage !== 'won' && c.stage !== 'lost');
+    .filter((c) => c.status === 'active' && c.nextActivityAt && new Date(c.nextActivityAt).getTime() <= cutoff)
+    .sort((a, b) => String(a.nextActivityAt).localeCompare(String(b.nextActivityAt)))
+    .slice(0, 50);
   res.json(items);
 }));
 
-// GET /api/contacts?stage=&owner=&cursor= — filtros + orden + paginación por cursor.
-// El vendedor queda atado a lo suyo; el admin puede filtrar por owner.
+// GET /api/contacts?owner= — todos los contactos del alcance (activos y cerrados).
+// El board agrupa por urgencia y los filtros (origen/etiqueta) se aplican en el cliente.
 router.get('/', requireSeller, asyncHandler(async (req, res) => {
-  let q = db.collection(CONTACTS);
-
-  if (!isAdminLike(req.user)) {
-    q = q.where('ownerEmail', '==', req.user.email);
-  } else if (req.query.owner) {
-    q = q.where('ownerEmail', '==', String(req.query.owner));
-  }
-
-  if (req.query.stage && CRM_STAGES.includes(req.query.stage)) {
-    q = q.where('stage', '==', String(req.query.stage));
-  }
-
-  // Orden estable para Kanban (por etapa y posición manual) y determinista para el cursor.
-  q = q.orderBy('stage').orderBy('stageOrder').orderBy('createdAt', 'desc').limit(PAGE_SIZE);
-
-  if (req.query.cursor) {
-    const curSnap = await db.collection(CONTACTS).doc(String(req.query.cursor)).get();
-    if (curSnap.exists) q = q.startAfter(curSnap);
-  }
-
-  const snap = await q.get();
-  const items = snap.docs.map((d) => serializeContact(d.id, d.data()));
-  const nextCursor = snap.docs.length === PAGE_SIZE ? snap.docs[snap.docs.length - 1].id : null;
-  res.json({ items, nextCursor });
+  const snap = await scopedQuery(req).limit(MAX).get();
+  const items = snap.docs
+    .map((d) => serializeContact(d.id, d.data()))
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  res.json(items);
 }));
 
-// POST /api/contacts — crea el lead (queda a nombre del usuario).
+// POST /api/contacts — crea el contacto (queda a nombre del usuario).
 router.post('/', requireSeller, asyncHandler(async (req, res) => {
   const parsed = crmContactSchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed);
   const doc = {
     ...parsed.data,
-    stageOrder: Date.now(), // al final de su columna; se reordena con fractional indexing
     nextActivityAt: null,
     lastActivityAt: null,
     ownerUid: req.user.uid,
@@ -156,7 +119,7 @@ router.post('/', requireSeller, asyncHandler(async (req, res) => {
     updatedAt: FieldValue.serverTimestamp(),
   };
   const ref = await db.collection(CONTACTS).add(doc);
-  const saved = (await ref.get()).data(); // re-lee para devolver timestamps reales, no sentinels
+  const saved = (await ref.get()).data(); // re-lee para devolver timestamps reales
   res.status(201).json(serializeContact(ref.id, saved));
 }));
 
@@ -171,17 +134,27 @@ router.put('/:id', requireSeller, asyncHandler(async (req, res) => {
   res.json(serializeContact(req.params.id, { ...owned.c, ...update }));
 }));
 
-// PATCH /api/contacts/:id/stage — mover en el Kanban (etapa + posición).
-router.patch('/:id/stage', requireSeller, asyncHandler(async (req, res) => {
+// PATCH /api/contacts/:id/board — mover en el board por urgencia: reprogramar el
+// recordatorio (nextActivityAt) y/o cambiar el estado activo/cerrado.
+router.patch('/:id/board', requireSeller, asyncHandler(async (req, res) => {
   const owned = await loadOwned(req, res);
   if (!owned) return;
-  const { stage, stageOrder } = req.body || {};
-  if (!CRM_STAGES.includes(stage)) return res.status(400).json({ error: 'Etapa inválida.' });
-  await owned.ref.update({
-    stage,
-    stageOrder: typeof stageOrder === 'number' ? stageOrder : owned.c.stageOrder ?? 0,
-    updatedAt: FieldValue.serverTimestamp(),
-  });
+  const { status, nextActivityAt } = req.body || {};
+  const update = { updatedAt: FieldValue.serverTimestamp() };
+
+  if (status !== undefined) {
+    if (!CONTACT_STATUS.includes(status)) return res.status(400).json({ error: 'Estado inválido.' });
+    update.status = status;
+  }
+  if (nextActivityAt !== undefined) {
+    if (nextActivityAt === null) update.nextActivityAt = null;
+    else {
+      const d = new Date(nextActivityAt);
+      if (isNaN(d.getTime())) return res.status(400).json({ error: 'Fecha inválida.' });
+      update.nextActivityAt = Timestamp.fromDate(d);
+    }
+  }
+  await owned.ref.update(update);
   res.json({ ok: true });
 }));
 
@@ -224,7 +197,7 @@ router.post('/:id/activities', requireSeller, asyncHandler(async (req, res) => {
       lastActivityAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
-    // Si esta actividad es una tarea futura y es la más próxima, actualiza el denormalizado.
+    // Si esta actividad es una tarea futura y es la más próxima, actualiza el recordatorio.
     if (dueAt && (!c.nextActivityAt || dueAt.toMillis() < c.nextActivityAt.toMillis())) {
       patch.nextActivityAt = dueAt;
     }
@@ -235,7 +208,6 @@ router.post('/:id/activities', requireSeller, asyncHandler(async (req, res) => {
   if (result.status) {
     return res.status(result.status).json({ error: 'Contacto no encontrado o sin permiso.' });
   }
-  // createdAt aún es sentinel dentro de la tx; el cliente lo refresca al invalidar caché.
   res.status(201).json(serializeActivity(result.id, { ...result.activity, createdAt: null }));
 }));
 

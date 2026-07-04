@@ -32,7 +32,6 @@ export const baseApi = createApi({
     "Followup",
     "Contact",
     "Activity",
-    "ContactMetrics",
   ],
   endpoints: () => ({}),
 });

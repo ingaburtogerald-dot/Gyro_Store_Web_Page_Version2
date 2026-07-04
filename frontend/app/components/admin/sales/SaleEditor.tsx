@@ -121,9 +121,12 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
     (s, l) => s + (Number(l.quantity) || 0) * (Number(l.salePrice) || 0),
   0);
 
-  // Productos distintos (por código) en la venta: cada uno se registra como venta aparte.
+  // Ventas distintas (por código+precio) en la registración: cada combinación se registra como venta aparte.
   const distinctProductCount = new Set(
-    validLines.map((l) => productsForUi.find((pr) => pr.id === l.productId)?.code ?? l.productId),
+    validLines.map((l) => {
+      const code = productsForUi.find((pr) => pr.id === l.productId)?.code ?? l.productId;
+      return `${code}|${l.salePrice}`;
+    }),
   ).size;
 
   // Una sola razón visible a la vez: el botón deshabilitado siempre explica por qué.

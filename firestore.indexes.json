@@ -1,41 +1,5 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "contacts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "ownerEmail", "order": "ASCENDING" },
-        { "fieldPath": "stage", "order": "ASCENDING" },
-        { "fieldPath": "stageOrder", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "contacts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "stage", "order": "ASCENDING" },
-        { "fieldPath": "stageOrder", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "contacts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "ownerEmail", "order": "ASCENDING" },
-        { "fieldPath": "nextActivityAt", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "activities",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "authorEmail", "order": "ASCENDING" },
-        { "fieldPath": "done", "order": "ASCENDING" },
-        { "fieldPath": "dueAt", "order": "ASCENDING" }
-      ]
-    }
-  ],
+  "comment": "Seguimientos (contacts/activities) usa solo consultas de igualdad y orden en subcolección, cubiertas por los índices de campo único automáticos de Firestore. No requiere índices compuestos.",
+  "indexes": [],
   "fieldOverrides": []
 }

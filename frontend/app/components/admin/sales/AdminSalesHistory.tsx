@@ -229,13 +229,16 @@ export function AdminSalesHistory({
   }, [finalSales, nameQuery]);
 
   const totals = useMemo(() => {
-    let venta = 0, comision = 0, ganancia = 0;
+    let venta = 0, comision = 0, ganancia = 0, cantidad = 0;
     for (const s of displayedSales) {
       venta += s.saleTotal || 0;
       comision += s.displayComisionVendedor || s.comisionVendedor || 0;
       ganancia += s.displayGananciaTienda || s.gananciaTienda || 0;
+      for (const it of s.items || []) {
+        cantidad += it.quantity || 0;
+      }
     }
-    return { venta, comision, ganancia };
+    return { venta, comision, ganancia, cantidad };
   }, [displayedSales]);
 
   return (
@@ -261,6 +264,10 @@ export function AdminSalesHistory({
           {displayedSales.length > 0 && (
             <div className="flex items-center gap-4 rounded-lg border border-border bg-surface-2 px-4 py-2 text-xs shadow-sm">
               <div className="flex flex-col">
+                <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Artículos</span>
+                <span className="text-sm font-semibold text-text">{totals.cantidad}</span>
+              </div>
+              <div className="flex flex-col border-l border-border pl-4">
                 <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Venta Total</span>
                 <span className="text-sm font-semibold text-text">{formatCordobas(totals.venta)}</span>
               </div>

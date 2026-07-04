@@ -1,9 +1,11 @@
-// API del CRM v2: contactos/leads con historial de actividades.
-// El servidor decide el alcance (admin todos / vendedor los suyos) y hace el
-// filtrado, orden y paginación. Convive con followupsApi (legacy) durante la migración.
+// API de Seguimientos (CRM ligero): contactos con historial de actividades.
+// El servidor decide el alcance (admin todos / vendedor los suyos). Sin embudo:
+// el contacto está `active` o `closed`, y su urgencia sale del próximo recordatorio.
 import { baseApi } from "./baseApi";
 
-export type CrmStage = "new" | "contacted" | "negotiating" | "won" | "lost";
+export type ContactSource = "facebook_ads" | "social_chat" | "whatsapp" | "marketplace" | "other";
+export type ContactTag = "retail" | "reseller" | "wholesale" | "vip";
+export type ContactStatus = "active" | "closed";
 export type ActivityType = "call" | "whatsapp" | "note" | "restock" | "meeting";
 export type ActivityOutcome = "positive" | "neutral" | "negative" | null;
 
@@ -13,11 +15,9 @@ export interface Contact {
   phone: string;
   email: string;
   product: string;
-  source: string;
-  tags: string[];
-  value: number;
-  stage: CrmStage;
-  stageOrder: number;
+  source: ContactSource;
+  tags: ContactTag[];
+  status: ContactStatus;
   ownerEmail: string;
   ownerName: string;
   nextActivityAt: string | null;
@@ -43,41 +43,24 @@ export interface NewContact {
   phone?: string;
   email?: string;
   product?: string;
-  source?: string;
-  value?: number;
-  tags?: string[];
-  stage?: CrmStage;
+  source?: ContactSource;
+  tags?: ContactTag[];
+  status?: ContactStatus;
 }
 
-export interface ContactMetrics {
-  byStage: Record<CrmStage, number>;
-  total: number;
-  conversionRate: number;
-}
-
-export interface ContactsPage {
-  items: Contact[];
-  nextCursor: string | null;
-}
-
-export interface ContactsQueryArgs {
-  owner?: string;
-  stage?: CrmStage;
-  cursor?: string;
+// Cambio desde el board: reprogramar recordatorio y/o activar/cerrar.
+export interface BoardPatch {
+  status?: ContactStatus;
+  nextActivityAt?: string | null;
 }
 
 export const contactsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    getContacts: build.query<ContactsPage, ContactsQueryArgs | void>({
+    getContacts: build.query<Contact[], { owner?: string } | void>({
       query: (args) => ({ url: "/contacts", params: args ?? undefined }),
       providesTags: ["Contact"],
     }),
-    getContactMetrics: build.query<ContactMetrics, { owner?: string } | void>({
-      query: (args) => ({ url: "/contacts/metrics", params: args ?? undefined }),
-      providesTags: ["ContactMetrics"],
-    }),
-    // Tareas por atender (campana + badge del menú). El servidor envía una ventana
-    // holgada; el cliente clasifica exacto (vencido/hoy) con su hora local.
+    // Recordatorios por atender (campana + badge del menú).
     getAgenda: build.query<Contact[], void>({
       query: () => "/contacts/agenda",
       providesTags: ["Contact"],
@@ -88,7 +71,7 @@ export const contactsApi = baseApi.injectEndpoints({
     }),
     createContact: build.mutation<Contact, NewContact>({
       query: (body) => ({ url: "/contacts", method: "POST", body }),
-      invalidatesTags: ["Contact", "ContactMetrics"],
+      invalidatesTags: ["Contact"],
     }),
     updateContact: build.mutation<Contact, { id: string; body: NewContact }>({
       query: ({ id, body }) => ({ url: `/contacts/${id}`, method: "PUT", body }),
@@ -98,51 +81,40 @@ export const contactsApi = baseApi.injectEndpoints({
       query: ({ contactId, body }) => ({ url: `/contacts/${contactId}/activities`, method: "POST", body }),
       invalidatesTags: (_r, _e, { contactId }) => [{ type: "Activity", id: contactId }, "Contact"],
     }),
-    moveStage: build.mutation<{ ok: true }, { id: string; stage: CrmStage; stageOrder: number; owner?: string }>({
-      query: ({ id, stage, stageOrder }) => ({
-        url: `/contacts/${id}/stage`,
-        method: "PATCH",
-        body: { stage, stageOrder },
-      }),
-      // Optimistic: la tarjeta se mueve al instante; si falla la red, se revierte.
-      async onQueryStarted({ id, stage, stageOrder, owner }, { dispatch, queryFulfilled }) {
-        const patch = dispatch(
-          contactsApi.util.updateQueryData(
-            "getContacts",
-            owner ? { owner } : undefined,
-            (draft) => {
-              const c = draft.items.find((x) => x.id === id);
-              if (c) {
-                c.stage = stage;
-                c.stageOrder = stageOrder;
-              }
-            },
-          ),
+    // Mover en el board por urgencia (reprogramar / activar-cerrar).
+    updateBoard: build.mutation<{ ok: true }, { id: string; patch: BoardPatch; owner?: string }>({
+      query: ({ id, patch }) => ({ url: `/contacts/${id}/board`, method: "PATCH", body: patch }),
+      // Optimistic: la tarjeta se reubica al instante; si falla la red, se revierte.
+      async onQueryStarted({ id, patch, owner }, { dispatch, queryFulfilled }) {
+        const undo = dispatch(
+          contactsApi.util.updateQueryData("getContacts", owner ? { owner } : undefined, (draft) => {
+            const c = draft.find((x) => x.id === id);
+            if (!c) return;
+            if (patch.status !== undefined) c.status = patch.status;
+            if (patch.nextActivityAt !== undefined) c.nextActivityAt = patch.nextActivityAt;
+          }),
         );
         try {
           await queryFulfilled;
-          // Refresca métricas (won/lost cambian la conversión) sin refetch de la lista.
-          dispatch(baseApi.util.invalidateTags(["ContactMetrics"]));
         } catch {
-          patch.undo();
+          undo.undo();
         }
       },
     }),
     deleteContact: build.mutation<{ ok: boolean }, string>({
       query: (id) => ({ url: `/contacts/${id}`, method: "DELETE" }),
-      invalidatesTags: ["Contact", "ContactMetrics"],
+      invalidatesTags: ["Contact"],
     }),
   }),
 });
 
 export const {
   useGetContactsQuery,
-  useGetContactMetricsQuery,
   useGetAgendaQuery,
   useGetActivitiesQuery,
   useCreateContactMutation,
   useUpdateContactMutation,
   useAddActivityMutation,
-  useMoveStageMutation,
+  useUpdateBoardMutation,
   useDeleteContactMutation,
 } = contactsApi;

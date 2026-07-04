@@ -94,23 +94,24 @@ const followupSchema = z.object({
   status: z.enum(['pending', 'done', 'lost']).optional().default('pending'),
 });
 
-// ── CRM v2: Contactos (leads) + Actividades (historial) ──
-// Un "contacto" es la persona/lead; su historial vive en la subcolección
-// `contacts/{id}/activities`. La etapa del embudo (`stage`) es distinta del
-// estado de una tarea individual (`done` en la actividad): ejes ortogonales.
-const CRM_STAGES = ['new', 'contacted', 'negotiating', 'won', 'lost'];
+// ── Seguimientos (CRM ligero): Contactos + Actividades (historial) ──
+// Un "contacto" es la persona; su historial vive en la subcolección
+// `contacts/{id}/activities`. Sin embudo de ventas: el contacto está `active`
+// (se le sigue dando seguimiento) o `closed` (ya compró / ya no interesa).
+const CONTACT_SOURCES = ['facebook_ads', 'social_chat', 'whatsapp', 'marketplace', 'other'];
+const CONTACT_TAGS = ['retail', 'reseller', 'wholesale', 'vip'];
+const CONTACT_STATUS = ['active', 'closed'];
 const ACTIVITY_TYPES = ['call', 'whatsapp', 'note', 'restock', 'meeting'];
 
-// Crear / editar un contacto del CRM.
+// Crear / editar un contacto de Seguimientos.
 const crmContactSchema = z.object({
   name: z.string().min(2, 'Nombre del cliente requerido').max(80),
   phone: z.string().max(20).optional().default(''),
   email: z.string().email('Correo inválido').optional().or(z.literal('')),
   product: z.string().max(120).optional().default(''),
-  source: z.string().max(60).optional().default(''),
-  value: z.coerce.number().nonnegative().optional().default(0),
-  tags: z.array(z.string().max(30)).max(12).optional().default([]),
-  stage: z.enum(CRM_STAGES).optional().default('new'),
+  source: z.enum(CONTACT_SOURCES).optional().default('other'),
+  tags: z.array(z.enum(CONTACT_TAGS)).max(8).optional().default([]),
+  status: z.enum(CONTACT_STATUS).optional().default('active'),
 });
 
 // Registrar una interacción en el historial de un contacto.
@@ -134,6 +135,8 @@ module.exports = {
   followupSchema,
   crmContactSchema,
   crmActivitySchema,
-  CRM_STAGES,
+  CONTACT_SOURCES,
+  CONTACT_TAGS,
+  CONTACT_STATUS,
   ACTIVITY_TYPES,
 };

@@ -1,5 +1,5 @@
-// Gráfico de rendimiento. Admin: ventas vs ganancia. Vendedor: sus comisiones.
-// Curva suave (type="natural") para un look senoidal que conecta los puntos.
+// Gráfico de rendimiento. Admin: barras de ventas + línea de ganancia (eje dual).
+// Vendedor: barras de comisiones con gradiente.
 //
 // Datos: useSalesTimeseries → GET /sales/timeseries (agregado por mes/día, real).
 // Recharts en Remix: ResponsiveContainer mide el DOM, así que renderizamos el chart
@@ -8,9 +8,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import {
-  Area,
-  AreaChart,
+  Bar,
   CartesianGrid,
+  ComposedChart,
+  Legend,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -38,20 +40,45 @@ function ChartSkeleton() {
 function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="glass rounded-xl px-3 py-2 text-xs shadow-xl">
-      <p className="mb-1 font-semibold text-text">{label}</p>
-      {payload.map((entry) => (
-        <p key={entry.name} className="flex items-center justify-between gap-4">
-          <span className="flex items-center gap-1.5 capitalize text-muted">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: entry.color }} />
-            {entry.name}
-          </span>
-          <span className="nums font-semibold text-text">{formatCordobas(Number(entry.value))}</span>
-        </p>
+    <div className="glass rounded-xl px-4 py-3 text-xs shadow-xl border border-white/5">
+      <p className="mb-2 font-semibold text-text">{label}</p>
+      <div className="space-y-1.5">
+        {payload.map((entry) => (
+          <p key={entry.name} className="flex items-center justify-between gap-6">
+            <span className="flex items-center gap-1.5 capitalize text-muted">
+              <span className="inline-block h-2.5 w-2.5 rounded-[3px]" style={{ background: entry.color }} />
+              {entry.name}
+            </span>
+            <span className="nums font-semibold text-text">{formatCordobas(Number(entry.value))}</span>
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Leyenda personalizada alineada al estilo de la UI.
+function ChartLegend({ payload }: any) {
+  if (!payload?.length) return null;
+  return (
+    <div className="flex items-center justify-center gap-6 pt-2">
+      {payload.map((entry: any) => (
+        <span key={entry.value} className="flex items-center gap-1.5 text-xs text-muted">
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-[3px]"
+            style={{ background: entry.color }}
+          />
+          <span className="capitalize">{entry.value}</span>
+        </span>
       ))}
     </div>
   );
 }
+
+const fmtAxis = (v: number) => {
+  if (v >= 1000) return `${Math.round(v / 1000)}k`;
+  return `${v}`;
+};
 
 export function SalesPerformanceWidget() {
   const { filters, isAdmin } = useSalesDashboard();
@@ -76,11 +103,14 @@ export function SalesPerformanceWidget() {
     [data, granularity],
   );
 
-  // El vendedor ve SUS comisiones; el admin, ventas vs ganancia de la tienda.
-  const title = isAdmin ? "Rendimiento de ventas" : "Mis comisiones";
-  const emptyMsg = isAdmin
-    ? "Sin ventas aprobadas en este período."
-    : "Sin comisiones aprobadas en este período.";
+  // Ambos ven barras (ventas) + línea (ganancia/comisión); solo cambian títulos y series.
+  const title = isAdmin ? "Rendimiento de ventas" : "Mis ventas y comisiones";
+  const emptyMsg = "Sin ventas aprobadas en este período.";
+
+  // Colores del tema
+  const COL_VENTAS = "var(--color-accent)";
+  const COL_GANANCIA = "#a78bfa"; // purple-400 — contraste claro sobre barras verdes
+  const COL_COMISION = "var(--color-whatsapp)";
 
   return (
     <WidgetShell title={title} icon={TrendingUp} tone="emerald">
@@ -91,24 +121,24 @@ export function SalesPerformanceWidget() {
           <p className="text-sm text-muted">{emptyMsg}</p>
         </div>
       ) : (
-        <div className="h-72 w-full">
+        <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 20, right: 16, left: 8, bottom: 4 }}>
+            <ComposedChart data={chartData} margin={{ top: 12, right: 12, left: 4, bottom: 4 }}>
               <defs>
-                <linearGradient id="gradVentas" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-accent)" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="var(--color-accent)" stopOpacity={0} />
+                {/* Gradiente vertical para las barras de ventas */}
+                <linearGradient id="gradBarVentas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COL_VENTAS} stopOpacity={0.85} />
+                  <stop offset="100%" stopColor={COL_VENTAS} stopOpacity={0.45} />
                 </linearGradient>
-                <linearGradient id="gradGanancia" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradComision" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-whatsapp)" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="var(--color-whatsapp)" stopOpacity={0} />
+                {/* Gradiente para barras de comisión (vista vendedor) */}
+                <linearGradient id="gradBarComision" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COL_COMISION} stopOpacity={0.85} />
+                  <stop offset="100%" stopColor={COL_COMISION} stopOpacity={0.45} />
                 </linearGradient>
               </defs>
+
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+
               <XAxis
                 dataKey="label"
                 tick={{ fill: "var(--color-muted)", fontSize: 11 }}
@@ -117,58 +147,92 @@ export function SalesPerformanceWidget() {
                 interval="preserveStartEnd"
                 minTickGap={24}
                 tickMargin={10}
-                padding={{ left: 16, right: 16 }}
+                padding={{ left: 8, right: 8 }}
               />
+
+              {/* Eje izquierdo: ventas (barras) */}
               <YAxis
+                yAxisId="left"
                 tick={{ fill: "var(--color-muted)", fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
                 width={48}
                 allowDecimals={false}
-                // Headroom amplio: el pico queda a ~60% de altura (la curva "flota" abajo).
-                domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.7) / 1000) * 1000]}
-                tickFormatter={(v) => {
-                  const n = Number(v);
-                  return n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`;
-                }}
+                domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.15) / 1000) * 1000]}
+                tickFormatter={fmtAxis}
               />
-              <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--color-border)" }} />
-              {/* type="natural" → spline suave (look senoidal) que conecta los puntos. */}
+
+              {/* Eje derecho: ganancia (admin) o comisión (vendedor) — escala independiente */}
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={{ fill: isAdmin ? COL_GANANCIA : COL_COMISION, fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                width={48}
+                allowDecimals={false}
+                domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.25) / 1000) * 1000]}
+                tickFormatter={fmtAxis}
+              />
+
+              <Tooltip
+                content={<ChartTooltip />}
+                cursor={{ fill: "var(--color-border)", opacity: 0.15 }}
+              />
+
+              <Legend content={<ChartLegend />} />
+
               {isAdmin ? (
                 <>
-                  <Area
-                    type="natural"
+                  {/* Barras de ventas: eje izquierdo */}
+                  <Bar
+                    yAxisId="left"
                     dataKey="ventas"
-                    name="ventas"
-                    stroke="var(--color-accent)"
-                    strokeWidth={2}
-                    fill="url(#gradVentas)"
-                    animationDuration={700}
+                    name="Ventas"
+                    fill="url(#gradBarVentas)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={48}
+                    animationDuration={600}
                   />
-                  <Area
-                    type="natural"
+                  {/* Línea de ganancia: eje derecho — flota sobre las barras */}
+                  <Line
+                    yAxisId="right"
+                    type="linear"
                     dataKey="ganancia"
-                    name="ganancia"
-                    stroke="#6366f1"
-                    strokeWidth={2}
-                    fill="url(#gradGanancia)"
+                    name="Ganancia"
+                    stroke={COL_GANANCIA}
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: COL_GANANCIA, strokeWidth: 2, stroke: "var(--color-surface)" }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--color-surface)" }}
                     animationDuration={900}
                   />
                 </>
               ) : (
-                <Area
-                  type="natural"
-                  dataKey="comision"
-                  name="comisión"
-                  stroke="var(--color-whatsapp)"
-                  strokeWidth={2.5}
-                  fill="url(#gradComision)"
-                  dot={{ r: 3, fill: "var(--color-whatsapp)", strokeWidth: 0 }}
-                  activeDot={{ r: 5 }}
-                  animationDuration={700}
-                />
+                /* Vendedor: barras de ventas + línea de comisión (misma estructura que admin) */
+                <>
+                  <Bar
+                    yAxisId="left"
+                    dataKey="ventas"
+                    name="Ventas"
+                    fill="url(#gradBarVentas)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={48}
+                    animationDuration={600}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="linear"
+                    dataKey="comision"
+                    name="Comisión"
+                    stroke={COL_COMISION}
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: COL_COMISION, strokeWidth: 2, stroke: "var(--color-surface)" }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--color-surface)" }}
+                    animationDuration={900}
+                  />
+                </>
               )}
-            </AreaChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       )}
