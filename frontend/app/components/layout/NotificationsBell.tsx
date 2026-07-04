@@ -7,12 +7,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, CheckCircle2, Banknote, XCircle, Package, PackageCheck } from "lucide-react";
-import { useGetFollowupsQuery } from "~/store/api/followupsApi";
+import { useGetAgendaQuery } from "~/store/api/contactsApi";
 import { useGetSalesQuery, useGetSalesPaginatedQuery } from "~/store/api/salesApi";
 import { useGetShipmentsQuery } from "~/store/api/logisticsApi";
 import { useAppSelector } from "~/store/hooks";
 import { selectIsAdmin, selectRoles } from "~/store/slices/authSlice";
-import { dueState, isDue, DUE_META } from "~/components/admin/followups/followupUtils";
+import { dueState, isDue, DUE_META, fmtWhen } from "~/components/admin/crm/crmMeta";
 import { formatCordobas, cn } from "~/lib/utils";
 
 const SALE_META: Record<
@@ -48,7 +48,7 @@ export function NotificationsBell() {
   const isAdmin = useAppSelector(selectIsAdmin);
   const roles = useAppSelector(selectRoles);
   const isLogisticsAdmin = roles.some((r) => r === "global_admin" || r === "admin" || r === "logistics_admin");
-  const { data: followups = [] } = useGetFollowupsQuery();
+  const { data: agenda = [] } = useGetAgendaQuery();
   const { data: sales = [] } = useGetSalesQuery(undefined, { skip: isAdmin });
   const { data: shipments = [] } = useGetShipmentsQuery(undefined, { skip: !isLogisticsAdmin });
   const { data: pendingSales } = useGetSalesPaginatedQuery(
@@ -71,8 +71,11 @@ export function NotificationsBell() {
   }, []);
 
   const due = useMemo(
-    () => followups.filter(isDue).sort((a, b) => a.followUpDate.localeCompare(b.followUpDate)),
-    [followups],
+    () =>
+      agenda
+        .filter(isDue)
+        .sort((a, b) => (a.nextActivityAt || "").localeCompare(b.nextActivityAt || "")),
+    [agenda],
   );
 
   // Agrupa los avisos de ventas por estado.
@@ -269,25 +272,25 @@ export function NotificationsBell() {
                       <p className="bg-surface-2/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
                         Seguimientos por atender
                       </p>
-                      {due.map((f) => {
-                        const m = DUE_META[dueState(f)];
+                      {due.map((c) => {
+                        const m = DUE_META[dueState(c)];
                         return (
                           <button
-                            key={f.id}
+                            key={c.id}
                             onClick={() => {
                               setOpen(false);
-                              navigate("/admin/seguimientos");
+                              navigate("/admin/crm");
                             }}
                             className="flex w-full items-start gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-surface-2"
                           >
                             <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", m.dot)} />
                             <span className="min-w-0 flex-1">
                               <span className="flex items-center justify-between gap-2">
-                                <span className="truncate font-semibold text-text">{f.customerName}</span>
+                                <span className="truncate font-semibold text-text">{c.name}</span>
                                 <span className={cn("shrink-0 text-[11px] font-medium", m.text)}>{m.label}</span>
                               </span>
                               <span className="block truncate text-xs text-muted">
-                                {f.product || f.note || "Seguimiento"} · {f.followUpDate}
+                                {c.product || "Seguimiento"} · {fmtWhen(c.nextActivityAt)}
                               </span>
                             </span>
                           </button>

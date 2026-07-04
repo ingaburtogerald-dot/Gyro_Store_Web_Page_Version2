@@ -19,13 +19,13 @@ import {
   Settings,
   Store,
   LayoutGrid,
-  ClipboardList,
   PanelLeftClose,
   PanelLeft,
   Search,
   Plus,
   ChevronDown,
   ChevronRight,
+  KanbanSquare,
 } from "lucide-react";
 import { UserMenu } from "./UserMenu";
 import { NotificationsBell } from "./NotificationsBell";
@@ -35,9 +35,9 @@ import { useAuth } from "~/hooks/useAuth";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectRoles } from "~/store/slices/authSlice";
 import { setSidebar, toggleSidebar, toggleSidebarCollapsed, setSidebarCollapsed } from "~/store/slices/uiSlice";
-import { useGetFollowupsQuery } from "~/store/api/followupsApi";
+import { useGetAgendaQuery } from "~/store/api/contactsApi";
 import { useGetSalesPaginatedQuery } from "~/store/api/salesApi";
-import { isDue } from "~/components/admin/followups/followupUtils";
+import { isDue } from "~/components/admin/crm/crmMeta";
 import { cn } from "~/lib/utils";
 import type { Role } from "~/lib/constants";
 
@@ -62,7 +62,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/admin/inventario", label: "Inventario", icon: Package, roles: ["admin"] },
       { to: "/admin/ventas", label: "Ventas", icon: ShoppingCart, roles: ["admin", "seller"] },
-      { to: "/admin/seguimientos", label: "Seguimientos", icon: ClipboardList, roles: ["admin", "seller"] },
+      { to: "/admin/crm", label: "CRM (Embudo)", icon: KanbanSquare, roles: ["admin", "seller"] },
       { to: "/admin/cuotas", label: "Cuotas", icon: CreditCard, roles: ["admin"] },
     ],
   },
@@ -93,7 +93,7 @@ const NAV_GROUPS: NavGroup[] = [
 // Acciones del quick-create global del header.
 const QUICK_ACTIONS: { label: string; icon: React.ElementType; to: string; roles: Role[] }[] = [
   { label: "Nueva venta", icon: ShoppingCart, to: "/admin/ventas?newSale=1", roles: ["admin", "seller"] },
-  { label: "Nuevo seguimiento", icon: ClipboardList, to: "/admin/seguimientos", roles: ["admin", "seller"] },
+  { label: "Nuevo contacto", icon: KanbanSquare, to: "/admin/crm", roles: ["admin", "seller"] },
   { label: "Nueva compra", icon: Package, to: "/admin/inventario", roles: ["admin"] },
   { label: "Gasto o pérdida", icon: Receipt, to: "/admin/reportes?tab=losses", roles: ["admin"] },
 ];
@@ -111,14 +111,14 @@ function roleLabel(roles: Role[]): string {
 function useNavBadges(roles: Role[]): Record<string, number> {
   const isAdmin = roles.includes("global_admin") || roles.includes("admin");
   const canCRM = isAdmin || roles.includes("seller");
-  const { data: followups = [] } = useGetFollowupsQuery(undefined, { skip: !canCRM });
+  const { data: agenda = [] } = useGetAgendaQuery(undefined, { skip: !canCRM });
   const { data: pending } = useGetSalesPaginatedQuery(
     { page: 1, limit: 1, status: "pending_approval", sellerEmail: "all", date: "all" },
     { skip: !isAdmin, pollingInterval: 15000 },
   );
   return {
     "/admin/ventas": isAdmin ? pending?.total ?? 0 : 0,
-    "/admin/seguimientos": followups.filter(isDue).length,
+    "/admin/crm": agenda.filter(isDue).length,
   };
 }
 

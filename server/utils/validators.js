@@ -94,6 +94,34 @@ const followupSchema = z.object({
   status: z.enum(['pending', 'done', 'lost']).optional().default('pending'),
 });
 
+// ── CRM v2: Contactos (leads) + Actividades (historial) ──
+// Un "contacto" es la persona/lead; su historial vive en la subcolección
+// `contacts/{id}/activities`. La etapa del embudo (`stage`) es distinta del
+// estado de una tarea individual (`done` en la actividad): ejes ortogonales.
+const CRM_STAGES = ['new', 'contacted', 'negotiating', 'won', 'lost'];
+const ACTIVITY_TYPES = ['call', 'whatsapp', 'note', 'restock', 'meeting'];
+
+// Crear / editar un contacto del CRM.
+const crmContactSchema = z.object({
+  name: z.string().min(2, 'Nombre del cliente requerido').max(80),
+  phone: z.string().max(20).optional().default(''),
+  email: z.string().email('Correo inválido').optional().or(z.literal('')),
+  product: z.string().max(120).optional().default(''),
+  source: z.string().max(60).optional().default(''),
+  value: z.coerce.number().nonnegative().optional().default(0),
+  tags: z.array(z.string().max(30)).max(12).optional().default([]),
+  stage: z.enum(CRM_STAGES).optional().default('new'),
+});
+
+// Registrar una interacción en el historial de un contacto.
+// `dueAt`: ISO datetime con hora si es una tarea programada; null/ausente = registro ya hecho.
+const crmActivitySchema = z.object({
+  type: z.enum(ACTIVITY_TYPES),
+  body: z.string().max(2000).optional().default(''),
+  dueAt: z.string().datetime({ offset: true }).nullable().optional(),
+  outcome: z.enum(['positive', 'neutral', 'negative']).nullable().optional(),
+});
+
 module.exports = {
   roleEnum,
   createUserSchema,
@@ -104,4 +132,8 @@ module.exports = {
   installmentSchema,
   installmentPaymentSchema,
   followupSchema,
+  crmContactSchema,
+  crmActivitySchema,
+  CRM_STAGES,
+  ACTIVITY_TYPES,
 };

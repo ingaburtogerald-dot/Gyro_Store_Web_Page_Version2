@@ -111,6 +111,7 @@ module.exports = {
     stockReservations: 'stock_reservations',
     auditLogs: 'audit_logs',
     followups: 'followups',
+    contacts: 'contacts',
     payments: 'payments',
     commissionAdjustments: 'commission_adjustments',
   },
