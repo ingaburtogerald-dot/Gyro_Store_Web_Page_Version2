@@ -8,15 +8,15 @@ export interface ReportKpisData {
   enviosUsd: number;
   ventasCordobas: number;
   comisionesCordobas: number;
-  costosFijosCordobas?: number;
-  gananciaTiendaCordobas?: number;
-  totalCostoVentaCordobas?: number;
+  costosFijosCordobas: number;
+  gananciaTiendaCordobas: number;
+  totalCostoVentaCordobas: number;
   perdidasCordobas: number;
   gananciaNetaCordobas: number;
-  // Desglose de deducciones
-  perdidasInventarioCordobas?: number;
-  gastosExcedenteCordobas?: number;
-  gastosVariosCordobas?: number;
+  // Desglose de deducciones (siempre presente; ver server/services/reports.js)
+  perdidasInventarioCordobas: number;
+  gastosExcedenteCordobas: number;
+  gastosVariosCordobas: number;
   margenPct: number;
 }
 
@@ -108,8 +108,9 @@ export const reportsApi = baseApi.injectEndpoints({
         month == null ? `/reports?year=${year}` : `/reports?year=${year}&month=${month}`,
       providesTags: ["Report"],
     }),
-    getLosses: build.query<LossRecord[], void>({
-      query: () => "/reports/losses",
+    getLosses: build.query<LossRecord[], { year: number; month?: number | null }>({
+      query: ({ year, month }) =>
+        month == null ? `/reports/losses?year=${year}` : `/reports/losses?year=${year}&month=${month}`,
       providesTags: ["Report"],
     }),
     getLossProducts: build.query<LossProduct[], void>({

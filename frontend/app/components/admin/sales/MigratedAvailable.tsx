@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useGetSellableProductsQuery, type SellableProduct } from "~/store/api/salesApi";
 import { formatCordobas } from "~/lib/utils";
+import { CodeCell } from "~/components/ui/cells";
 import { DataTable } from "~/components/ui/DataTable";
 
 export function MigratedAvailable() {
@@ -17,14 +18,14 @@ export function MigratedAvailable() {
 
   const columns = useMemo<ColumnDef<SellableProduct, any>[]>(
     () => [
-      { accessorKey: "code", header: "Código", sortingFn: "alphanumeric" },
+      { accessorKey: "code", header: "Código", sortingFn: "alphanumeric", cell: (c) => <CodeCell value={c.getValue()} /> },
       {
         accessorKey: "name",
         header: "Nombre",
         cell: (c) => (
           <span className="flex items-center gap-2 font-medium text-text">
             {c.getValue()}
-            <span className="rounded-pill bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+            <span className="rounded-pill bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300">
               Migrado
             </span>
           </span>
@@ -33,8 +34,9 @@ export function MigratedAvailable() {
       {
         accessorKey: "stock",
         header: "Cantidad disponible",
+        meta: { align: "right" },
         cell: (c) => (
-          <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+          <span className="nums rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
             {c.getValue()} uds
           </span>
         ),
@@ -42,7 +44,8 @@ export function MigratedAvailable() {
       {
         accessorKey: "price",
         header: "Precio sugerido (C$)",
-        cell: (c) => <span className="font-bold text-whatsapp">{formatCordobas(c.getValue() || 0)}</span>,
+        meta: { align: "right" },
+        cell: (c) => <span className="nums font-bold text-whatsapp">{formatCordobas(c.getValue() || 0)}</span>,
       },
     ],
     [],

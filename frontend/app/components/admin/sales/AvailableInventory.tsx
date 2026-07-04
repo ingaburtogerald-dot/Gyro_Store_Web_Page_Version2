@@ -6,6 +6,7 @@ import { useGetPricingConfigQuery, type Discount } from "~/store/api/salesApi";
 import { useAppSelector } from "~/store/hooks";
 import { selectIsAdmin } from "~/store/slices/authSlice";
 import { formatCordobas } from "~/lib/utils";
+import { CodeCell } from "~/components/ui/cells";
 import { DataTable } from "~/components/ui/DataTable";
 import { Modal } from "~/components/ui/Modal";
 import { PricingConfigModal } from "./PricingConfigModal";
@@ -29,6 +30,7 @@ export function AvailableInventory() {
         accessorKey: "code",
         header: "Código",
         sortingFn: "alphanumeric",
+        cell: (c) => <CodeCell value={c.getValue()} />,
       },
       {
         accessorKey: "productName",
@@ -38,8 +40,9 @@ export function AvailableInventory() {
       {
         accessorKey: "available",
         header: "Cantidad disponible",
+        meta: { align: "right" },
         cell: (c) => (
-          <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+          <span className="nums rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
             {c.getValue()} uds
           </span>
         )
@@ -47,8 +50,9 @@ export function AvailableInventory() {
       {
         accessorKey: "suggestedPrice",
         header: "Precio sugerido (C$)",
+        meta: { align: "right" },
         cell: (c) => (
-          <span className="font-bold text-whatsapp">
+          <span className="nums font-bold text-whatsapp">
             {formatCordobas(c.getValue() || 0)}
           </span>
         )

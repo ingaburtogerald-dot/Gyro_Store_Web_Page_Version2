@@ -22,12 +22,12 @@ export function BudgetTable({ rows }: { rows: BudgetRow[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs text-muted">
-              <th className="py-2 pr-3 font-medium">Grupo</th>
-              <th className="py-2 px-3 text-right font-medium">Presupuesto</th>
-              <th className="py-2 px-3 text-right font-medium">Gastado</th>
-              <th className="py-2 px-3 text-right font-medium">Saldo</th>
-              <th className="py-2 pl-3 text-right font-medium">Afecta ganancia</th>
+            <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wider text-muted">
+              <th className="py-2 pr-3">Grupo</th>
+              <th className="py-2 px-3 text-right">Presupuesto</th>
+              <th className="py-2 px-3 text-right">Gastado</th>
+              <th className="py-2 px-3 text-right">Saldo</th>
+              <th className="py-2 pl-3 text-right">Afecta ganancia</th>
             </tr>
           </thead>
           <tbody>
@@ -35,7 +35,7 @@ export function BudgetTable({ rows }: { rows: BudgetRow[] }) {
               <tr key={r.group} className="border-b border-border/50">
                 <td className="py-2 pr-3">
                   {r.label}
-                  {!r.budgeted && <span className="ml-2 rounded-pill bg-white/5 px-2 py-0.5 text-[10px] text-muted">sin pozo</span>}
+                  {!r.budgeted && <span className="ml-2 rounded-pill bg-white/5 px-2 py-0.5 text-[11px] text-muted">sin pozo</span>}
                 </td>
                 <td className="py-2 px-3 text-right tabular-nums text-muted">{r.budgeted ? formatCordobas(r.pool) : "—"}</td>
                 <td className="py-2 px-3 text-right tabular-nums">{formatCordobas(r.spent)}</td>
@@ -49,7 +49,7 @@ export function BudgetTable({ rows }: { rows: BudgetRow[] }) {
             ))}
           </tbody>
           <tfoot>
-            <tr className="font-semibold">
+            <tr className="border-t border-border font-semibold">
               <td className="py-2 pr-3">Total</td>
               <td className="py-2 px-3 text-right tabular-nums text-muted">{formatCordobas(totals.pool)}</td>
               <td className="py-2 px-3 text-right tabular-nums">{formatCordobas(totals.spent)}</td>

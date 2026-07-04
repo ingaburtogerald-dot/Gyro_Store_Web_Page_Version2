@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { PublicHeader } from "~/components/layout/PublicHeader";
 import { PublicFooter } from "~/components/layout/PublicFooter";
@@ -20,6 +20,13 @@ import { selectEditMode, selectIsAdmin, setEditMode } from "~/store/slices/authS
 // mejorar SEO y FCP, y evitar el parpadeo de carga. /api/catalog y /api/config son
 // PÚBLICOS (no necesitan el token de Firebase). Express sirve el SSR en el mismo
 // proceso, por lo que estos fetch al origin propio son locales (la API cachea).
+// Cache HTTP del catálogo público: 60s frescos + 5min de stale-while-revalidate.
+// El HTML SSR nunca contiene contenido de admin (el modo edición hidrata en cliente),
+// así que es seguro cachearlo en navegador/CDN.
+export const headers: HeadersFunction = () => ({
+  "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+});
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const origin = new URL(request.url).origin;
   let products: CatalogProduct[] = [];

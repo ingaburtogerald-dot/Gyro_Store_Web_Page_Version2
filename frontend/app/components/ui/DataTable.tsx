@@ -8,10 +8,20 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type RowData,
   type SortingState,
 } from "@tanstack/react-table";
-import { Search, Check } from "lucide-react";
+import { Search, Check, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { TableSkeleton } from "./Skeleton";
+import { cn } from "~/lib/utils";
+
+// Alineación por columna vía `meta` (texto a la izquierda, números a la derecha).
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    align?: "left" | "right" | "center";
+  }
+}
 
 interface DataTableProps<T> {
   columns: ColumnDef<T, any>[];
@@ -107,22 +117,51 @@ export function DataTable<T>({
                     )}
                   </th>
                 )}
-                {hg.headers.map((header) => (
-                  <th key={header.id} className="whitespace-nowrap px-3 py-2.5 font-medium">
-                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                      <button
-                        className="flex items-center gap-1 cursor-pointer select-none hover:text-text"
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-1 font-semibold">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                      </div>
-                    )}
-                  </th>
-                ))}
+                {hg.headers.map((header) => {
+                  const align = header.column.columnDef.meta?.align;
+                  const sorted = header.column.getIsSorted();
+                  return (
+                    <th
+                      key={header.id}
+                      aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined}
+                      className={cn(
+                        "whitespace-nowrap px-3 py-2.5 text-xs font-semibold uppercase tracking-wider",
+                        align === "right" && "text-right",
+                        align === "center" && "text-center",
+                      )}
+                    >
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                        <button
+                          className={cn(
+                            "group/sort flex w-full items-center gap-1 cursor-pointer select-none hover:text-text",
+                            align === "right" && "justify-end",
+                            align === "center" && "justify-center",
+                          )}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {sorted === "asc" ? (
+                            <ArrowUp className="h-3 w-3 shrink-0 text-accent-2" />
+                          ) : sorted === "desc" ? (
+                            <ArrowDown className="h-3 w-3 shrink-0 text-accent-2" />
+                          ) : (
+                            <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover/sort:opacity-50" />
+                          )}
+                        </button>
+                      ) : (
+                        <div
+                          className={cn(
+                            "flex items-center gap-1",
+                            align === "right" && "justify-end",
+                            align === "center" && "justify-center",
+                          )}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        </div>
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
@@ -143,7 +182,7 @@ export function DataTable<T>({
                   <tr
                     key={row.id}
                     onClick={() => onRowClick?.(row.original)}
-                    className={`border-t border-border transition-colors ${
+                    className={`border-t border-border/50 transition-colors ${
                       onRowClick ? "cursor-pointer" : ""
                     } ${
                       isSelected
@@ -164,26 +203,46 @@ export function DataTable<T>({
                         </div>
                       </td>
                     )}
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="nums whitespace-nowrap px-3 py-2.5">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const align = cell.column.columnDef.meta?.align;
+                      return (
+                        <td
+                          key={cell.id}
+                          className={cn(
+                            "nums whitespace-nowrap px-3 py-2.5",
+                            align === "right" && "text-right",
+                            align === "center" && "text-center",
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })
             )}
           </tbody>
           {table.getFooterGroups().some(fg => fg.headers.some(h => h.column.columnDef.footer)) && (
-            <tfoot className="sticky bottom-0 z-20 bg-background/60 backdrop-blur-md border-t border-white/10 shadow-[0_-5px_20px_rgba(0,0,0,0.25)] font-bold">
+            <tfoot className="sticky bottom-0 z-20 bg-bg/80 backdrop-blur-md border-t border-border shadow-[0_-5px_20px_rgba(0,0,0,0.25)] font-bold">
               {table.getFooterGroups().map((fg) => (
                 <tr key={fg.id}>
                   {onRowClick && <td className="px-3 py-2.5"></td>}
-                  {fg.headers.map((header) => (
-                    <td key={header.id} className="whitespace-nowrap px-3 py-2.5">
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
-                    </td>
-                  ))}
+                  {fg.headers.map((header) => {
+                    const align = header.column.columnDef.meta?.align;
+                    return (
+                      <td
+                        key={header.id}
+                        className={cn(
+                          "nums whitespace-nowrap px-3 py-2.5",
+                          align === "right" && "text-right",
+                          align === "center" && "text-center",
+                        )}
+                      >
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.footer, header.getContext())}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tfoot>

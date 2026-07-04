@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
+import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useParams, Link, useLoaderData } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, ImageOff, MessageCircle, ShoppingBag, X, ShieldCheck, Check, Bike, Package, Banknote } from "lucide-react";
@@ -19,6 +19,11 @@ import { formatCordobas, buildWhatsappUrl, cn } from "~/lib/utils";
 // Carga el producto en el servidor para que el preview al compartir (WhatsApp/redes)
 // tenga foto, título y precio. El bot de WhatsApp no ejecuta JS, así que el meta
 // debe estar en el HTML renderizado por el servidor.
+// Cache HTTP de la página de producto (pública): 60s + stale-while-revalidate.
+export const headers: HeadersFunction = () => ({
+  "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+});
+
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const origin = new URL(request.url).origin;
   let product: CatalogDetail | null = null;

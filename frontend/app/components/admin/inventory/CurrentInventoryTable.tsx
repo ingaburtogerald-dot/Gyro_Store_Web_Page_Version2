@@ -16,6 +16,7 @@ import {
   type Purchase,
 } from "~/store/api/inventoryApi";
 import { formatUsd, formatCordobas } from "~/lib/utils";
+import { CodeCell } from "~/components/ui/cells";
 
 
 export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
@@ -45,17 +46,19 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
 
   const columns = useMemo<ColumnDef<InventoryRow, any>[]>(
     () => [
-      { accessorKey: "code", header: "Código", sortingFn: "alphanumeric" },
+      { accessorKey: "code", header: "Código", sortingFn: "alphanumeric", cell: (c) => <CodeCell value={c.getValue()} /> },
       { accessorKey: "productName", header: "Nombre" },
-      { accessorKey: "quantityOriginal", header: "Comprado" },
+      { accessorKey: "quantityOriginal", header: "Comprado", meta: { align: "right" } },
       {
         accessorKey: "quantitySold",
         header: "Vendido",
+        meta: { align: "right" },
         cell: (c) => <span className={c.getValue() > 0 ? "text-amber-400 font-medium" : "text-muted"}>{c.getValue()}</span>
       },
       {
         accessorKey: "quantityReserved",
         header: "Reservado",
+        meta: { align: "right" },
         cell: (c) => (
           <span className={c.getValue() > 0 ? "text-yellow-400 font-medium" : "text-muted"}>
             {c.getValue() ?? 0}
@@ -65,19 +68,23 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
       {
         accessorKey: "available",
         header: "Stock",
+        meta: { align: "right" },
         cell: (c) => <span className={c.getValue() === 0 ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>{c.getValue()}</span>
       },
-      { accessorKey: "priceUnitUsd", header: "P. Unit. (USD)", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "shippingUnitUsd", header: "Envío U. (USD)", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "priceUnitFinalUsd", header: "P. Final (USD)", cell: (c) => formatUsd(c.getValue(), 4) },
+      // USD a 2 decimales visibles; la precisión completa (4) queda en el tooltip.
+      { accessorKey: "priceUnitUsd", header: "P. Unit. (USD)", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      { accessorKey: "shippingUnitUsd", header: "Envío U. (USD)", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      { accessorKey: "priceUnitFinalUsd", header: "P. Final (USD)", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
       {
         accessorKey: "costRealCordobas",
         header: "Costo Real (C$)",
+        meta: { align: "right" },
         cell: (c) => <span className="text-accent-2">{formatCordobas(c.getValue())}</span>,
       },
       {
         id: "precioSugerido",
         header: "Precio Sugerido",
+        meta: { align: "right" },
         cell: ({ row }) => {
           const ps = row.original.suggestedPrice;
           if (!ps) return <span className="text-muted text-xs">—</span>;
@@ -87,6 +94,7 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
       {
         id: "gananciaEsperada",
         header: "Ganancia Esperada",
+        meta: { align: "right" },
         cell: ({ row }) => {
           const costReal = row.original.costRealCordobas || 0;
           const ps = row.original.suggestedPrice;

@@ -16,6 +16,25 @@ export interface SaleItem {
   unitCostReal?: number;
   warrantyProcessed?: boolean;
   warrantyReason?: string;
+  // ── Financieros POR UNIDAD ──
+  unitUtilidadBruta?: number;
+  unitCostosFijos?: number;
+  unitCostosFijosDesglose?: Record<string, number> | null;
+  unitUtilidadNeta?: number;
+  unitComisionVendedor?: number;
+  unitGananciaTienda?: number;
+  unitInversionRecuperada?: number;
+  // ── Financieros TOTALES (unitario × cantidad) ──
+  costReal?: number;
+  utilidadBruta?: number;
+  costosFijos?: number;
+  costosFijosDesglose?: Record<string, number> | null;
+  costosFijosPct?: number;
+  utilidadNeta?: number;
+  comisionVendedor?: number;
+  comisionPercent?: number;
+  gananciaTienda?: number;
+  inversionRecuperada?: number;
 }
 
 export interface Sale {
@@ -74,6 +93,8 @@ export interface QuoteResult {
   comisionPercent?: number;
   gananciaTienda: number;
   costosFijosPct: number;
+  inversionRecuperada?: number;
+  linesFinancials?: SaleItem[];
 }
 
 export interface TimeseriesPoint {
@@ -311,7 +332,9 @@ export const salesApi = baseApi.injectEndpoints({
     quoteSale: build.mutation<QuoteResult, { items: QuoteLine[] }>({
       query: (body) => ({ url: "/sales/quote", method: "POST", body }),
     }),
-    reportSale: build.mutation<Sale, FormData>({
+    // El backend crea UNA venta por producto distinto: devuelve la primera
+    // (compatibilidad) más `ids`/`count` del lote creado.
+    reportSale: build.mutation<Sale & { ids?: string[]; count?: number }, FormData>({
       query: (body) => ({ url: "/sales", method: "POST", body }),
       invalidatesTags: ["Order", "Product", "Migrated"],
     }),

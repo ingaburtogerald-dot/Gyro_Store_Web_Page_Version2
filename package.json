@@ -4,7 +4,7 @@
   "description": "Sistema web unificado de Gyro Store — catálogo público + centro de administración",
   "private": true,
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.19.0"
   },
   "scripts": {
     "dev": "concurrently -n SERVER,FRONTEND -c blue,magenta \"npm:dev:server\" \"npm:dev:frontend\"",

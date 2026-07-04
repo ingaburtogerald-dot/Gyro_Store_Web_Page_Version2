@@ -130,11 +130,12 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
           return <span className={`rounded-pill px-2.5 py-1 text-xs font-medium ${m.cls}`}>{m.label}</span>;
         },
       },
-      { accessorKey: "quantity", header: "Cant." },
-      { accessorKey: "costUnit", header: "P. Base", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "taxUnit", header: "Imp. Unit.", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "priceUnit", header: "P. Unit.", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "total", header: "Total", cell: (c) => formatUsd(c.getValue()) },
+      { accessorKey: "quantity", header: "Cant.", meta: { align: "right" } },
+      // USD a 2 decimales visibles; precisión completa en el tooltip.
+      { accessorKey: "costUnit", header: "P. Base", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      { accessorKey: "taxUnit", header: "Imp. Unit.", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      { accessorKey: "priceUnit", header: "P. Unit.", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      { accessorKey: "total", header: "Total", meta: { align: "right" }, cell: (c) => <span className="font-semibold">{formatUsd(c.getValue())}</span> },
       {
         id: "actions",
         header: "Acciones",

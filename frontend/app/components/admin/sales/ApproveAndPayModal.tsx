@@ -58,7 +58,7 @@ export function ApproveAndPayModal({ sales, onClose, onSubmit }: Props) {
             Ventas a aprobar: <strong className="text-text">{sales.length}</strong>
           </div>
 
-          <div className="space-y-1.5 rounded-lg border border-border/50 bg-background/50 p-3">
+          <div className="space-y-1.5 rounded-lg border border-border/50 bg-bg/50 p-3">
             {saldo !== 0 && (
               <>
                 <div className="flex items-center justify-between text-xs text-muted">

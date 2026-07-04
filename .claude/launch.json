@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:server"],
+      "cwd": "C:\\Users\\Gerald\\Desktop\\Gyro_Store_Web_Page_Version2",
+      "port": 3000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "C:\\Users\\Gerald\\Desktop\\Gyro_Store_Web_Page_Version2\\frontend",
+      "port": 5173
+    }
+  ]
+}

@@ -1,4 +1,3 @@
-console.log('DEBUG: 1. Starting index.js...');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -9,10 +8,8 @@ const fs = require('fs');
 const { pathToFileURL } = require('url');
 const config = require('./config');
 
-console.log('DEBUG: 2. Requiring firebase...');
 require('./firebase'); // inicializa Firebase Admin
 
-console.log('DEBUG: 3. Requiring other modules...');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { sanitizeBody } = require('./utils/sanitize');
 
@@ -81,9 +78,7 @@ const clientBuild = path.join(__dirname, '..', 'frontend', 'build', 'client');
 const serverBuildPath = path.join(__dirname, '..', 'frontend', 'build', 'server', 'index.js');
 
 async function start() {
-  console.log('DEBUG: 4. Inside start() function');
   if (config.isProd && fs.existsSync(clientBuild) && fs.existsSync(serverBuildPath)) {
-    console.log('DEBUG: 5. Loading Remix production build...');
     const { createRequestHandler } = await import('@remix-run/express');
     const build = await import(pathToFileURL(serverBuildPath).href);
 
@@ -103,13 +98,11 @@ async function start() {
     // Remix SSR maneja todas las rutas no-API
     app.all('*', createRequestHandler({ build }));
   } else {
-    console.log('DEBUG: 6. Using development fallback route...');
     app.get('/', (req, res) =>
       res.send('🚀 Gyro Store API en línea. Construye el frontend con: cd frontend && npm run build'),
     );
   }
 
-  console.log('DEBUG: 7. Calling app.listen on port:', config.port);
   app.listen(config.port, '0.0.0.0', () => {
     console.log(`\n🚀 Gyro Store [${config.env}]`);
     console.log(`   API:      http://localhost:${config.port}/api/health`);
@@ -118,7 +111,6 @@ async function start() {
   });
 }
 
-console.log('DEBUG: 8. Invoking start()...');
 start().catch((err) => {
   console.error('❌ Error arrancando el servidor:', err);
   process.exit(1);

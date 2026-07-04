@@ -27,6 +27,12 @@
   --color-text: #e2e8f0;
   --color-muted: #717a9c;
 
+  /* Estados semánticos — usar estos en vez de hex sueltos (bg-danger, text-warning…) */
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-info: #0ea5e9;
+  --color-success: #10b981;
+
   /* Tipografía */
   --font-sans: "Inter", system-ui, sans-serif;
   --font-heading: "Sora", system-ui, sans-serif;
@@ -98,53 +104,41 @@
 }
 
 @utility tab-active-red {
-  background-color: #ef4444;
+  background-color: var(--color-danger);
   color: white;
 }
 [data-theme="light"] .tab-active-red {
-  background-color: #ef4444;
+  background-color: var(--color-danger);
   color: #ffffff;
   box-shadow: 0 2px 8px -2px rgba(239, 68, 68, 0.4);
 }
 
-/* StatCard Overrides for Light Mode (Clean & Crisp) */
+/* ── StatCard en modo claro ──
+   El componente marca su tono con data-tone; cada tono solo define dos
+   variables (--stat-accent / --stat-icon) y una única regla las consume.
+   Estas reglas van sin @layer → ganan a las utilidades (que viven en
+   @layer utilities) sin necesidad de !important. */
 [data-theme="light"] .stat-card-container {
-  background-image: none !important;
-  background-color: var(--color-surface) !important;
-  box-shadow: 0 1px 2px rgba(16,40,30,0.05), 0 12px 28px -14px rgba(16,40,30,0.18) !important;
-  border-width: 1px !important;
-  border-bottom-width: 4px !important;
+  background-image: none;
+  background-color: var(--color-surface);
+  box-shadow: 0 1px 2px rgba(16, 40, 30, 0.05), 0 12px 28px -14px rgba(16, 40, 30, 0.18);
+  border: 1px solid var(--color-border);
+  border-bottom-width: 4px;
+  border-bottom-color: var(--stat-accent, var(--color-border));
 }
-
-[data-theme="light"] .stat-card-neutral { border-color: var(--color-border) !important; }
-
-[data-theme="light"] .stat-card-indigo { border-color: var(--color-border) !important; border-bottom-color: #6366f1 !important; }
-[data-theme="light"] .stat-card-indigo .stat-card-icon { color: #4f46e5 !important; }
-
-[data-theme="light"] .stat-card-sky { border-color: var(--color-border) !important; border-bottom-color: #0ea5e9 !important; }
-[data-theme="light"] .stat-card-sky .stat-card-icon { color: #0284c7 !important; }
-
-[data-theme="light"] .stat-card-amber { border-color: var(--color-border) !important; border-bottom-color: #f59e0b !important; }
-[data-theme="light"] .stat-card-amber .stat-card-icon { color: #d97706 !important; }
-
-[data-theme="light"] .stat-card-emerald { border-color: var(--color-border) !important; border-bottom-color: #10b981 !important; }
-[data-theme="light"] .stat-card-emerald .stat-card-icon { color: #059669 !important; }
-
-[data-theme="light"] .stat-card-rose { border-color: var(--color-border) !important; border-bottom-color: #f43f5e !important; }
-[data-theme="light"] .stat-card-rose .stat-card-icon { color: #e11d48 !important; }
-
-[data-theme="light"] .stat-card-purple { border-color: var(--color-border) !important; border-bottom-color: #a855f7 !important; }
-[data-theme="light"] .stat-card-purple .stat-card-icon { color: #9333ea !important; }
-
-[data-theme="light"] .stat-card-red { border-color: var(--color-border) !important; border-bottom-color: #ef4444 !important; }
-[data-theme="light"] .stat-card-red .stat-card-icon { color: #dc2626 !important; }
-
-[data-theme="light"] .stat-card-value {
-  color: var(--color-text) !important;
+[data-theme="light"] .stat-card-container .stat-card-icon {
+  color: var(--stat-icon, var(--color-muted));
 }
-[data-theme="light"] .stat-card-label {
-  color: var(--color-muted) !important;
-}
+[data-theme="light"] .stat-card-value { color: var(--color-text); }
+[data-theme="light"] .stat-card-label { color: var(--color-muted); }
+
+[data-theme="light"] [data-tone="indigo"]  { --stat-accent: #6366f1; --stat-icon: #4f46e5; }
+[data-theme="light"] [data-tone="sky"]     { --stat-accent: var(--color-info); --stat-icon: #0284c7; }
+[data-theme="light"] [data-tone="amber"]   { --stat-accent: var(--color-warning); --stat-icon: #d97706; }
+[data-theme="light"] [data-tone="emerald"] { --stat-accent: var(--color-success); --stat-icon: #059669; }
+[data-theme="light"] [data-tone="rose"]    { --stat-accent: #f43f5e; --stat-icon: #e11d48; }
+[data-theme="light"] [data-tone="purple"]  { --stat-accent: #a855f7; --stat-icon: #9333ea; }
+[data-theme="light"] [data-tone="red"]     { --stat-accent: var(--color-danger); --stat-icon: #dc2626; }
 
 /* ───────────────────────────────────────────────────────────
    Modo claro — profundidad y color (que no se vea "lavado").

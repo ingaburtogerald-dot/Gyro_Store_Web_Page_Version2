@@ -2,7 +2,8 @@
 // ve el cotizador en vivo (utilidad, comisión, ganancia) y registra la venta con
 // foto de recibo opcional. El servidor recalcula todo al cotizar y al registrar.
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Camera, Tag, CreditCard, AlertTriangle, Check, CheckCircle2, User, CalendarDays, Package, ShoppingCart } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Plus, Trash2, Camera, Tag, CreditCard, AlertTriangle, Check, CheckCircle2, User, CalendarDays, Package, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { Modal } from "~/components/ui/Modal";
@@ -26,13 +27,15 @@ import { DatePicker } from "~/components/ui/DatePicker";
 import { formatCordobas, cn } from "~/lib/utils";
 
 interface Line {
+  /** Key estable de la fila (las líneas no tienen id de dominio hasta registrarse). */
+  uid: string;
   productId: string;
   quantity: number | "";
   salePrice: number | "";
   mode?: "M1" | "M2"; // solo para líneas de inventario migrado
 }
 
-const emptyLine: Line = { productId: "", quantity: "", salePrice: "", mode: "M1" };
+const newLine = (): Line => ({ uid: crypto.randomUUID(), productId: "", quantity: "", salePrice: "", mode: "M2" });
 
 export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () => void } = {}) {
   const isEdit = !!sale;
@@ -48,14 +51,17 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
 
   const [lines, setLines] = useState<Line[]>(() =>
     sale && sale.items?.length
-      ? sale.items.map((it) => ({ productId: it.productId, quantity: it.quantity, salePrice: it.salePrice, mode: it.mode ?? "M1" }))
-      : [{ ...emptyLine }],
+      ? sale.items.map((it) => ({ uid: crypto.randomUUID(), productId: it.productId, quantity: it.quantity, salePrice: it.salePrice, mode: it.mode ?? "M2" }))
+      : [newLine()],
   );
   const [result, setResult] = useState<QuoteResult | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [selectedSellerEmail, setSelectedSellerEmail] = useState(sale?.sellerEmail ?? "");
-  const [saleDate, setSaleDate] = useState<string>(sale?.createdAt ? sale.createdAt.slice(0, 10) : "");
+  // Venta nueva: hoy por defecto (el caso del 95%); editar conserva la fecha original.
+  const [saleDate, setSaleDate] = useState<string>(
+    sale?.createdAt ? sale.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+  );
   const [editReason, setEditReason] = useState("");
   const [installmentOpen, setInstallmentOpen] = useState(false);
   const [showSuccessPrompt, setShowSuccessPrompt] = useState(false);
@@ -73,7 +79,10 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
     return Array.from(byId.values());
   }, [products, sale]);
 
-  const sellers = allUsers.filter((u) => u.roles.includes("seller") || u.email === "ingaburtogerald@gmail.com");
+  // Vendedores + admins (los admins también pueden registrarse ventas a sí mismos).
+  const sellers = allUsers.filter(
+    (u) => u.roles.includes("seller") || u.roles.includes("admin") || u.roles.includes("global_admin"),
+  );
   const validLines = lines
     .filter(
       (l) => l.productId && typeof l.quantity === "number" && l.quantity > 0 && typeof l.salePrice === "number" && l.salePrice > 0
@@ -86,7 +95,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
         quantity: l.quantity as number,
         salePrice: l.salePrice as number,
         origin,
-        ...(origin === "migrated" ? { mode: l.mode ?? "M1" } : {}),
+        ...(origin === "migrated" ? { mode: l.mode ?? "M2" } : {}),
       };
     });
   // ¿Alguna línea pide más unidades de las que hay en stock?
@@ -103,10 +112,40 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
 
   // Productos ordenados por código (natural: IN1, IN2 … IN6, IN12) para el selector.
   const sortedProducts = useMemo(
-    () => [...productsForUi].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true })),
+    () => [...productsForUi].sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""), undefined, { numeric: true })),
     [productsForUi],
   );
 
+  // Total local optimista: mientras el servidor cotiza, el botón ya muestra el importe.
+  const localTotal = lines.reduce(
+    (s, l) => s + (Number(l.quantity) || 0) * (Number(l.salePrice) || 0),
+  0);
+
+  // Productos distintos (por código) en la venta: cada uno se registra como venta aparte.
+  const distinctProductCount = new Set(
+    validLines.map((l) => productsForUi.find((pr) => pr.id === l.productId)?.code ?? l.productId),
+  ).size;
+
+  // Una sola razón visible a la vez: el botón deshabilitado siempre explica por qué.
+  const disabledReason =
+    validLines.length === 0 ? "Agrega al menos un producto con cantidad y precio."
+    : hasOverStock ? "Hay líneas que exceden el stock disponible."
+    : isMixed ? "No mezcles inventario actual y migrado en la misma venta."
+    : !saleDate ? "Selecciona la fecha de la venta."
+    : isAdmin && !selectedSellerEmail ? "Selecciona el vendedor de esta venta."
+    : isEdit && sale?.status !== "pending_approval" && !editReason.trim()
+      ? "Escribe el motivo de la edición para habilitar el guardado."
+    : null;
+
+  // Preview del recibo adjunto (object URL con limpieza al reemplazar/desmontar).
+  const receiptUrl = useMemo(() => (receipt ? URL.createObjectURL(receipt) : null), [receipt]);
+  useEffect(() => {
+    return () => {
+      if (receiptUrl) URL.revokeObjectURL(receiptUrl);
+    };
+  }, [receiptUrl]);
+
+  const linesKey = JSON.stringify(validLines);
   useEffect(() => {
     if (validLines.length === 0) {
       setResult(null);
@@ -130,7 +169,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
     }, 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(validLines)]);
+  }, [linesKey]);
 
   function update(i: number, patch: Partial<Line>) {
     setLines((ls) => {
@@ -194,8 +233,13 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
     }
 
     try {
-      await report(fd).unwrap();
-      toast.success("Venta registrada. Pendiente de aprobación.");
+      const created = await report(fd).unwrap();
+      const createdCount = created.count ?? 1;
+      toast.success(
+        createdCount > 1
+          ? `${createdCount} ventas registradas (una por producto). Pendientes de aprobación.`
+          : "Venta registrada. Pendiente de aprobación.",
+      );
       setShowSuccessPrompt(true);
     } catch (err: any) {
       toast.error(err?.data?.error || "No se pudo registrar la venta.");
@@ -204,17 +248,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
 
   return (
     <div className="space-y-4">
-      {/* Encabezado */}
-      <div className="flex items-center gap-3 rounded-card border border-border bg-surface p-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-accent text-white shadow-[0_0_15px_rgba(124,131,255,0.35)]">
-          <ShoppingCart className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-base font-bold text-text">{isEdit ? "Editar venta" : "Registrar venta"}</h2>
-          <p className="text-xs text-muted">Arma las líneas y el total se calcula en vivo.</p>
-        </div>
-      </div>
-
+      {/* El título vive en la barra del Modal que envuelve al editor (no se duplica aquí). */}
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr] lg:items-start">
         {/* COLUMNA IZQUIERDA: datos + productos */}
         <div className="space-y-4">
@@ -259,12 +293,22 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
               <span className="ml-auto rounded-pill bg-surface-2 px-2 py-0.5 text-xs text-muted">{lines.length}</span>
             </div>
 
+            <AnimatePresence initial={false}>
             {lines.map((line, i) => {
               const p = productsForUi.find((pr) => pr.id === line.productId);
               const lineSubtotal = (Number(line.quantity) || 0) * (Number(line.salePrice) || 0);
+              const lineOverStock = !!p && typeof line.quantity === "number" && line.quantity > p.stock;
               return (
-                <div key={i} className="space-y-3 rounded-xl border border-border bg-surface-2/50 p-3.5 animate-in fade-in">
-                  {/* Fila superior: número + código + producto + eliminar */}
+                <motion.div
+                  key={line.uid}
+                  layout
+                  initial={{ opacity: 0, y: 8, scale: 0.99 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="space-y-3 rounded-xl border border-border bg-surface-2/50 p-3.5"
+                >
+                  {/* Fila superior: número + código + producto + stock + eliminar */}
                   <div className="flex items-center gap-2">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-accent text-xs font-bold text-white">
                       {i + 1}
@@ -279,6 +323,17 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                         onChange={(val) => update(i, { productId: val })}
                       />
                     </div>
+                    {/* Stock visible ANTES de escribir la cantidad (evita el error reactivo) */}
+                    {p && (
+                      <span
+                        className={cn(
+                          "hidden shrink-0 items-center gap-1 rounded-pill px-2 py-0.5 text-xs font-medium sm:flex nums",
+                          lineOverStock ? "bg-red-500/10 text-red-400" : "bg-accent/10 text-accent-2",
+                        )}
+                      >
+                        <Package className="h-3 w-3" /> {p.stock} en stock
+                      </span>
+                    )}
                     <button
                       onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
                       disabled={lines.length === 1}
@@ -331,13 +386,14 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                                     −{discountPercent}% mayoreo
                                   </span>
                                 )}
+                                {/* Chip sólido: hace obvio que un clic aplica el precio */}
                                 <button
                                   type="button"
                                   onClick={() => update(i, { salePrice: suggestedPrice })}
-                                  className="font-medium text-accent transition-colors hover:text-accent-2 hover:underline"
-                                  title="Haz clic para usar este precio sugerido"
+                                  className="flex items-center gap-1 rounded-pill bg-accent/15 px-2 py-0.5 font-semibold text-accent-2 ring-1 ring-accent/30 transition-all hover:bg-accent hover:text-white active:scale-95 nums"
+                                  title="Aplicar el precio sugerido a esta línea"
                                 >
-                                  Sugerido: {formatCordobas(suggestedPrice)}
+                                  <Sparkles className="h-3 w-3" /> Usar sugerido {formatCordobas(suggestedPrice)}
                                 </button>
                               </div>
                             );
@@ -354,7 +410,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                     </label>
                     <div className="w-full pt-1 text-right sm:w-auto sm:shrink-0 sm:pt-5">
                       <span className="block text-xs text-muted">Subtotal</span>
-                      <span className="text-sm font-bold text-text">{formatCordobas(lineSubtotal)}</span>
+                      <span className="nums text-sm font-bold text-text">{formatCordobas(lineSubtotal)}</span>
                     </div>
                   </div>
 
@@ -365,53 +421,64 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                     </p>
                   )}
 
+                  {/* Badge informativo (no control): el modo de cálculo de migrados es fijo (M2);
+                      M1 solo existe como fallback de registros antiguos en el servidor. */}
                   {p?.origin === "migrated" && (
-                    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
                       <span className="flex items-center gap-1 rounded-pill bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-300">
                         <Tag className="h-3 w-3" /> Migrado
                       </span>
-                      <span className="text-xs text-muted">Cálculo:</span>
-                      <div className="flex gap-1 rounded-pill border border-border bg-surface p-0.5">
-                        {(["M1", "M2"] as const).map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            onClick={() => update(i, { mode: m })}
-                            className={cn(
-                              "rounded-pill px-3 py-1 text-xs font-semibold transition-colors",
-                              (line.mode ?? "M1") === m ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-                            )}
-                          >
-                            {m}
-                          </button>
-                        ))}
-                      </div>
+                      <span className="text-xs text-muted">
+                        Cálculo <span className="font-semibold text-text">{line.mode ?? "M2"}</span> · comisión escalonada sobre la utilidad neta
+                      </span>
                     </div>
                   )}
-                </div>
+                </motion.div>
               );
             })}
+            </AnimatePresence>
 
             {/* Agregar producto + recibo opcional */}
             <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
               <button
-                onClick={() => setLines((ls) => [...ls, { ...emptyLine }])}
+                onClick={() => setLines((ls) => [...ls, newLine()])}
                 className="inline-flex w-full justify-center items-center gap-1.5 rounded-lg border border-dashed border-accent-2/40 px-3 py-2 text-sm font-semibold text-accent-2 transition-colors hover:bg-accent-2/5 sm:w-auto"
               >
                 <Plus className="h-4 w-4" /> Agregar producto
               </button>
 
-              <label className="flex w-full justify-center cursor-pointer items-center gap-2 rounded-pill border border-border bg-background/50 px-3 py-1.5 text-xs text-muted transition-colors hover:text-text sm:w-auto">
-                <Camera className="h-3.5 w-3.5" />
-                {receipt ? receipt.name : isEdit ? "Actualizar foto del recibo" : "Adjuntar foto del recibo"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) => setReceipt(e.target.files?.[0] || null)}
-                />
-              </label>
+              {receipt && receiptUrl ? (
+                <div className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface-2/50 p-2 sm:w-auto sm:max-w-xs animate-in fade-in">
+                  <img src={receiptUrl} alt="Recibo adjunto" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-text">{receipt.name}</p>
+                    <p className="text-[11px] text-muted">
+                      {receipt.size >= 1048576
+                        ? `${(receipt.size / 1048576).toFixed(1)} MB`
+                        : `${Math.round(receipt.size / 1024)} KB`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setReceipt(null)}
+                    className="shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    aria-label="Quitar foto del recibo"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex w-full justify-center cursor-pointer items-center gap-2 rounded-pill border border-border bg-bg/50 px-3 py-1.5 text-xs text-muted transition-colors hover:text-text sm:w-auto">
+                  <Camera className="h-3.5 w-3.5" />
+                  {isEdit ? "Actualizar foto del recibo" : "Adjuntar foto del recibo"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => setReceipt(e.target.files?.[0] || null)}
+                  />
+                </label>
+              )}
             </div>
           </div>
         </div>
@@ -468,15 +535,19 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
               className="group w-full gap-2 py-5 text-sm font-bold shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30"
               onClick={registerSale}
               loading={reporting || updating}
-              disabled={!saleDate || validLines.length === 0 || hasOverStock || isMixed || !!errorMsg || (isEdit && sale?.status !== 'pending_approval' && !editReason.trim())}
+              disabled={!!disabledReason || !!errorMsg}
             >
               <CheckCircle2 className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5" />
-              {isEdit ? "Guardar cambios" : "Registrar venta"} · {formatCordobas(result?.saleTotal ?? 0)}
+              {isEdit ? "Guardar cambios" : distinctProductCount > 1 ? `Registrar ${distinctProductCount} ventas` : "Registrar venta"} · {formatCordobas(result?.saleTotal ?? localTotal)}
             </Button>
-            {isEdit && sale?.status !== "pending_approval" && !editReason.trim() && (
-              <p className="flex items-center gap-1.5 text-xs text-amber-400">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                Escribe el <strong>motivo de la edición</strong> para habilitar “Guardar cambios”.
+            {!isEdit && distinctProductCount > 1 && (
+              <p className="text-center text-xs text-muted animate-in fade-in">
+                Cada producto distinto se registra como una venta independiente.
+              </p>
+            )}
+            {disabledReason && (
+              <p className="flex items-center gap-1.5 text-xs text-amber-400 animate-in fade-in">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {disabledReason}
               </p>
             )}
             {isAdmin && !isEdit && (
@@ -484,7 +555,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                 variant="ghost"
                 className="group flex w-full items-center justify-center gap-1.5 border border-border"
                 onClick={() => setInstallmentOpen(true)}
-                disabled={validLines.length === 0 || hasOverStock}
+                disabled={validLines.length === 0 || hasOverStock || !saleDate || !result}
               >
                 <CreditCard className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" /> Vender en cuotas
               </Button>
@@ -493,7 +564,15 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
         </div>
       </div>
 
-      <Modal open={showSuccessPrompt} onClose={() => {}} title="¡Venta registrada con éxito!">
+      <Modal
+        open={showSuccessPrompt}
+        onClose={() => {
+          // Escape / clic afuera equivalen a "Cerrar" (antes quedaba atrapado).
+          setShowSuccessPrompt(false);
+          onDone?.();
+        }}
+        title="¡Venta registrada con éxito!"
+      >
         <div className="space-y-4 text-center pb-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20">
             <Check className="h-8 w-8 text-emerald-500" />
@@ -514,7 +593,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
               className="bg-accent text-white"
               onClick={() => {
                 setShowSuccessPrompt(false);
-                setLines([{ ...emptyLine }]);
+                setLines([newLine()]);
                 setReceipt(null);
                 setResult(null);
                 setErrorMsg("");

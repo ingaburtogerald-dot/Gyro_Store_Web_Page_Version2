@@ -1,16 +1,14 @@
 // Fila de KPIs del Bento. Se AUTO-FETCHEA con los filtros globales del dashboard
-// (fecha + vendedor) y reusa el StatCard del sistema (count-up + spotlight + spring).
+// (fecha + vendedor) y delega el render al <KpiGrid/> compartido (estilo + stagger).
 //
 // Nota de rendimiento: pedimos limit:1 porque solo nos interesa `summary`, que el
-// backend agrega sobre TODO el set filtrado (no sobre la página). Si en algún punto
-// el summary pasara a calcularse por página, subir el limit aquí.
+// backend agrega sobre TODO el set filtrado (no sobre la página).
 import { ShoppingBag, PiggyBank, Coins, Landmark, CheckCircle2, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import { StatCard } from "~/components/ui/StatCard";
 import { useGetSalesPaginatedQuery } from "~/store/api/salesApi";
-import { formatCordobas, usdFromCordobas } from "~/lib/utils";
 import { useSalesDashboard } from "./useSalesDashboard";
 import { bentoItem, SkeletonLine } from "./WidgetShell";
+import { KpiGrid, type KpiCardSpec } from "~/components/shared/KpiGrid";
 
 const EMPTY_SUMMARY = {
   ventasAprobadas: 0,
@@ -46,74 +44,26 @@ export function SalesKpiWidget() {
 
   const s = data?.summary ?? EMPTY_SUMMARY;
 
-  // Primera carga sin datos → skeleton. Refetch por cambio de filtro → mantenemos
-  // los números viejos y solo bajamos opacidad (evita el "salto a cero").
+  // Primera carga sin datos → skeleton. Refetch por cambio de filtro → KpiGrid atenúa.
   if (isLoading && !data) return <KpiSkeleton />;
 
+  const cards: KpiCardSpec[] = isAdmin
+    ? [
+        { key: "vendido", icon: ShoppingBag, label: "Total Vendido", value: s.totalVendido, money: true, color: "indigo" },
+        { key: "comision", icon: Coins, label: "Comisiones Vendedor", value: s.comisiones, money: true, color: "amber" },
+        { key: "inversion", icon: PiggyBank, label: "Inversión Recuperada", value: s.inversionRecuperada, money: true, color: "neutral" },
+        { key: "ganancia", icon: Landmark, label: "Ganancia Tienda", value: s.gananciaTienda, money: true, color: "emerald" },
+      ]
+    : [
+        { key: "vendido", icon: ShoppingBag, label: "Total Vendido", value: s.totalVendido, money: true, color: "indigo" },
+        { key: "comision", icon: Coins, label: "Comisión Ganada", value: s.comisiones, money: true, color: "emerald" },
+        { key: "aprobadas", icon: CheckCircle2, label: "Ventas Aprobadas", value: s.ventasAprobadas, color: "neutral" },
+        { key: "revision", icon: Clock, label: "En Revisión", value: s.enRevision, color: "amber" },
+      ];
+
   return (
-    <motion.div
-      variants={bentoItem}
-      animate={{ opacity: isFetching ? 0.55 : 1 }}
-      transition={{ duration: 0.2 }}
-      className="grid grid-cols-2 gap-3 lg:grid-cols-4"
-    >
-      <StatCard
-        icon={ShoppingBag}
-        label="Total Vendido"
-        countTo={s.totalVendido}
-        format={formatCordobas}
-        sub={usdFromCordobas(s.totalVendido)}
-        color="indigo"
-        delay={0}
-      />
-      <StatCard
-        icon={Coins}
-        label={isAdmin ? "Comisiones Vendedor" : "Comisión Ganada"}
-        countTo={s.comisiones}
-        format={formatCordobas}
-        sub={usdFromCordobas(s.comisiones)}
-        color={isAdmin ? "amber" : "emerald"}
-        delay={0.05}
-      />
-      {isAdmin ? (
-        <>
-          <StatCard
-            icon={PiggyBank}
-            label="Inversión Recuperada"
-            countTo={s.inversionRecuperada}
-            format={formatCordobas}
-            sub={usdFromCordobas(s.inversionRecuperada)}
-            color="neutral"
-            delay={0.1}
-          />
-          <StatCard
-            icon={Landmark}
-            label="Ganancia Tienda"
-            countTo={s.gananciaTienda}
-            format={formatCordobas}
-            sub={usdFromCordobas(s.gananciaTienda)}
-            color="emerald"
-            delay={0.15}
-          />
-        </>
-      ) : (
-        <>
-          <StatCard
-            icon={CheckCircle2}
-            label="Ventas Aprobadas"
-            countTo={s.ventasAprobadas}
-            color="neutral"
-            delay={0.1}
-          />
-          <StatCard
-            icon={Clock}
-            label="En Revisión"
-            countTo={s.enRevision}
-            color="amber"
-            delay={0.15}
-          />
-        </>
-      )}
+    <motion.div variants={bentoItem}>
+      <KpiGrid cards={cards} className="grid-cols-2 lg:grid-cols-4" dimmed={isFetching} />
     </motion.div>
   );
 }

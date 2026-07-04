@@ -34,7 +34,7 @@ export function SellerInventory() {
   return (
     <div className="space-y-4 rounded-card border border-border bg-surface p-4">
       {/* Sub-toggle Disponible / Próximamente */}
-      <div className="flex gap-1 rounded-pill border border-border bg-background/40 p-1">
+      <div className="flex gap-1 rounded-pill border border-border bg-bg/40 p-1">
         <button
           onClick={() => setSub("available")}
           className={cn(
@@ -56,7 +56,7 @@ export function SellerInventory() {
       </div>
 
       {/* Búsqueda */}
-      <div className="flex items-center gap-2 rounded-pill border border-border bg-background/40 px-3">
+      <div className="flex items-center gap-2 rounded-pill border border-border bg-bg/40 px-3">
         <Search className="h-4 w-4 text-muted" />
         <input
           value={search}

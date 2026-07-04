@@ -1,10 +1,13 @@
 // Reportería: dashboard de KPIs + gráficos, y registro de pérdidas.
 const router = require('express').Router();
-const { z } = require('zod');
+// Schemas compartidos con el frontend (fuente única: shared/schemas.mjs).
+// require(esm) es nativo desde Node 20.19 (engines del package.json).
+const { lossApiSchema, lossEditSchema, makeExpenseSchema } = require('../../shared/schemas.mjs');
 const { db, FieldValue } = require('../firebase');
 const config = require('../config');
 const { requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
+const { zodBadRequest } = require('../utils/zodError');
 const { buildReport } = require('../services/reports');
 const { fifoForCode, reserveForMigratedItems, consumeMigratedReservation } = require('../services/sales');
 
@@ -18,6 +21,56 @@ const EXPENSE_GROUP_KEYS = config.expenseGroups.map((g) => g.key);
 
 const iso = (ts) => ts?.toDate?.()?.toISOString() || null;
 
+// Caché en memoria de los datos crudos por año (una sola instancia de Express).
+// buildReport corre por petición sobre los datos cacheados, así cambiar de mes en
+// el dashboard no cuesta lecturas. Las mutaciones de este router invalidan el
+// caché; las aprobaciones de ventas (routes/sales.js) quedan cubiertas por el TTL.
+const reportCache = new Map(); // year → { at, data: { purchases, sales, migrated, losses } }
+const REPORT_CACHE_TTL = 60_000;
+const invalidateReportCache = () => reportCache.clear();
+
+// Lee de Firestore solo los documentos del año pedido (rangos, no colecciones
+// completas). purchaseDate y losses.date son strings YYYY-MM-DD → el rango
+// lexicográfico funciona; createdAt es Timestamp → rango con Date, ampliado un
+// día por lado para cubrir el desfase de zona horaria (buildReport re-filtra
+// con exactitud en memoria).
+async function fetchYearData(year) {
+  const yStart = `${year}-01-01`;
+  const yEnd = `${year + 1}-01-01`;
+  const tsStart = new Date(Date.UTC(year - 1, 11, 31));
+  const tsEnd = new Date(Date.UTC(year + 1, 0, 2));
+
+  const [purSnap, salesSnap, migSnap, lossSnap] = await Promise.all([
+    db.collection(PURCHASES)
+      .where('purchaseDate', '>=', yStart)
+      .where('purchaseDate', '<', yEnd)
+      .get(),
+    // Solo rango de fechas en la query (evita el índice compuesto con `type`);
+    // el filtro por tipo se aplica en memoria sobre el año ya acotado.
+    db.collection(ORDERS)
+      .where('createdAt', '>=', tsStart)
+      .where('createdAt', '<', tsEnd)
+      .get(),
+    // Migrado: colección pequeña y estática, se lee completa.
+    db.collection(MIGRATED).get(),
+    db.collection(LOSSES)
+      .where('date', '>=', yStart)
+      .where('date', '<', yEnd)
+      .get(),
+  ]);
+
+  return {
+    purchases: purSnap.docs.map((d) => d.data()),
+    // Incluye ventas de vendedor Y registradas por admin (las migradas entran aquí).
+    sales: salesSnap.docs
+      .map((d) => d.data())
+      .filter((s) => s.type === 'seller_report' || s.type === 'admin_report')
+      .map((s) => ({ ...s, createdAt: iso(s.createdAt) })),
+    migrated: migSnap.docs.map((d) => d.data()),
+    losses: lossSnap.docs.map((d) => d.data()),
+  };
+}
+
 // GET /api/reports?year=&month=
 //   month: 0-11 para un mes; omitido / 'all' / vacío → TODO el año.
 router.get('/', requireAdmin, asyncHandler(async (req, res) => {
@@ -26,28 +79,37 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
   const mRaw = req.query.month;
   const month = mRaw == null || mRaw === '' || mRaw === 'all' ? null : Number(mRaw);
 
-  const [purSnap, salesSnap, migSnap, lossSnap] = await Promise.all([
-    db.collection(PURCHASES).get(),
-    // Incluye ventas de vendedor Y registradas por admin (las migradas entran aquí).
-    db.collection(ORDERS).where('type', 'in', ['seller_report', 'admin_report']).get(),
-    db.collection(MIGRATED).get(),
-    db.collection(LOSSES).get(),
-  ]);
+  let hit = reportCache.get(year);
+  if (!hit || Date.now() - hit.at > REPORT_CACHE_TTL) {
+    hit = { at: Date.now(), data: await fetchYearData(year) };
+    reportCache.set(year, hit);
+  }
 
-  const purchases = purSnap.docs.map((d) => d.data());
-  const sales = salesSnap.docs.map((d) => ({ ...d.data(), createdAt: iso(d.data().createdAt) }));
-  const migrated = migSnap.docs.map((d) => d.data());
-  const losses = lossSnap.docs.map((d) => d.data());
-
-  res.json(buildReport({ purchases, sales, migrated, losses, year, month }));
+  res.json(buildReport({ ...hit.data, year, month }));
 }));
 
 // GET /api/reports/losses — historial de pérdidas.
 router.get('/losses', requireAdmin, asyncHandler(async (req, res) => {
-  const snap = await db.collection(LOSSES).get();
-  const list = snap.docs
-    .map((d) => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  const year = Number(req.query.year);
+  const mRaw = req.query.month;
+  const month = mRaw == null || mRaw === '' || mRaw === 'all' ? null : Number(mRaw);
+
+  // Con año: rango sobre el string YYYY-MM-DD (solo lee ese año de Firestore).
+  let query = db.collection(LOSSES);
+  if (year) {
+    query = query
+      .where('date', '>=', `${year}-01-01`)
+      .where('date', '<', `${year + 1}-01-01`);
+  }
+  const snap = await query.get();
+  let list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  if (year && month !== null) {
+    // req.query.month es 0-indexed. El string YYYY-MM es 1-indexed.
+    list = list.filter((d) => Number((d.date || '').split('-')[1]) === month + 1);
+  }
+
+  list.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   res.json(list);
 }));
 
@@ -89,19 +151,12 @@ router.get('/expense-categories', requireAdmin, asyncHandler(async (req, res) =>
 }));
 
 // ── Pérdidas de inventario: se elige un producto y su costo real es la pérdida ──
-const lossSchema = z.object({
-  date: z.string().min(1, 'Fecha requerida'),
-  productId: z.string().min(1, 'Producto requerido'),
-  origin: z.enum(['native', 'migrated']).default('native'),
-  quantity: z.coerce.number().int().positive('Cantidad inválida'),
-  category: z.enum(['robo', 'daño', 'devolucion']),
-  reason: z.string().max(200).optional().default(''),
-});
+// (schema en shared/schemas.mjs: lossApiSchema)
 
 // POST /api/reports/losses — registra una pérdida de inventario y descuenta stock.
 router.post('/losses', requireAdmin, asyncHandler(async (req, res) => {
-  const parsed = lossSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Datos inválidos.' });
+  const parsed = lossApiSchema.safeParse(req.body);
+  if (!parsed.success) return zodBadRequest(res, parsed);
   const { date, productId, origin, quantity, category, reason } = parsed.data;
 
   // Resolver producto y consumir stock (mismo mecanismo que una venta).
@@ -135,21 +190,17 @@ router.post('/losses', requireAdmin, asyncHandler(async (req, res) => {
     createdAt: FieldValue.serverTimestamp(),
   };
   const ref = await db.collection(LOSSES).add(doc);
+  invalidateReportCache();
   res.status(201).json({ id: ref.id, ...doc, createdAt: null });
 }));
 
 // PATCH /api/reports/losses/:id — edita los metadatos de una pérdida.
 // Solo fecha, tipo y nota: producto y cantidad afectan stock/costo y no se editan
 // (la pérdida no guarda los lotes FIFO consumidos, así que no es reversible con exactitud).
-const lossEditSchema = z.object({
-  date: z.string().min(1, 'Fecha requerida'),
-  category: z.enum(['robo', 'daño', 'devolucion']),
-  reason: z.string().max(200).optional().default(''),
-});
-
+// (schema en shared/schemas.mjs: lossEditSchema)
 router.patch('/losses/:id', requireAdmin, asyncHandler(async (req, res) => {
   const parsed = lossEditSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Datos inválidos.' });
+  if (!parsed.success) return zodBadRequest(res, parsed);
 
   const ref = db.collection(LOSSES).doc(req.params.id);
   const snap = await ref.get();
@@ -164,23 +215,18 @@ router.patch('/losses/:id', requireAdmin, asyncHandler(async (req, res) => {
     updatedAt: FieldValue.serverTimestamp(),
   };
   await ref.update(update);
+  invalidateReportCache();
   res.json({ id: ref.id, ...snap.data(), ...update, updatedAt: null });
 }));
 
 // ── Gastos operativos: monto + grupo (con pozo) + subcategoría libre ──
-const expenseSchema = z.object({
-  date: z.string().min(1, 'Fecha requerida'),
-  amount: z.coerce.number().positive('Monto inválido'),
-  currency: z.enum(['C$', 'USD']).default('C$'),
-  group: z.string().refine((g) => EXPENSE_GROUP_KEYS.includes(g), 'Grupo inválido'),
-  subcategory: z.string().max(60).optional().default(''),
-  reason: z.string().max(200).optional().default(''),
-});
+// Base compartida + grupos válidos del config del servidor.
+const expenseSchema = makeExpenseSchema(EXPENSE_GROUP_KEYS);
 
 // POST /api/reports/expenses — registra un gasto operativo.
 router.post('/expenses', requireAdmin, asyncHandler(async (req, res) => {
   const parsed = expenseSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Datos inválidos.' });
+  if (!parsed.success) return zodBadRequest(res, parsed);
 
   const doc = {
     kind: 'expense',
@@ -190,13 +236,14 @@ router.post('/expenses', requireAdmin, asyncHandler(async (req, res) => {
     createdAt: FieldValue.serverTimestamp(),
   };
   const ref = await db.collection(LOSSES).add(doc);
+  invalidateReportCache();
   res.status(201).json({ id: ref.id, ...doc, createdAt: null });
 }));
 
 // PATCH /api/reports/expenses/:id — edita un gasto operativo.
 router.patch('/expenses/:id', requireAdmin, asyncHandler(async (req, res) => {
   const parsed = expenseSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Datos inválidos.' });
+  if (!parsed.success) return zodBadRequest(res, parsed);
 
   const ref = db.collection(LOSSES).doc(req.params.id);
   const snap = await ref.get();
@@ -211,6 +258,7 @@ router.patch('/expenses/:id', requireAdmin, asyncHandler(async (req, res) => {
     updatedAt: FieldValue.serverTimestamp(),
   };
   await ref.update(update);
+  invalidateReportCache();
   res.json({ id: ref.id, kind: 'expense', ...update, updatedAt: null });
 }));
 

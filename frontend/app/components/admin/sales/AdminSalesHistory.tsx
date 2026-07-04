@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight, Search, X, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { SALE_STATUS_META } from "./saleStatus";
 import { DataTable } from "~/components/ui/DataTable";
@@ -8,8 +8,11 @@ import { AdminSaleCard } from "./AdminSaleCard";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
 import { SaleEditor } from "./SaleEditor";
+import { SaleFinancialsDetail } from "./SaleFinancialsDetail";
 import { useDeleteSaleMutation, type Sale } from "~/store/api/salesApi";
 import { formatCordobas } from "~/lib/utils";
+import { MoneyCell, CodeCell, BreakdownCell } from "~/components/ui/cells";
+import { groupSaleItems } from "~/domain/sales/salesCalculations";
 
 interface AdminSalesHistoryProps {
   filteredSales: any[];
@@ -32,6 +35,7 @@ export function AdminSalesHistory({
 }: AdminSalesHistoryProps) {
   const [deleteFor, setDeleteFor] = useState<Sale[] | null>(null);
   const [editFor, setEditFor] = useState<Sale | null>(null);
+  const [detailFor, setDetailFor] = useState<Sale | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [selectedSales, setSelectedSales] = useState<Set<string>>(new Set());
   const [nameQuery, setNameQuery] = useState("");
@@ -66,10 +70,13 @@ export function AdminSalesHistory({
         id: "code",
         header: "Código",
         cell: (c) => {
-          const items = c.row.original.items || [];
-          const codes = items.map((i: any) => i.code).filter(Boolean);
+          const grouped = groupSaleItems(c.row.original.items || []);
           return (
-            <span className="font-mono text-xs text-muted">{codes.length ? codes.join(", ") : "—"}</span>
+            <div className="flex flex-col gap-[2px]">
+              {grouped.map((it: any, idx: number) => (
+                <div key={idx}><CodeCell value={it.code} /></div>
+              ))}
+            </div>
           );
         },
       },
@@ -77,10 +84,17 @@ export function AdminSalesHistory({
         id: "products",
         header: "Productos",
         cell: (c) => {
-          const items = c.row.original.items || [];
+          const grouped = groupSaleItems(c.row.original.items || []);
           return (
-            <div className="max-w-[350px] min-w-[200px] text-xs truncate" title={items.map((i: any) => i.name).join(", ")}>
-              {items.map((i: any) => i.name).join(", ")}
+            <div className="flex flex-col gap-[2px] max-w-[350px] min-w-[200px] text-xs">
+              {grouped.map((it: any, idx: number) => {
+                const variant = it.variantName && it.variantName !== "Estándar" ? ` (${it.variantName})` : "";
+                return (
+                  <div key={idx} className="truncate text-muted" title={`${it.name}${variant}`}>
+                    {it.name}{variant}
+                  </div>
+                );
+              })}
             </div>
           );
         },
@@ -88,67 +102,74 @@ export function AdminSalesHistory({
       {
         id: "quantity",
         header: "Cant.",
+        meta: { align: "right" },
         cell: (c) => {
-          const items = c.row.original.items || [];
-          const totalQty = items.reduce((sum: number, it: any) => sum + (it.quantity || 0), 0);
-          return <span className="font-mono text-xs">{totalQty}</span>;
+          const grouped = groupSaleItems(c.row.original.items || []);
+          return <BreakdownCell items={grouped} isQuantity />;
         }
       },
       {
         accessorKey: "saleTotal",
         header: "Precio Venta",
-        cell: (c) => <span className="font-semibold text-text">{formatCordobas(c.getValue())}</span>,
+        meta: { align: "right" },
+        cell: (c) => {
+          const grouped = groupSaleItems(c.row.original.items || []);
+          return <BreakdownCell items={grouped} itemKey="lineTotal" tone="strong" />;
+        }
       },
       {
         accessorKey: "displayCostReal",
         header: "Costo Real",
-        cell: (c) => <span className="font-mono text-xs text-muted-foreground">{formatCordobas(c.getValue())}</span>,
+        meta: { align: "right" },
+        cell: (c) => <MoneyCell value={c.getValue()} tone="muted" />,
       },
       {
         id: "inversionRecuperada",
         header: "Inversión Recuperada",
+        meta: { align: "right" },
         cell: (c) => {
           const s = c.row.original;
-          const invRecuperada = (s.saleTotal || 0) - (s.displayCostReal || 0);
-          return <span className="font-mono text-xs text-emerald-400">{formatCordobas(invRecuperada)}</span>;
+          return <MoneyCell value={(s.saleTotal || 0) - (s.displayCostReal || 0)} tone="pos" />;
         },
       },
       {
         accessorKey: "displayUtilidadBruta",
         header: "Utilidad Bruta",
-        cell: (c) => <span className="font-mono text-xs text-muted-foreground">{formatCordobas(c.getValue())}</span>,
+        meta: { align: "right" },
+        cell: (c) => <MoneyCell value={c.getValue()} tone="muted" />,
       },
       {
         accessorKey: "displayCostosFijos",
         header: "Costos Fijos",
-        cell: (c) => (
-          <span className="font-mono text-xs text-rose-400">
-            {c.getValue() > 0 ? `-${formatCordobas(c.getValue())}` : "—"}
-          </span>
-        ),
+        meta: { align: "right" },
+        cell: (c) =>
+          c.getValue() > 0 ? <MoneyCell value={c.getValue()} tone="neg" negative /> : <span className="text-muted">—</span>,
       },
       {
         accessorKey: "displayUtilidadNeta",
         header: "Utilidad Neta",
-        cell: (c) => <span className="font-mono text-xs text-text">{formatCordobas(c.getValue())}</span>,
+        meta: { align: "right" },
+        cell: (c) => <MoneyCell value={c.getValue()} tone="strong" />,
       },
       {
         accessorKey: "displayComisionVendedor",
         header: "Comisión Vendedor",
+        meta: { align: "right" },
         cell: (c) => {
           const pct = c.row.original.comisionPercent;
           return (
-            <div className="text-xs font-semibold text-emerald-400">
+            <span className="nums font-semibold text-emerald-400">
               {formatCordobas(c.getValue())}
-              {pct !== undefined && <span className="text-[10px] text-muted ml-0.5">({pct}%)</span>}
-            </div>
+              {pct !== undefined && <span className="ml-0.5 text-[11px] font-normal text-muted">({pct}%)</span>}
+            </span>
           );
         },
       },
       {
         accessorKey: "displayGananciaTienda",
         header: "Ganancia Tienda",
-        cell: (c) => <span className="font-bold text-whatsapp">{formatCordobas(c.getValue())}</span>,
+        meta: { align: "right" },
+        cell: (c) => <span className="nums font-bold text-whatsapp">{formatCordobas(c.getValue())}</span>,
       },
       {
         accessorKey: "status",
@@ -160,8 +181,8 @@ export function AdminSalesHistory({
             <div className="flex flex-col gap-1 items-start">
               <span className={`rounded-pill px-2 py-0.5 text-xs font-semibold ${m.cls}`}>{m.label}</span>
               {s.editReason && (
-                <span 
-                  className="rounded-pill bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-accent-2 cursor-help"
+                <span
+                  className="rounded-pill bg-accent/20 px-1.5 py-0.5 text-[11px] font-bold text-accent-2 cursor-help"
                   title={`Editada: ${s.editReason}`}
                 >
                   Editada
@@ -170,6 +191,23 @@ export function AdminSalesHistory({
             </div>
           );
         },
+      },
+      {
+        id: "detalle",
+        header: "",
+        cell: (c) => (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setDetailFor(c.row.original);
+            }}
+            className="rounded-lg p-1.5 text-muted hover:text-accent-2 hover:bg-accent/10 transition-colors"
+            title="Ver desglose financiero"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+        ),
+        size: 40,
       },
     ],
     []
@@ -223,15 +261,15 @@ export function AdminSalesHistory({
           {displayedSales.length > 0 && (
             <div className="flex items-center gap-4 rounded-lg border border-border bg-surface-2 px-4 py-2 text-xs shadow-sm">
               <div className="flex flex-col">
-                <span className="text-[10px] text-muted uppercase font-bold">Venta Total</span>
+                <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Venta Total</span>
                 <span className="text-sm font-semibold text-text">{formatCordobas(totals.venta)}</span>
               </div>
               <div className="flex flex-col border-l border-border pl-4">
-                <span className="text-[10px] text-muted uppercase font-bold">Comisión</span>
+                <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Comisión</span>
                 <span className="text-sm font-semibold text-emerald-400">{formatCordobas(totals.comision)}</span>
               </div>
               <div className="flex flex-col border-l border-border pl-4">
-                <span className="text-[10px] text-muted uppercase font-bold">Ganancia</span>
+                <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Ganancia</span>
                 <span className="text-sm font-bold text-whatsapp">{formatCordobas(totals.ganancia)}</span>
               </div>
             </div>
@@ -373,12 +411,14 @@ export function AdminSalesHistory({
       )}
 
       {editFor && (
-        <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar Venta" maxWidth="max-w-5xl">
+        <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar Venta" maxWidth="max-w-7xl">
           <div className="max-h-[80vh] overflow-y-auto pr-1">
             <SaleEditor sale={editFor} onDone={() => { setEditFor(null); setSelectedSales(new Set()); }} />
           </div>
         </Modal>
       )}
+
+      <SaleFinancialsDetail sale={detailFor} onClose={() => setDetailFor(null)} />
     </div>
   );
 }

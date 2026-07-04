@@ -17,7 +17,7 @@ import { Modal } from "~/components/ui/Modal";
 import { AdminSalesHistory } from "./AdminSalesHistory";
 import { AdminSalesDashboard } from "./dashboard/AdminSalesDashboard";
 import { SalesKpis } from "./SalesKpis";
-import { StatCard } from "~/components/ui/StatCard";
+import { KpiGrid } from "~/components/shared/KpiGrid";
 import { AnimatedTabs } from "~/components/ui/AnimatedTabs";
 import { UnifiedDatePicker } from "~/components/ui/UnifiedDatePicker";
 import { FilterSelect, type FilterSelectOption } from "~/components/ui/FilterSelect";
@@ -25,7 +25,6 @@ import { useGetSalesPaginatedQuery } from "~/store/api/salesApi";
 import { useGetUsersQuery } from "~/store/api/usersApi";
 import { useAppSelector } from "~/store/hooks";
 import { selectIsAdmin } from "~/store/slices/authSlice";
-import { formatCordobas, usdFromCordobas } from "~/lib/utils";
 
 type SectionId = "resumen" | "inventory" | "ventas" | "reporteria";
 type SubId =
@@ -209,29 +208,18 @@ export function AdminSales() {
   return (
     <div className="space-y-6">
       {/* ── Cabecera ── */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="gradient-text text-2xl font-bold">{isAdmin ? "Gestión de Ventas" : "Portal de Ventas"}</h1>
-          <p className="text-muted">
-            {isAdmin
-              ? "Aprobaciones, comisiones de vendedores y configuración de precios."
-              : "Tus ventas, comisiones, pagos e inventario."}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => updateParams({ newSale: "1" })}
-            className="group flex items-center gap-1.5 rounded-lg bg-gradient-accent px-3 py-2 text-xs font-semibold text-white shadow-md shadow-accent/20 transition-all hover:shadow-lg hover:shadow-accent/30"
-          >
-            <Plus className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5" />
-            <span>Nueva venta</span>
-          </button>
-        </div>
+      <div>
+        <h1 className="gradient-text text-2xl font-bold">{isAdmin ? "Gestión de Ventas" : "Portal de Ventas"}</h1>
+        <p className="text-muted">
+          {isAdmin
+            ? "Aprobaciones, comisiones de vendedores y configuración de precios."
+            : "Tus ventas, comisiones, pagos e inventario."}
+        </p>
       </div>
 
       {/* ── Tabs de sección + sub-tab ── */}
       <div className="space-y-3">
-        <div className="sticky top-16 z-20 -mx-4 bg-bg/80 px-4 py-2 backdrop-blur md:-mx-6 md:px-6">
+        <div className="sticky top-16 z-50 -mx-4 bg-bg/80 px-4 py-2 backdrop-blur md:-mx-6 md:px-6">
           <AnimatedTabs items={SECTION_ITEMS} value={section} onChange={changeSection} layoutId="sales-section" />
         </div>
         {currentSubs.length > 1 && (
@@ -297,14 +285,17 @@ export function AdminSales() {
           )}
 
           {inReporteria && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              <StatCard icon={ShoppingBag} label="Total Vendido" countTo={dynamicSummary.totalVendido} format={formatCordobas} sub={usdFromCordobas(dynamicSummary.totalVendido)} color="indigo" delay={0} />
-              <StatCard icon={PiggyBank} label="Inversión Recuperada" countTo={dynamicSummary.inversionRecuperada} format={formatCordobas} sub={usdFromCordobas(dynamicSummary.inversionRecuperada)} color="neutral" delay={0.05} />
-              <StatCard icon={Coins} label="Comisiones Vendedor" countTo={dynamicSummary.comisiones} format={formatCordobas} sub={usdFromCordobas(dynamicSummary.comisiones)} color="neutral" delay={0.1} />
-              <StatCard icon={Landmark} label="Ganancia Tienda" countTo={dynamicSummary.gananciaTienda} format={formatCordobas} sub={usdFromCordobas(dynamicSummary.gananciaTienda)} color="emerald" delay={0.15} />
-              <StatCard icon={CheckCircle2} label="Ventas Aprobadas" countTo={dynamicSummary.ventasAprobadas} color="neutral" delay={0.2} />
-              <StatCard icon={Clock} label="Ventas en Revisión" countTo={dynamicSummary.enRevision} color="amber" delay={0.25} />
-            </div>
+            <KpiGrid
+              className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+              cards={[
+                { key: "vendido", icon: ShoppingBag, label: "Total Vendido", value: dynamicSummary.totalVendido, money: true, color: "indigo" },
+                { key: "inversion", icon: PiggyBank, label: "Inversión Recuperada", value: dynamicSummary.inversionRecuperada, money: true, color: "neutral" },
+                { key: "comisiones", icon: Coins, label: "Comisiones Vendedor", value: dynamicSummary.comisiones, money: true, color: "neutral" },
+                { key: "ganancia", icon: Landmark, label: "Ganancia Tienda", value: dynamicSummary.gananciaTienda, money: true, color: "emerald" },
+                { key: "aprobadas", icon: CheckCircle2, label: "Ventas Aprobadas", value: dynamicSummary.ventasAprobadas, color: "neutral" },
+                { key: "revision", icon: Clock, label: "Ventas en Revisión", value: dynamicSummary.enRevision, color: "amber" },
+              ]}
+            />
           )}
         </div>
       )}
@@ -384,7 +375,7 @@ export function AdminSales() {
         open={saleOpen}
         onClose={() => updateParams({ newSale: null })}
         title="Registrar venta"
-        maxWidth="max-w-5xl"
+        maxWidth="max-w-7xl"
         preventOutsideClose={true}
       >
         <div className="max-h-[80vh] overflow-y-auto pr-1">

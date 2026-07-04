@@ -1,28 +1,19 @@
-// KPIs de Ventas — esclavos de los datos de la tabla del tab activo.
+// KPIs de Ventas (tabs Pendientes/Aprobadas) — esclavos de la lista del tab activo.
 //
-// Recibe la MISMA lista de ventas que renderiza la tabla (ya filtrada por fecha,
-// vendedor y estado del tab) y calcula los totales internamente. Así los números
-// de las tarjetas coinciden EXACTAMENTE con lo que el usuario ve en la tabla.
+// Recibe la MISMA lista que la tabla y suma con el dominio (sumKpiTotals), salvo que
+// se pasen `overrideTotals` (Aprobadas usa el summary del servidor para reflejar TODO
+// el período, no solo la página). Render delegado al <KpiGrid/> compartido.
 //
-// Las etiquetas y la última tarjeta son contextuales al estado:
-//   - pending  → "(Pendiente)" + "Ventas en Revisión" (conteo de tickets).
-//   - approved → "(Aprobado)"  + "Total de Ventas Aprobadas".
-//
-// Al cambiar de tab, el grid se remonta (key=status) → los números vuelven a
-// animar su count-up y la tarjeta entra con fade/slide (sin salto brusco).
+// Al cambiar de tab, el wrapper se remonta (key=status) → los números re-animan su
+// count-up y la fila entra con fade/slide.
 import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ShoppingBag, PiggyBank, Coins, Landmark, Clock, CheckCircle2 } from "lucide-react";
-import { StatCard } from "~/components/ui/StatCard";
 import type { Sale } from "~/store/api/salesApi";
-import { formatCordobas, usdFromCordobas } from "~/lib/utils";
+import { sumKpiTotals, type KpiTotals } from "~/domain/sales/salesCalculations";
+import { KpiGrid, type KpiCardSpec } from "~/components/shared/KpiGrid";
 
-export interface KpiTotals {
-  totalVendido: number;
-  inversion: number;
-  comisiones: number;
-  ganancia: number;
-}
+export type { KpiTotals }; // re-export para compatibilidad con importadores previos
 
 interface SalesKpisProps {
   /** Lista de ventas del tab activo (la misma que muestra la tabla). */
@@ -30,33 +21,29 @@ interface SalesKpisProps {
   status: "pending" | "approved";
   /** Cantidad de tickets del estado (para la tarjeta de conteo). */
   ticketCount: number;
-  /**
-   * Totales precalculados que TIENEN prioridad sobre la suma de `sales`. Se usan
-   * en Aprobadas para reflejar TODO el período (vía summary del servidor) en vez de
-   * solo la página visible. Si se omite, se suma `sales` (caso Pendientes).
-   */
+  /** Totales precalculados con prioridad sobre la suma de `sales` (Aprobadas → summary). */
   overrideTotals?: KpiTotals;
 }
 
 export function SalesKpis({ sales, status, ticketCount, overrideTotals }: SalesKpisProps) {
-  const totals = useMemo<KpiTotals>(() => {
-    if (overrideTotals) return overrideTotals;
-    let totalVendido = 0;
-    let inversion = 0;
-    let comisiones = 0;
-    let ganancia = 0;
-    for (const s of sales) {
-      totalVendido += s.saleTotal || 0;
-      inversion += s.costReal ?? s.totalCostReal ?? 0;
-      comisiones += s.comisionVendedor || 0;
-      ganancia += s.gananciaTienda || 0;
-    }
-    return { totalVendido, inversion, comisiones, ganancia };
-  }, [sales, overrideTotals]);
+  const totals = useMemo<KpiTotals>(
+    () => overrideTotals ?? sumKpiTotals(sales),
+    [sales, overrideTotals],
+  );
 
   const isPending = status === "pending";
   const suf = isPending ? "(Pendiente)" : "(Aprobado)";
   const sufPlural = isPending ? "(Pendientes)" : "(Aprobadas)";
+
+  const cards: KpiCardSpec[] = [
+    { key: "vendido", icon: ShoppingBag, label: `Total Vendido ${suf}`, value: totals.totalVendido, money: true, color: "indigo" },
+    { key: "inversion", icon: PiggyBank, label: `Inversión ${suf}`, value: totals.inversion, money: true, color: "neutral" },
+    { key: "comisiones", icon: Coins, label: `Comisiones ${sufPlural}`, value: totals.comisiones, money: true, color: "neutral" },
+    { key: "ganancia", icon: Landmark, label: `Ganancia ${suf}`, value: totals.ganancia, money: true, color: "emerald" },
+    isPending
+      ? { key: "count", icon: Clock, label: "Ventas en Revisión", value: ticketCount, color: "amber" }
+      : { key: "count", icon: CheckCircle2, label: "Total de Ventas Aprobadas", value: ticketCount, color: "neutral" },
+  ];
 
   return (
     <AnimatePresence mode="wait">
@@ -66,49 +53,8 @@ export function SalesKpis({ sales, status, ticketCount, overrideTotals }: SalesK
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
       >
-        <StatCard
-          icon={ShoppingBag}
-          label={`Total Vendido ${suf}`}
-          countTo={totals.totalVendido}
-          format={formatCordobas}
-          sub={usdFromCordobas(totals.totalVendido)}
-          color="indigo"
-          delay={0}
-        />
-        <StatCard
-          icon={PiggyBank}
-          label={`Inversión ${suf}`}
-          countTo={totals.inversion}
-          format={formatCordobas}
-          sub={usdFromCordobas(totals.inversion)}
-          color="neutral"
-          delay={0.05}
-        />
-        <StatCard
-          icon={Coins}
-          label={`Comisiones ${sufPlural}`}
-          countTo={totals.comisiones}
-          format={formatCordobas}
-          sub={usdFromCordobas(totals.comisiones)}
-          color="neutral"
-          delay={0.1}
-        />
-        <StatCard
-          icon={Landmark}
-          label={`Ganancia ${suf}`}
-          countTo={totals.ganancia}
-          format={formatCordobas}
-          sub={usdFromCordobas(totals.ganancia)}
-          color="emerald"
-          delay={0.15}
-        />
-        {isPending ? (
-          <StatCard icon={Clock} label="Ventas en Revisión" countTo={ticketCount} color="amber" delay={0.2} />
-        ) : (
-          <StatCard icon={CheckCircle2} label="Total de Ventas Aprobadas" countTo={ticketCount} color="neutral" delay={0.2} />
-        )}
+        <KpiGrid cards={cards} className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5" />
       </motion.div>
     </AnimatePresence>
   );

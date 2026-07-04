@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useGetIncomingInventoryQuery } from "~/store/api/inventoryApi";
+import { CodeCell } from "~/components/ui/cells";
 import { DataTable } from "~/components/ui/DataTable";
 
 export function IncomingInventory() {
@@ -11,6 +12,7 @@ export function IncomingInventory() {
       {
         accessorKey: "code",
         header: "Código",
+        cell: (c) => <CodeCell value={c.getValue()} />,
       },
       {
         accessorKey: "productName",
@@ -20,7 +22,8 @@ export function IncomingInventory() {
       {
         accessorKey: "quantity",
         header: "Cantidad",
-        cell: (c) => <span className="font-semibold">{c.getValue()} uds</span>
+        meta: { align: "right" },
+        cell: (c) => <span className="nums font-semibold">{c.getValue()} uds</span>
       },
       {
         accessorKey: "status",

@@ -9,6 +9,7 @@ const { asyncHandler } = require('../utils/asyncHandler');
 const { installmentSchema, installmentPaymentSchema } = require('../utils/validators');
 const { reserveForItems, consumeReservation, fifoForCode } = require('../services/sales');
 const { computeFinancials, getCostosFijosPct, round } = require('../services/commission');
+const { RATE } = require('../services/inventory');
 
 const INSTALLMENTS = config.collections.installments;
 
@@ -87,9 +88,14 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   }
   const realCostTotal = await consumeReservation(reservations);
 
-  // Calcular comisión (se paga completa aunque el cliente deba cuotas)
-  const pct = await getCostosFijosPct();
-  const financials = computeFinancials({ saleTotal: data.totalAmount, realCost: realCostTotal, costosFijosPct: pct });
+  const costByCode = {};
+  for (const r of reservations) {
+    costByCode[r.code] = (costByCode[r.code] || 0) + r.unitFinalUsd * RATE * r.quantity;
+  }
+  for (const it of data.items) {
+    it.lineCost = costByCode[it.productId] || 0;
+  }
+  const financials = computeFinancials({ lines: data.items });
 
   const doc = {
     customerName: data.customerName,

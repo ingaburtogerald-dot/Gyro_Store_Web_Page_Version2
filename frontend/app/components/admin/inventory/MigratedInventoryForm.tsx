@@ -68,7 +68,7 @@ export function MigratedInventoryForm({ item, onDone }: { item?: MigratedItem | 
   const sugerido = Math.round((costeReal * 1.40) / 10) * 10;
 
   async function onSubmit(data: MigratedItemFormInput) {
-    const codeExists = existingItems.some(i => i.code.toLowerCase() === data.code.toLowerCase() && i.id !== item?.id);
+    const codeExists = existingItems.some(i => (i.code || "").toLowerCase() === data.code.toLowerCase() && i.id !== item?.id);
     if (codeExists) {
       toast.error(`El código "${data.code}" ya se encuentra registrado.`);
       return;

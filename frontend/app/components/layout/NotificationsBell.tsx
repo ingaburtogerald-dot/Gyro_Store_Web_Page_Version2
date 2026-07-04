@@ -8,7 +8,7 @@ import { useNavigate } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, CheckCircle2, Banknote, XCircle, Package, PackageCheck } from "lucide-react";
 import { useGetFollowupsQuery } from "~/store/api/followupsApi";
-import { useGetSalesQuery } from "~/store/api/salesApi";
+import { useGetSalesQuery, useGetSalesPaginatedQuery } from "~/store/api/salesApi";
 import { useGetShipmentsQuery } from "~/store/api/logisticsApi";
 import { useAppSelector } from "~/store/hooks";
 import { selectIsAdmin, selectRoles } from "~/store/slices/authSlice";
@@ -51,6 +51,10 @@ export function NotificationsBell() {
   const { data: followups = [] } = useGetFollowupsQuery();
   const { data: sales = [] } = useGetSalesQuery(undefined, { skip: isAdmin });
   const { data: shipments = [] } = useGetShipmentsQuery(undefined, { skip: !isLogisticsAdmin });
+  const { data: pendingSales } = useGetSalesPaginatedQuery(
+    { page: 1, limit: 1, status: "pending_approval", sellerEmail: "all", date: "all" },
+    { skip: !isAdmin, pollingInterval: 15000 }
+  );
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(new Set());
   const [isHydrated, setIsHydrated] = useState(false);
@@ -96,7 +100,8 @@ export function NotificationsBell() {
   const allIds = useMemo(() => [...saleIds, ...logistics.map((l) => l.notifId)], [saleIds, logistics]);
 
   const unseenCount = allIds.filter((id) => !seen.has(id)).length;
-  const badge = due.length + unseenCount;
+  const pendingSalesCount = isAdmin ? (pendingSales?.total ?? 0) : 0;
+  const badge = due.length + unseenCount + pendingSalesCount;
 
   function handleToggle() {
     setOpen((o) => {
@@ -122,20 +127,20 @@ export function NotificationsBell() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  const empty = due.length === 0 && groups.length === 0 && logistics.length === 0;
+  const empty = due.length === 0 && groups.length === 0 && logistics.length === 0 && pendingSalesCount === 0;
 
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={handleToggle}
-        className="relative inline-flex items-center justify-center rounded-pill border border-border p-3 text-muted transition-colors hover:bg-surface-2 hover:text-text"
+        className="relative inline-flex h-9 w-9 items-center justify-center rounded-pill border border-border text-muted transition-colors hover:bg-surface-2 hover:text-text"
         title="Notificaciones"
         aria-label="Notificaciones"
       >
-        <Bell className="h-6 w-6" />
+        <Bell className="h-[18px] w-[18px]" />
         {badge > 0 && (
           <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {badge > 9 ? "9+" : badge}
+            {badge}
           </span>
         )}
       </button>
@@ -159,6 +164,33 @@ export function NotificationsBell() {
                 <p className="px-4 py-6 text-center text-sm text-muted">Todo al día 🎉</p>
               ) : (
                 <>
+                  {pendingSalesCount > 0 && (
+                    <>
+                      <p className="bg-surface-2/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                        Administración
+                      </p>
+                      <button
+                        onClick={() => {
+                          setOpen(false);
+                          navigate("/admin/ventas");
+                        }}
+                        className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-surface-2"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-semibold text-amber-500">
+                            Ventas por aprobar
+                          </span>
+                          <span className="block text-xs text-muted">
+                            Tienes {pendingSalesCount} {pendingSalesCount === 1 ? "venta" : "ventas"} pendiente{pendingSalesCount === 1 ? "" : "s"}
+                          </span>
+                        </span>
+                      </button>
+                    </>
+                  )}
+
                   {logistics.length > 0 && (
                     <>
                       <p className="bg-surface-2/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">

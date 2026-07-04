@@ -112,7 +112,7 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <div className="border-t border-border/50 bg-background/30 p-5">
+            <div className="border-t border-border/50 bg-bg/30 p-5">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
                 
                 {/* Detalles y Ventas */}

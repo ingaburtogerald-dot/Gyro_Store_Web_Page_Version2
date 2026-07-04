@@ -36,7 +36,7 @@ export function InvoicesList() {
       },
       { accessorFn: (i) => i.items.map((x) => x.productName).join(", "), id: "products", header: "Productos" },
       { accessorKey: "sellerName", header: "Atendió" },
-      { accessorKey: "total", header: "Total", cell: (c) => formatCordobas(c.getValue()) },
+      { accessorKey: "total", header: "Total", meta: { align: "right" }, cell: (c) => <span className="font-semibold">{formatCordobas(c.getValue())}</span> },
       {
         accessorKey: "status",
         header: "Estado",

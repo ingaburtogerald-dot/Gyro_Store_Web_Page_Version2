@@ -5,12 +5,14 @@ import { Calendar } from "lucide-react";
 import { SALE_STATUS_META } from "./saleStatus";
 import { formatCordobas } from "~/lib/utils";
 import type { Sale } from "~/store/api/salesApi";
+import { groupSaleItems, totalQuantity } from "~/domain/sales/salesCalculations";
 
 export function AdminSaleCard({ sale }: { sale: any }) {
   const meta = SALE_STATUS_META[sale.status as Sale["status"]];
   const date = sale.createdAt ? new Date(sale.createdAt).toLocaleDateString("es-NI") : "—";
   const items = sale.items || [];
-  const qty = items.reduce((s: number, i: any) => s + (i.quantity || 0), 0);
+  const qty = totalQuantity(items);
+  const grouped = groupSaleItems(items);
 
   const costReal = sale.displayCostReal ?? sale.totalCostReal ?? 0;
   const utilNeta = sale.displayUtilidadNeta ?? sale.totalUtilidadNeta ?? 0;
@@ -35,15 +37,15 @@ export function AdminSaleCard({ sale }: { sale: any }) {
         </div>
       </div>
 
-      <p className="truncate text-xs text-muted" title={items.map((i: any) => i.name).join(", ")}>
-        {qty} u · {items.map((i: any) => i.name).join(", ")}
+      <p className="truncate text-xs text-muted" title={grouped.map((i: any) => i.name).join(", ")}>
+        {qty} u · {grouped.map((i: any) => i.name).join(", ")}
       </p>
-      {items.some((i: any) => i.code) && (
+      {grouped.some((i: any) => i.code) && (
         <p
           className="truncate font-mono text-[11px] text-muted/80"
-          title={items.map((i: any) => i.code).filter(Boolean).join(", ")}
+          title={grouped.map((i: any) => i.code).filter(Boolean).join(", ")}
         >
-          {items.map((i: any) => i.code).filter(Boolean).join(", ")}
+          {grouped.map((i: any) => i.code).filter(Boolean).join(", ")}
         </p>
       )}
 

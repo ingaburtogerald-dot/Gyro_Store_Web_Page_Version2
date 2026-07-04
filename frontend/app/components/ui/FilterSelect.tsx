@@ -105,7 +105,7 @@ export function FilterSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-0 z-50 mt-2 min-w-[180px] w-max max-w-[300px] max-h-64 overflow-y-auto rounded-card border border-border bg-surface p-1 shadow-2xl"
+            className="absolute left-0 z-50 mt-2 flex flex-col gap-1 min-w-[180px] w-max max-w-[300px] max-h-64 overflow-y-auto rounded-card border border-border bg-surface p-1 shadow-2xl"
           >
             {options.map((o) => {
               const isSel = o.value === value;

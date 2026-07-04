@@ -1,7 +1,9 @@
 // Tarjeta con "spotlight" que sigue el cursor: un resplandor radial del color de
 // acento aparece bajo el mouse y un borde se ilumina. Efecto tipo Linear/Vercel.
-// Respeta prefers-reduced-motion (sin movimiento, pero mantiene el realce).
-import { useRef, useState } from "react";
+// Respeta prefers-reduced-motion (sin resplandor).
+// La posición se escribe como variables CSS directo al DOM (sin setState) para
+// no re-renderizar la tarjeta en cada mousemove.
+import { useRef } from "react";
 import { useReducedMotion } from "framer-motion";
 import { cn } from "~/lib/utils";
 
@@ -21,32 +23,30 @@ export function SpotlightCard({
 }: SpotlightCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
-  const [pos, setPos] = useState({ x: -9999, y: -9999 });
-  const [active, setActive] = useState(false);
 
   function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (reduce) return;
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    setPos({ x: e.clientX - r.left, y: e.clientY - r.top });
+    if (reduce || !ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    ref.current.style.setProperty("--spot-x", `${e.clientX - r.left}px`);
+    ref.current.style.setProperty("--spot-y", `${e.clientY - r.top}px`);
   }
 
   return (
     <div
       ref={ref}
       onMouseMove={onMouseMove}
-      onMouseEnter={() => setActive(true)}
-      onMouseLeave={() => setActive(false)}
       className={cn("group/spot relative overflow-hidden", className)}
       {...props}
     >
       {/* Resplandor que sigue al cursor */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-300"
+        className={cn(
+          "pointer-events-none absolute inset-0 z-0 opacity-0 transition-opacity duration-300",
+          !reduce && "group-hover/spot:opacity-100",
+        )}
         style={{
-          opacity: active && !reduce ? 1 : 0,
-          background: `radial-gradient(${radius}px circle at ${pos.x}px ${pos.y}px, color-mix(in srgb, var(--color-accent) ${intensity}%, transparent), transparent 65%)`,
+          background: `radial-gradient(${radius}px circle at var(--spot-x, -9999px) var(--spot-y, -9999px), color-mix(in srgb, var(--color-accent) ${intensity}%, transparent), transparent 65%)`,
         }}
       />
       <div className="relative z-10">{children}</div>

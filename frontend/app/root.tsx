@@ -52,15 +52,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <ForcePasswordChangeGate>
             {children}
           </ForcePasswordChangeGate>
+          {/* Colores vía tokens: el toast sigue al tema activo (oscuro/claro) */}
           <Toaster
-            theme="dark"
             position="top-center"
             duration={5000}
             toastOptions={{
               style: {
-                background: "#12121a",
-                border: "1px solid rgba(255,255,255,0.06)",
-                color: "#e2e8f0",
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
               },
             }}
           />

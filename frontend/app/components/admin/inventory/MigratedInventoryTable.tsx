@@ -15,6 +15,7 @@ import {
   type MigratedItem,
 } from "~/store/api/inventoryApi";
 import { formatUsd, formatCordobas } from "~/lib/utils";
+import { CodeCell } from "~/components/ui/cells";
 
 export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenForm?: () => void; period?: string }) {
   const { data: items = [], isLoading } = useGetMigratedInventoryQuery(period);
@@ -58,35 +59,40 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
       },
       { accessorKey: "purchaseDate", header: "Fecha" },
       { accessorKey: "lot", header: "Lote", cell: (c) => c.getValue() || "—" },
-      { accessorKey: "code", header: "Código" },
+      { accessorKey: "code", header: "Código", cell: (c) => <CodeCell value={c.getValue()} /> },
       { accessorKey: "productName", header: "Producto" },
-      { 
-        accessorKey: "quantity", 
+      {
+        accessorKey: "quantity",
         header: "Compradas",
-        cell: (c) => <span className="font-semibold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        meta: { align: "right" },
+        cell: (c) => <span className="nums font-semibold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
-      { 
-        accessorKey: "quantitySold", 
+      {
+        accessorKey: "quantitySold",
         header: "Salidas",
-        cell: (c) => <span className="font-semibold text-rose-400 bg-rose-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        meta: { align: "right" },
+        cell: (c) => <span className="nums font-semibold text-rose-400 bg-rose-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
-      { 
-        accessorKey: "quantityReserved", 
+      {
+        accessorKey: "quantityReserved",
         header: "Reservas",
-        cell: (c) => <span className="font-semibold text-amber-400 bg-amber-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        meta: { align: "right" },
+        cell: (c) => <span className="nums font-semibold text-amber-400 bg-amber-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
-      { 
-        accessorKey: "stock", 
+      {
+        accessorKey: "stock",
         header: "Stock",
-        cell: (c) => <span className="font-bold text-sky-400 bg-sky-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        meta: { align: "right" },
+        cell: (c) => <span className="nums font-bold text-sky-400 bg-sky-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
-      { accessorKey: "priceBaseUsd", header: "P. Base", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "shippingUnitUsd", header: "Envío Unit.", cell: (c) => formatUsd(c.getValue(), 4) },
-      { accessorKey: "priceUnitFinalUsd", header: "P. Unit. Final", cell: (c) => formatUsd(c.getValue(), 4) },
-      { id: "preTotalUsd", header: "Pre-Total", cell: ({ row }) => formatUsd((row.original.priceBaseUsd || 0) * (row.original.quantity || 0)) },
-      { id: "totalUsd", header: "Total", cell: ({ row }) => formatUsd((row.original.priceUnitFinalUsd || 0) * (row.original.quantity || 0)) },
-      { accessorKey: "costRealUnitCordobas", header: "Coste Real Unit.", cell: (c) => formatCordobas(c.getValue()) },
-      { accessorKey: "suggestedPrice", header: "P. Sugerido", cell: (c) => formatCordobas(c.getValue()) },
+      // USD a 2 decimales visibles; precisión completa en el tooltip.
+      { accessorKey: "priceBaseUsd", header: "P. Base", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      { accessorKey: "shippingUnitUsd", header: "Envío Unit.", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      { accessorKey: "priceUnitFinalUsd", header: "P. Unit. Final", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      { id: "preTotalUsd", header: "Pre-Total", meta: { align: "right" }, cell: ({ row }) => formatUsd((row.original.priceBaseUsd || 0) * (row.original.quantity || 0)) },
+      { id: "totalUsd", header: "Total", meta: { align: "right" }, cell: ({ row }) => <span className="font-semibold">{formatUsd((row.original.priceUnitFinalUsd || 0) * (row.original.quantity || 0))}</span> },
+      { accessorKey: "costRealUnitCordobas", header: "Coste Real Unit.", meta: { align: "right" }, cell: (c) => formatCordobas(c.getValue()) },
+      { accessorKey: "suggestedPrice", header: "P. Sugerido", meta: { align: "right" }, cell: (c) => formatCordobas(c.getValue()) },
     ],
     [],
   );

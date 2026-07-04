@@ -23,10 +23,19 @@ export default defineConfig({
     }),
     tsconfigPaths(),
   ],
+  resolve: {
+    // shared/ resuelve zod desde el node_modules raíz: dedupe garantiza una
+    // sola instancia de zod en el bundle (la de frontend/node_modules).
+    dedupe: ["zod"],
+  },
   server: {
     port: 5173,
     watch: {
       usePolling: true,
+    },
+    fs: {
+      // Permite servir ../shared (schemas compartidos con el servidor).
+      allow: [".."],
     },
     // Proxy de la API al servidor Express durante el desarrollo
     proxy: {

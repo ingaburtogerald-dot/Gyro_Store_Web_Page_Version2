@@ -27,6 +27,76 @@ export interface SaleFinancials {
   inversionRecuperada: number;
 }
 
+/** Extrae el desglose de costos fijos sumando items, soportando estructuras viejas y nuevas. */
+export function extractCostosFijosDesglose(sale: Sale) {
+  // Preferimos el agregado a nivel venta si existe (ventas nuevas):
+  if (sale.cfDesglose && Object.keys(sale.cfDesglose).length > 0) return { ...sale.cfDesglose };
+  
+  // Fallback a sumatoria por ítem (ventas legacy migradas):
+  const desglose: Record<string, number> = {};
+  if (sale.items) {
+    for (const it of sale.items) {
+      if (it.costosFijosDesglose) {
+        for (const [k, v] of Object.entries(it.costosFijosDesglose)) {
+          if (!desglose[k]) desglose[k] = 0;
+          desglose[k] += (v as number) * (it.quantity || 1);
+        }
+      }
+    }
+  }
+  return desglose;
+}
+
+/** 
+ * Agrupa los items de una venta por código y precio de venta.
+ * Si tienen el mismo código y el mismo precio, se unifican.
+ * De lo contrario, se separan.
+ */
+export function groupSaleItems(items: any[]): any[] {
+  if (!items || !Array.isArray(items)) return [];
+  const grouped: Record<string, any> = {};
+  for (const it of items) {
+    // Normalizamos el código (trim y minúsculas)
+    const rawCode = it.code || it.productId || "";
+    const codeStr = String(rawCode).trim().toLowerCase();
+    
+    // Obtenemos el precio, si no hay salePrice explícito intentamos derivarlo
+    let price = it.salePrice;
+    if (price === undefined || price === null) {
+      if (typeof it.lineTotal === "number" && typeof it.quantity === "number" && it.quantity > 0) {
+        price = it.lineTotal / it.quantity;
+      } else {
+        price = 0;
+      }
+    }
+    const priceStr = Number(price).toFixed(2);
+
+    const key = `${codeStr}-${priceStr}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = { ...it };
+    } else {
+      grouped[key].quantity = (grouped[key].quantity || 1) + (it.quantity || 1);
+      
+      const sumField = (field: string) => {
+         if (it[field] !== undefined && it[field] !== null) {
+            grouped[key][field] = (grouped[key][field] || 0) + it[field];
+         }
+      };
+      
+      sumField("lineTotal");
+      sumField("costReal");
+      sumField("utilidadBruta");
+      sumField("costosFijos");
+      sumField("utilidadNeta");
+      sumField("comisionVendedor");
+      sumField("gananciaTienda");
+      sumField("inversionRecuperada");
+    }
+  }
+  return Object.values(grouped);
+}
+
 /** Normaliza los financieros de una venta resolviendo línea vs. total. */
 export function resolveSaleFinancials(sale: Sale): SaleFinancials {
   const saleTotal = n(sale.saleTotal);
