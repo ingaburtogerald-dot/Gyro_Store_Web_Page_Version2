@@ -37,6 +37,7 @@ export function EditArrivalModal({
         arrivalDate: purchase.arrivalDate || "",
         shippingUnit: purchase.shippingUnit,
         category: purchase.category || "",
+        suggestedPrice: purchase.suggestedPrice ?? undefined,
       });
     }
   }, [purchase, reset]);
@@ -44,12 +45,15 @@ export function EditArrivalModal({
   async function onSubmit(data: ArrivalFormInput) {
     if (!purchase) return;
     try {
-      // Combinamos los datos actuales con los campos de arribo editados
+      // Combinamos los datos actuales con los campos de arribo editados.
+      // Enviar suggestedPrice explícito es lo que permite cambiar el precio de venta
+      // del producto en bodega (el server solo toca el precio cuando viene explícito).
       const body = {
         ...purchase,
         arrivalDate: data.arrivalDate,
         shippingUnit: data.shippingUnit,
         category: data.category,
+        suggestedPrice: data.suggestedPrice,
       };
       await updatePurchase({ id: purchase.id, body }).unwrap();
       toast.success("Datos de inventario actualizados correctamente.");
@@ -72,6 +76,13 @@ export function EditArrivalModal({
           <span className="mb-1.5 block text-xs font-medium text-muted">Costo de envío unitario (USD)</span>
           <input type="number" step="0.0001" min={0} className="input" {...register("shippingUnit")} />
           {errors.shippingUnit && <span className="mt-1 block text-xs text-red-400">{errors.shippingUnit.message}</span>}
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-medium text-muted">Precio de venta (C$)</span>
+          <input type="number" step="1" min={0} className="input" placeholder="Precio al que se vende" {...register("suggestedPrice")} />
+          <span className="mt-1 block text-xs text-muted">Es el precio que verá el vendedor al cotizar. Puedes cambiarlo cuando quieras.</span>
+          {errors.suggestedPrice && <span className="mt-1 block text-xs text-red-400">{errors.suggestedPrice.message}</span>}
         </label>
 
         <label className="block">

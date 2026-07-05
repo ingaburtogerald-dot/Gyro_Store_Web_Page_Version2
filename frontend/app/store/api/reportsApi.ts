@@ -42,7 +42,7 @@ export interface ReportData {
   };
 }
 
-export type LossCategory = "robo" | "daño" | "devolucion";
+export type LossCategory = "robo" | "daño" | "devolucion" | "regalias";
 
 // Registro almacenado en la colección `losses`: puede ser pérdida de inventario o gasto.
 export interface LossRecord {

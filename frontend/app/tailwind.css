@@ -91,27 +91,6 @@
   color: var(--color-muted);
 }
 
-/* Tab/Pill Buttons */
-@utility tab-active {
-  background-image: linear-gradient(135deg, var(--color-grad-from), var(--color-grad-to));
-  color: white;
-}
-[data-theme="light"] .tab-active {
-  background-image: none;
-  background-color: #059669;
-  color: #ffffff;
-  box-shadow: 0 2px 8px -2px rgba(5, 150, 105, 0.4);
-}
-
-@utility tab-active-red {
-  background-color: var(--color-danger);
-  color: white;
-}
-[data-theme="light"] .tab-active-red {
-  background-color: var(--color-danger);
-  color: #ffffff;
-  box-shadow: 0 2px 8px -2px rgba(239, 68, 68, 0.4);
-}
 
 /* ── StatCard en modo claro ──
    El componente marca su tono con data-tone; cada tono solo define dos

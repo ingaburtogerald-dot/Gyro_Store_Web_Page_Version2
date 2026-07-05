@@ -13,6 +13,6 @@ router.use(require('./register'));     // POST /report · POST /
 router.use(require('./sellerPortal')); // GET /my-summary · /my-balance · /my-payments
 router.use(require('./payments'));     // lotes de pago, saldos, approve-and-pay, pay-week, /:id/pay
 router.use(require('./list'));         // GET / · /weekly-summary · /performance · /timeseries
-router.use(require('./manage'));       // /:id/approve · /:id/reject · PUT/DELETE /:id · /:id/warranty
+router.use(require('./manage'));       // /:id/approve · /:id/reject · PUT/DELETE /:id
 
 module.exports = router;

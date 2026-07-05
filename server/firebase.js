@@ -11,7 +11,7 @@ function init() {
   if (getApps().length) return admin;
 
   const storageBucket = config.firebaseWeb.storageBucket || undefined;
-  const keyPath = path.resolve(process.cwd(), config.serviceAccountPath);
+  const keyPath = path.resolve(__dirname, config.serviceAccountPath);
 
   if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     try {

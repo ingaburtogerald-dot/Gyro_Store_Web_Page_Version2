@@ -41,6 +41,7 @@ export function LossEditForm({ loss, onDone }: { loss: LossRecord; onDone: () =>
           <option value="daño">Daño</option>
           <option value="robo">Robo</option>
           <option value="devolucion">Devolución</option>
+          <option value="regalias">Regalías</option>
         </select>
       </Field>
       <Field label="Nota (opcional)" className="sm:col-span-2">

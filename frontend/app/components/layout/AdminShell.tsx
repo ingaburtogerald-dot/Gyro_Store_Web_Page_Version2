@@ -90,14 +90,6 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-// Acciones del quick-create global del header.
-const QUICK_ACTIONS: { label: string; icon: React.ElementType; to: string; roles: Role[] }[] = [
-  { label: "Nueva venta", icon: ShoppingCart, to: "/admin/ventas?newSale=1", roles: ["admin", "seller"] },
-  { label: "Nuevo contacto", icon: KanbanSquare, to: "/admin/crm", roles: ["admin", "seller"] },
-  { label: "Nueva compra", icon: Package, to: "/admin/inventario", roles: ["admin"] },
-  { label: "Gasto o pérdida", icon: Receipt, to: "/admin/reportes?tab=losses", roles: ["admin"] },
-];
-
 function roleLabel(roles: Role[]): string {
   if (roles.includes("global_admin") || roles.includes("admin")) return "Admin";
   if (roles.includes("seller")) return "Vendedor";
@@ -152,9 +144,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   // La campana de seguimientos solo aplica a quienes usan el CRM (admin/seller).
   const canCRM = roles.includes("global_admin") || roles.includes("admin") || roles.includes("seller");
-  const quickActions = QUICK_ACTIONS.filter(
-    (a) => roles.includes("global_admin") || a.roles.some((r) => roles.includes(r)),
-  );
 
   return (
     <div className="flex min-h-screen">
@@ -307,7 +296,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            {quickActions.length > 0 && <QuickCreate actions={quickActions} />}
             {canCRM && <NotificationsBell />}
             <Link
               to="/"
@@ -338,66 +326,3 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Quick-create global: registrar lo común desde cualquier portal.
-function QuickCreate({ actions }: { actions: { label: string; icon: React.ElementType; to: string }[] }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="flex h-9 items-center gap-1.5 rounded-pill bg-gradient-accent px-3.5 text-sm font-semibold text-white shadow-md shadow-accent/20 transition-all hover:shadow-lg hover:shadow-accent/30"
-      >
-        <Plus className="h-4 w-4" />
-        <span className="hidden sm:inline">Nueva</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.12 }}
-            role="menu"
-            className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-card border border-border bg-surface py-1 shadow-2xl"
-          >
-            {actions.map(({ label, icon: Icon, to }) => (
-              <button
-                key={to}
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  navigate(to);
-                }}
-                className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm text-text transition-colors hover:bg-surface-2 hover:text-accent-2"
-              >
-                <Icon className="h-4 w-4 text-muted" />
-                {label}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}

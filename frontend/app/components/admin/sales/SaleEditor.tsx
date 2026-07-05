@@ -378,7 +378,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                                   (prev.discountPercent > current.discountPercent) ? prev : current
                                 );
                                 discountPercent = bestTier.discountPercent;
-                                suggestedPrice = p.price * (1 - discountPercent / 100);
+                                suggestedPrice = Math.round(p.price * (1 - discountPercent / 100));
                               }
                             }
 
@@ -392,7 +392,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                                 {/* Chip sólido: hace obvio que un clic aplica el precio */}
                                 <button
                                   type="button"
-                                  onClick={() => update(i, { salePrice: suggestedPrice })}
+                                  onClick={() => update(i, { salePrice: Math.round(suggestedPrice) })}
                                   className="flex items-center gap-1 rounded-pill bg-accent/15 px-2 py-0.5 font-semibold text-accent-2 ring-1 ring-accent/30 transition-all hover:bg-accent hover:text-white active:scale-95 nums"
                                   title="Aplicar el precio sugerido a esta línea"
                                 >

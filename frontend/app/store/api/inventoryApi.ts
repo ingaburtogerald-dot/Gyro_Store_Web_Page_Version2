@@ -162,7 +162,9 @@ export const inventoryApi = baseApi.injectEndpoints({
     }),
     createMigratedItem: build.mutation<MigratedItem, NewMigratedItem>({
       query: (body) => ({ url: "/inventory/migrated", method: "POST", body }),
-      invalidatesTags: ["Migrated"],
+      // También "Product": /sales/products (cotizador) incluye el inventario migrado,
+      // así el nuevo código aparece al instante sin tener que recargar la página.
+      invalidatesTags: ["Migrated", "Product"],
     }),
     updateMigratedItem: build.mutation<MigratedItem, { id: string; body: NewMigratedItem }>({
       query: ({ id, body }) => ({ url: `/inventory/migrated/${id}`, method: "PUT", body }),
@@ -170,7 +172,8 @@ export const inventoryApi = baseApi.injectEndpoints({
     }),
     deleteMigratedItem: build.mutation<{ ok: boolean }, string>({
       query: (id) => ({ url: `/inventory/migrated/${id}`, method: "DELETE" }),
-      invalidatesTags: ["Migrated"],
+      // "Product" para que el ítem borrado desaparezca también del cotizador de ventas.
+      invalidatesTags: ["Migrated", "Product"],
     }),
   }),
 });

@@ -2,10 +2,14 @@
 // pozo de presupuesto y las subcategorías salen de getExpenseCategories.
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "framer-motion";
+import { Wallet, Coins } from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { DateField } from "~/components/ui/DatePicker";
 import { Autocomplete } from "~/components/ui/Autocomplete";
 import { Field } from "~/components/admin/reports/_shared/Field";
+import { Select } from "~/components/admin/reports/_shared/Select";
+import { formStagger, fieldItem } from "~/components/admin/reports/_shared/motion";
 import { useGetExpenseCategoriesQuery, type LossRecord } from "~/store/api/reportsApi";
 import { useExpenseActions } from "~/hooks/reports/useExpenseActions";
 import { expenseSchema, type ExpenseInput } from "~/schemas/expenses";
@@ -13,7 +17,7 @@ import { cn } from "~/lib/utils";
 
 const today = () => new Date().toISOString().split("T")[0];
 
-export function ExpenseForm({ expense, onDone }: { expense?: LossRecord; onDone?: () => void }) {
+export function ExpenseForm({ expense, onDone, bare }: { expense?: LossRecord; onDone?: () => void; bare?: boolean }) {
   const isEdit = !!expense;
   const { data: cats } = useGetExpenseCategoriesQuery();
   const { createExpense, updateExpense, creating, updating } = useExpenseActions();
@@ -44,52 +48,78 @@ export function ExpenseForm({ expense, onDone }: { expense?: LossRecord; onDone?
   }
 
   return (
-    <form
+    <motion.form
+      variants={formStagger}
+      initial="hidden"
+      animate="show"
       onSubmit={handleSubmit(onSubmit)}
-      className={cn("grid gap-3 sm:grid-cols-2 lg:grid-cols-6", !isEdit && "rounded-card border border-border bg-surface p-4")}
+      className={cn(
+        "grid grid-cols-1 gap-4 sm:grid-cols-2",
+        !isEdit && !bare &&
+          "rounded-card border border-border bg-surface p-5 transition-all duration-300 focus-within:border-accent/30 focus-within:shadow-[0_0_0_4px_rgba(16,185,129,0.06)]",
+      )}
     >
-      <Field label="Fecha" error={errors.date?.message}>
-        <DateField control={control} name="date" invalid={!!errors.date} />
-      </Field>
-      <Field label="Grupo" error={errors.group?.message}>
-        <select className="input" {...register("group")}>
-          <option value="">Selecciona…</option>
-          {groups.map((g) => (
-            <option key={g.key} value={g.key}>{g.label}{g.budgeted ? "" : " (sin pozo)"}</option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Subcategoría" className="lg:col-span-2">
-        <Controller
-          control={control}
-          name="subcategory"
-          render={({ field }) => (
-            <Autocomplete options={subOptions} value={field.value || ""} onChange={field.onChange} placeholder="Ej. Internet, Energía, Bolsas…" />
-          )}
-        />
-      </Field>
-      <Field label="Monto" error={errors.amount?.message}>
-        <input type="number" step="0.01" min={0} className="input" {...register("amount")} />
-      </Field>
-      <Field label="Moneda">
-        <select className="input" {...register("currency")}>
-          <option value="C$">C$</option>
-          <option value="USD">USD</option>
-        </select>
-      </Field>
-      <Field label="Nota (opcional)" className="lg:col-span-5">
-        <input className="input" placeholder="Descripción…" {...register("reason")} />
-      </Field>
-      <div className="flex items-end">
+      <motion.div variants={fieldItem}>
+        <Field label="Fecha" error={errors.date?.message}>
+          <DateField control={control} name="date" invalid={!!errors.date} />
+        </Field>
+      </motion.div>
+
+      <motion.div variants={fieldItem}>
+        <Field label="Grupo" error={errors.group?.message}>
+          <Select icon={Wallet} {...register("group")}>
+            <option value="">Selecciona…</option>
+            {groups.map((g) => (
+              <option key={g.key} value={g.key}>{g.label}{g.budgeted ? "" : " (sin pozo)"}</option>
+            ))}
+          </Select>
+        </Field>
+      </motion.div>
+
+      <motion.div variants={fieldItem} className="sm:col-span-2">
+        <Field label="Subcategoría">
+          <Controller
+            control={control}
+            name="subcategory"
+            render={({ field }) => (
+              <Autocomplete options={subOptions} value={field.value || ""} onChange={field.onChange} placeholder="Ej. Internet, Energía, Bolsas…" />
+            )}
+          />
+        </Field>
+      </motion.div>
+
+      <motion.div variants={fieldItem}>
+        <Field label="Monto" error={errors.amount?.message}>
+          <input type="number" step="0.01" min={0} className="input" {...register("amount")} />
+        </Field>
+      </motion.div>
+
+      <motion.div variants={fieldItem}>
+        <Field label="Moneda">
+          <Select icon={Coins} {...register("currency")}>
+            <option value="C$">C$</option>
+            <option value="USD">USD</option>
+          </Select>
+        </Field>
+      </motion.div>
+
+      <motion.div variants={fieldItem} className="sm:col-span-2">
+        <Field label="Nota (opcional)">
+          <input className="input" placeholder="Descripción…" {...register("reason")} />
+        </Field>
+      </motion.div>
+
+      <motion.div variants={fieldItem} className="sm:col-span-2 flex justify-end pt-1">
         <Button type="submit" loading={creating || updating}>
           {isEdit ? "Guardar cambios" : "Registrar gasto"}
         </Button>
-      </div>
+      </motion.div>
+
       {!isEdit && (
-        <p className="text-xs text-muted lg:col-span-6">
+        <motion.p variants={fieldItem} className="sm:col-span-2 text-xs text-muted">
           Mientras el gasto del grupo no supere su pozo de presupuesto del mes, no afecta la ganancia. Solo el excedente la reduce. Los grupos "sin pozo" la reducen por completo.
-        </p>
+        </motion.p>
       )}
-    </form>
+    </motion.form>
   );
 }

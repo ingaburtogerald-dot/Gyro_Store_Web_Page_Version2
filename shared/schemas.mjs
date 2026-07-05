@@ -10,7 +10,7 @@
 // infiera los union types exactos (z.enum) también desde este archivo .mjs.
 import { z } from "zod";
 
-export const LOSS_CATEGORIES = /** @type {["robo", "daño", "devolucion"]} */ (["robo", "daño", "devolucion"]);
+export const LOSS_CATEGORIES = /** @type {["robo", "daño", "devolucion", "regalias"]} */ (["robo", "daño", "devolucion", "regalias"]);
 export const LOSS_ORIGINS = /** @type {["native", "migrated"]} */ (["native", "migrated"]);
 export const CURRENCIES = /** @type {["C$", "USD"]} */ (["C$", "USD"]);
 

@@ -6,7 +6,7 @@ import type { LossRecord, LossCategory } from "~/store/api/reportsApi";
 import { cn } from "~/lib/utils";
 
 const LOSS_CATEGORY_LABEL: Record<LossCategory, string> = {
-  robo: "Robo", daño: "Daño", devolucion: "Devolución",
+  robo: "Robo", daño: "Daño", devolucion: "Devolución", regalias: "Regalías",
 };
 
 const money = (r: LossRecord) => `${r.currency === "USD" ? "$" : "C$"}${r.amount}`;
@@ -14,13 +14,13 @@ const money = (r: LossRecord) => `${r.currency === "USD" ? "$" : "C$"}${r.amount
 function TypeBadge({ record }: { record: LossRecord }) {
   const isExpense = record.kind === "expense";
   const label = isExpense ? "Gasto" : LOSS_CATEGORY_LABEL[record.category as LossCategory] ?? "Pérdida";
+  const color = isExpense
+    ? "bg-amber-500/15 text-amber-400"
+    : record.category === "regalias"
+      ? "bg-violet-500/15 text-violet-400"
+      : "bg-rose-500/15 text-rose-400";
   return (
-    <span
-      className={cn(
-        "inline-block rounded-pill px-2 py-0.5 text-[11px] font-semibold",
-        isExpense ? "bg-amber-500/15 text-amber-400" : "bg-rose-500/15 text-rose-400",
-      )}
-    >
+    <span className={cn("inline-block rounded-pill px-2 py-0.5 text-[11px] font-semibold", color)}>
       {label}
     </span>
   );
