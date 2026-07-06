@@ -28,6 +28,7 @@ import {
   type Invoice,
   type NewInvoice,
   type ProductLookup,
+  type ProductOrigin,
 } from "~/store/api/invoicesApi";
 import { formatCordobas, cn } from "~/lib/utils";
 
@@ -36,6 +37,17 @@ interface Line {
   productName: string;
   quantity: number;
   unitPrice: number;
+  origin: ProductOrigin;
+  productId: string;
+}
+
+/** Píldora "Migrado" (mismo lenguaje visual que el editor de ventas). */
+function MigratedTag() {
+  return (
+    <span className="shrink-0 rounded-pill bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+      Migrado
+    </span>
+  );
 }
 
 export function TicketFormModal({
@@ -64,6 +76,9 @@ export function TicketFormModal({
   const { data: results = [], isFetching: searching } = useSearchProductsQuery(debouncedQuery, {
     skip: debouncedQuery.length < 2,
   });
+  // Solo se ofrecen productos con stock: un ticket reserva stock, así que los
+  // agotados no deben aparecer como opción (antes salían deshabilitados).
+  const inStock = results.filter((p) => (p.stock || 0) > 0);
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) setDropdownOpen(false);
@@ -74,7 +89,12 @@ export function TicketFormModal({
 
   const [lines, setLines] = useState<Line[]>(
     () => (initial?.items || []).map((it) => ({
-      productCode: it.productCode, productName: it.productName, quantity: it.quantity, unitPrice: it.unitPrice,
+      productCode: it.productCode,
+      productName: it.productName,
+      quantity: it.quantity,
+      unitPrice: it.unitPrice,
+      origin: it.origin || "native",
+      productId: it.productId || "",
     })),
   );
   const [form, setForm] = useState({
@@ -91,10 +111,26 @@ export function TicketFormModal({
   const total = subtotal;
 
   function addProduct(p: ProductLookup) {
+    // Regla de No-Mezcla: un ticket es 100% nativo o 100% migrado (sus reservas
+    // viven en colecciones distintas). Se valida también en el backend.
+    const currentOrigin = lines[0]?.origin;
+    if (currentOrigin && currentOrigin !== p.origin) {
+      toast.error("Un ticket no puede mezclar inventario actual y migrado. Emite tickets por separado.");
+      return;
+    }
     setLines((ls) => {
-      const existing = ls.find((l) => l.productCode === p.code);
-      if (existing) return ls.map((l) => (l.productCode === p.code ? { ...l, quantity: l.quantity + 1 } : l));
-      return [...ls, { productCode: p.code, productName: p.name, quantity: 1, unitPrice: p.price }];
+      // Dedupe por identidad real (origen + doc id): un código migrado y uno
+      // nativo podrían coincidir, pero son productos distintos.
+      const existing = ls.find((l) => l.origin === p.origin && l.productId === p.productId);
+      if (existing) return ls.map((l) => (l === existing ? { ...l, quantity: l.quantity + 1 } : l));
+      return [...ls, {
+        productCode: p.code,
+        productName: p.name,
+        quantity: 1,
+        unitPrice: p.price,
+        origin: p.origin,
+        productId: p.productId,
+      }];
     });
     setQuery("");
     setDebouncedQuery("");
@@ -113,7 +149,13 @@ export function TicketFormModal({
 
     const body: NewInvoice = {
       customer: { firstName: form.firstName.trim(), lastName: form.lastName.trim(), phone: form.phone.trim() },
-      items: lines.map((l) => ({ productCode: l.productCode, quantity: l.quantity, unitPrice: l.unitPrice })),
+      items: lines.map((l) => ({
+        productCode: l.productCode,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        origin: l.origin,
+        productId: l.productId,
+      })),
       discount: 0,
       deliveryFee: form.deliveryFee === "" ? 0 : parseFloat(form.deliveryFee) || 0,
       paymentMethod: form.paymentMethod,
@@ -192,8 +234,8 @@ export function TicketFormModal({
                 onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true); }}
                 onFocus={() => setDropdownOpen(true)}
                 onKeyDown={(e) => {
-                  // Enter agrega la primera sugerencia (flujo rápido de la cajera).
-                  if (e.key === "Enter" && results.length > 0) addProduct(results[0]);
+                  // Enter agrega la primera sugerencia con stock (flujo rápido de la cajera).
+                  if (e.key === "Enter" && inStock.length > 0) addProduct(inStock[0]);
                   if (e.key === "Escape") setDropdownOpen(false);
                 }}
                 placeholder="Busca por código o nombre…"
@@ -211,46 +253,35 @@ export function TicketFormModal({
                   transition={{ duration: 0.15 }}
                   className="absolute top-full left-0 z-50 mt-1.5 w-full overflow-hidden rounded-card border border-border bg-surface-2 p-1 shadow-2xl"
                 >
-                  {results.length === 0 && !searching ? (
+                  {inStock.length === 0 && !searching ? (
                     <p className="px-3 py-3 text-center text-sm text-muted">
-                      Sin resultados para &ldquo;{debouncedQuery}&rdquo;
+                      {results.length > 0
+                        ? `Sin stock disponible para “${debouncedQuery}”`
+                        : `Sin resultados para “${debouncedQuery}”`}
                     </p>
                   ) : (
-                    results.map((p) => {
-                      const out = (p.stock || 0) <= 0;
-                      return (
-                        <button
-                          key={p.code}
-                          type="button"
-                          disabled={out}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => addProduct(p)}
-                          className={cn(
-                            "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-all",
-                            out
-                              ? "cursor-not-allowed opacity-40"
-                              : "hover:bg-accent/5 hover:translate-x-0.5",
-                          )}
-                        >
-                          <Package className="h-3.5 w-3.5 shrink-0 text-muted/50" />
-                          <span className="flex-1 truncate">{p.name}</span>
-                          <span className="rounded-md bg-bg px-2 py-0.5 text-[11px] font-mono text-muted">
-                            {p.code}
-                          </span>
-                          <span className="w-20 text-right font-heading font-semibold text-text">
-                            {formatCordobas(p.price)}
-                          </span>
-                          <span
-                            className={cn(
-                              "w-16 text-right text-[11px]",
-                              out ? "text-rose-400" : "text-muted",
-                            )}
-                          >
-                            {out ? "sin stock" : `${p.stock} disp.`}
-                          </span>
-                        </button>
-                      );
-                    })
+                    inStock.map((p) => (
+                      <button
+                        key={`${p.origin}:${p.productId}`}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => addProduct(p)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-all hover:translate-x-0.5 hover:bg-accent/5"
+                      >
+                        <Package className="h-3.5 w-3.5 shrink-0 text-muted/50" />
+                        <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                        {p.origin === "migrated" && <MigratedTag />}
+                        <span className="rounded-md bg-bg px-2 py-0.5 text-[11px] font-mono text-muted">
+                          {p.code}
+                        </span>
+                        <span className="w-20 text-right font-heading font-semibold text-text">
+                          {formatCordobas(p.price)}
+                        </span>
+                        <span className="w-16 text-right text-[11px] text-muted">
+                          {p.stock} disp.
+                        </span>
+                      </button>
+                    ))
                   )}
                 </motion.div>
               )}
@@ -278,7 +309,7 @@ export function TicketFormModal({
               <AnimatePresence mode="popLayout">
                 {lines.map((l, i) => (
                   <motion.div
-                    key={l.productCode}
+                    key={`${l.origin}:${l.productId || l.productCode}`}
                     layout
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -287,7 +318,8 @@ export function TicketFormModal({
                     className="group flex items-center gap-2 rounded-xl border border-border bg-bg p-2.5 text-sm transition-colors hover:border-accent/20"
                   >
                     <Package className="h-3.5 w-3.5 shrink-0 text-accent/40" />
-                    <span className="flex-1 truncate font-medium">{l.productName}</span>
+                    <span className="min-w-0 flex-1 truncate font-medium">{l.productName}</span>
+                    {l.origin === "migrated" && <MigratedTag />}
                     <input
                       type="number"
                       min={1}
@@ -339,7 +371,7 @@ export function TicketFormModal({
         <div className="flex items-center justify-between border-t border-border pt-5">
           <div>
             <span className="text-xs font-medium uppercase tracking-wide text-muted">Total</span>
-            <p className="gradient-text font-heading text-3xl font-bold">
+            <p className="font-heading text-3xl font-bold tabular-nums text-text">
               {formatCordobas(total)}
             </p>
             {(form.deliveryFee !== "" && parseFloat(form.deliveryFee) > 0) && (
@@ -362,11 +394,13 @@ export function TicketFormModal({
 
 /* ── Helpers internos ── */
 
+// Encabezado de sección: ícono + etiqueta. Sin borde-franja lateral (patrón
+// baneado); el ícono en acento y la mayúscula ya establecen la jerarquía.
 function SectionHeader({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (
-    <div className="section-accent-border flex items-center gap-2">
-      <Icon className="h-4 w-4 text-accent/70" />
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
+    <div className="flex items-center gap-2">
+      <Icon className="h-4 w-4 text-accent-2" />
+      <p className="text-xs font-semibold uppercase tracking-wide text-text">{label}</p>
     </div>
   );
 }

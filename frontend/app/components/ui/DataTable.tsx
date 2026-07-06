@@ -28,7 +28,7 @@ interface DataTableProps<T> {
   data: T[];
   searchPlaceholder?: string;
   pageSize?: number;
-  emptyText?: string;
+  emptyText?: ReactNode;
   isLoading?: boolean;
   initialSorting?: SortingState;
   onRowClick?: (row: T) => void;

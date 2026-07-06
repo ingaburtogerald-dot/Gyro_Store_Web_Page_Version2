@@ -3,7 +3,7 @@
 // Versión premium: glow badges, ticket badge estilizado y mobile cards.
 import { useMemo } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Printer, Pencil, Ban, User, ShoppingBag, Hash } from "lucide-react";
+import { Printer, Pencil, Ban, Trash2, User, ShoppingBag, Hash, Receipt } from "lucide-react";
 import { DataTable } from "~/components/ui/DataTable";
 import { RowActionsMenu } from "~/components/ui/RowActionsMenu";
 import { MoneyCell } from "~/components/ui/cells";
@@ -20,9 +20,11 @@ const STATUS_META: Record<InvoiceStatus, { label: string; status: BadgeStatus; p
   paid: { label: "Pagado", status: "whatsapp" },
 };
 
+// Sin `glow`: en una tabla larga, un halo por fila es ruido. El punto pulsante
+// del estado "pendiente" basta para señalar lo que espera acción.
 function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
   const m = STATUS_META[status] || STATUS_META.unlinked;
-  return <StatusBadge status={m.status} label={m.label} pulse={m.pulse} glow />;
+  return <StatusBadge status={m.status} label={m.label} pulse={m.pulse} />;
 }
 
 /** Badge estilizado para el número de ticket */
@@ -41,12 +43,14 @@ export function InvoicesList({
   onPrint,
   onEdit,
   onVoid,
+  onDelete,
 }: {
   invoices: Invoice[];
   isAdmin: boolean;
   onPrint: (inv: Invoice) => void;
   onEdit: (inv: Invoice) => void;
   onVoid: (inv: Invoice) => void;
+  onDelete: (inv: Invoice) => void;
 }) {
   const columns = useMemo<ColumnDef<Invoice, any>[]>(
     () => [
@@ -58,39 +62,58 @@ export function InvoicesList({
       {
         accessorKey: "createdAt",
         header: "Fecha",
-        cell: (c) =>
-          c.getValue() ? (
-            <span className="text-sm text-muted">
-              {new Date(c.getValue()).toLocaleString("es-NI", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
-            </span>
-          ) : (
-            <span className="text-muted">—</span>
-          ),
+        // Compacta y de dos niveles: la fecha lee como ancla temporal, la hora
+        // queda subordinada. Menos ancho, menos ruido que un datetime corrido.
+        cell: (c) => {
+          const v = c.getValue();
+          if (!v) return <span className="text-muted">—</span>;
+          const d = new Date(v);
+          return (
+            <div className="leading-tight" title={d.toLocaleString("es-NI")}>
+              <div className="text-sm text-text/80">
+                {d.toLocaleDateString("es-NI", { day: "2-digit", month: "short" })}
+              </div>
+              <div className="text-[11px] text-muted">
+                {d.toLocaleTimeString("es-NI", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+          );
+        },
       },
       {
         accessorFn: (i) =>
           `${i.customer?.firstName || ""} ${i.customer?.lastName || ""}`.trim() || "—",
         id: "customer",
         header: "Cliente",
-        cell: (c) => (
-          <span className="flex items-center gap-1.5 font-medium text-text">
-            <User className="h-3.5 w-3.5 text-muted/60" />
-            {c.getValue()}
-          </span>
-        ),
+        // Ancla del escaneo: nombre en semibold; el teléfono va debajo, callado.
+        cell: ({ row, getValue }) => {
+          const phone = row.original.customer?.phone;
+          return (
+            <div className="flex items-center gap-2">
+              <User className="h-3.5 w-3.5 shrink-0 text-muted/60" />
+              <div className="leading-tight">
+                <div className="font-semibold text-text">{getValue()}</div>
+                {phone && <div className="text-[11px] text-muted">{phone}</div>}
+              </div>
+            </div>
+          );
+        },
       },
       {
         accessorFn: (i) => i.items.map((x) => x.productName).join(", "),
         id: "products",
         header: "Productos",
-        cell: (c) => (
-          <span className="line-clamp-1 text-sm text-muted" title={c.getValue()}>
-            {c.getValue()}
-          </span>
-        ),
+        cell: ({ row, getValue }) => {
+          const count = row.original.items.length;
+          return (
+            <div className="max-w-[22ch]" title={getValue()}>
+              <div className="line-clamp-1 text-xs text-muted">{getValue()}</div>
+              <div className="text-[11px] text-muted/70">
+                {count} {count === 1 ? "artículo" : "artículos"}
+              </div>
+            </div>
+          );
+        },
       },
       {
         accessorFn: (i) => i.assignedSeller?.name || i.sellerName || "—",
@@ -116,6 +139,7 @@ export function InvoicesList({
         cell: ({ row }) => {
           const inv = row.original;
           const pending = inv.status === "unlinked";
+          const canDelete = isAdmin && inv.status !== "linked";
           return (
             <div className="flex justify-end">
               <RowActionsMenu
@@ -138,6 +162,13 @@ export function InvoicesList({
                       separatorBefore: true,
                       onClick: () => onVoid(inv),
                     },
+                  canDelete && {
+                    label: "Eliminar",
+                    icon: <Trash2 className="h-4 w-4" />,
+                    danger: true,
+                    separatorBefore: !pending,
+                    onClick: () => onDelete(inv),
+                  },
                 ]}
               />
             </div>
@@ -145,7 +176,7 @@ export function InvoicesList({
         },
       },
     ],
-    [isAdmin, onPrint, onEdit, onVoid],
+    [isAdmin, onPrint, onEdit, onVoid, onDelete],
   );
 
   /** Mobile card: tarjeta moderna para cada ticket */
@@ -207,6 +238,13 @@ export function InvoicesList({
                   separatorBefore: true,
                   onClick: () => onVoid(inv),
                 },
+              isAdmin && inv.status !== "linked" && {
+                label: "Eliminar",
+                icon: <Trash2 className="h-4 w-4" />,
+                danger: true,
+                separatorBefore: !pending,
+                onClick: () => onDelete(inv),
+              },
             ]}
           />
         </div>
@@ -219,8 +257,24 @@ export function InvoicesList({
       columns={columns}
       data={invoices}
       searchPlaceholder="Buscar por ticket, cliente, producto…"
-      emptyText="Sin tickets en esta vista."
+      emptyText={<EmptyTickets />}
       mobileCard={mobileCard}
     />
+  );
+}
+
+/** Empty state con intención: ícono, mensaje y siguiente paso claro. */
+function EmptyTickets() {
+  return (
+    <div className="flex flex-col items-center gap-2 py-6">
+      <div className="rounded-2xl bg-accent/10 p-3 text-accent-2">
+        <Receipt className="h-6 w-6" />
+      </div>
+      <p className="text-sm font-medium text-text">No hay tickets en esta vista</p>
+      <p className="max-w-xs text-xs text-muted">
+        Genera un ticket con <span className="font-semibold text-text">Nuevo ticket</span> o cambia
+        de pestaña para ver otro estado.
+      </p>
+    </div>
   );
 }

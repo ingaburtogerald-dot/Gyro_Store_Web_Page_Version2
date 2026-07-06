@@ -19,7 +19,7 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
     <div
       ref={ref}
       style={{ width: "80mm", fontFamily: "'Segoe UI', Arial, sans-serif", color: "#000" }}
-      className="mx-auto bg-white px-4 py-5 text-[13px] leading-snug text-black"
+      className="mx-auto bg-white px-4 pb-5 pt-0.5 text-[13px] leading-snug text-black"
     >
       {/* ═══════════════════════════════════════════
           CABECERA: Logo centrado + info de contacto
@@ -161,14 +161,25 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
       {/* ═══════════════════════════════════════════
           POLÍTICAS DE GARANTÍA
           ═══════════════════════════════════════════ */}
-      <div className="mt-2 px-0.5 text-[9px] leading-[1.25]">
-        <p className="mb-1 text-center text-[10px] font-bold uppercase tracking-wider">
+      <div className="mt-2 px-0.5 text-[11px] leading-[1.35]">
+        <p className="mb-1.5 text-center text-[12px] font-bold uppercase tracking-wider">
           Políticas de Garantía
         </p>
-        <p>1. Presentar este ticket es obligatorio para reclamos.</p>
-        <p>2. Válida solo por defectos de fábrica (evaluación 48-72h).</p>
-        <p>3. Anulada por daños físicos, golpes, humedad o mal uso.</p>
-        <p>4. Artículos deben devolverse con cajas y accesorios originales.</p>
+        <div className="space-y-1.5">
+          <p>
+            <span className="font-bold">La garantía solo cubre defectos de fábrica.</span> No
+            aplica si el producto presenta desperfectos por el uso (como rayones o golpes).
+          </p>
+          <p>
+            <span className="font-bold">Tiempo de cobertura:</span> 1 mes. Para compras mayoristas
+            (más de 1 docena) la cobertura es de 3 meses.
+          </p>
+          <p>
+            <span className="font-bold">Requisitos:</span> Para aplicar la garantía es
+            indispensable presentar esta factura. El artículo y su caja original deben estar en
+            excelentes condiciones, tal como se entregaron.
+          </p>
+        </div>
       </div>
 
       {/* ── Corte final ── */}

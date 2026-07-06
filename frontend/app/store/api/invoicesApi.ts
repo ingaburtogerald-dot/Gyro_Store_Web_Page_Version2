@@ -3,6 +3,8 @@
 // solo informativo (se imprime, no entra al total ni a comisiones).
 import { baseApi } from "./baseApi";
 
+export type ProductOrigin = "native" | "migrated";
+
 export interface InvoiceItem {
   productId?: string;
   productCode: string;
@@ -10,6 +12,9 @@ export interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  origin?: ProductOrigin;
+  migratedId?: string; // solo migrado
+  unitCostReal?: number; // solo migrado (para comisión/consumo aguas abajo)
 }
 
 export type InvoiceStatus = "unlinked" | "linked" | "void" | "paid";
@@ -51,7 +56,13 @@ export interface Invoice {
 
 export interface NewInvoice {
   customer: InvoiceCustomer;
-  items: { productCode: string; quantity: number; unitPrice: number }[];
+  items: {
+    productCode: string;
+    quantity: number;
+    unitPrice: number;
+    origin?: ProductOrigin;
+    productId?: string;
+  }[];
   discount: number;
   deliveryFee: number;
   paymentMethod: string;
@@ -65,6 +76,7 @@ export interface ProductLookup {
   name: string;
   price: number;
   stock: number;
+  origin: ProductOrigin;
 }
 
 export const invoicesApi = baseApi.injectEndpoints({
@@ -98,6 +110,10 @@ export const invoicesApi = baseApi.injectEndpoints({
       query: ({ id, orderId }) => ({ url: `/invoices/${id}/link`, method: "POST", body: { orderId } }),
       invalidatesTags: ["Invoice", "Order"],
     }),
+    deleteInvoice: build.mutation<{ ok: boolean }, string>({
+      query: (id) => ({ url: `/invoices/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Invoice", "Product"],
+    }),
   }),
 });
 
@@ -110,4 +126,6 @@ export const {
   useUpdateInvoiceMutation,
   useVoidInvoiceMutation,
   useLinkInvoiceMutation,
+  useDeleteInvoiceMutation,
 } = invoicesApi;
+
