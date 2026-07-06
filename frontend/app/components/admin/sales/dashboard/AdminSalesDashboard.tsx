@@ -85,15 +85,14 @@ function DashboardLayout() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-          {/* Gráfico de comisiones a todo el ancho */}
-          <div className="lg:col-span-12">
+          {/* Gráfico 8 cols + resumen 4 cols (misma proporción que admin) */}
+          <div className="lg:col-span-8">
             <SalesPerformanceWidget />
           </div>
-          {/* "Mi resumen" y "Actividad reciente" comparten fila (alturas similares) */}
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-4">
             <SellerBalanceWidget />
           </div>
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-12">
             <RecentActivityWidget />
           </div>
         </div>

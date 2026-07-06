@@ -94,6 +94,35 @@ const followupSchema = z.object({
   status: z.enum(['pending', 'done', 'lost']).optional().default('pending'),
 });
 
+// ── Seguimientos (CRM ligero): Contactos + Actividades (historial) ──
+// Un "contacto" es la persona; su historial vive en la subcolección
+// `contacts/{id}/activities`. Sin embudo de ventas: el contacto está `active`
+// (se le sigue dando seguimiento) o `closed` (ya compró / ya no interesa).
+const CONTACT_SOURCES = ['facebook_ads', 'social_chat', 'whatsapp', 'marketplace', 'other'];
+const CONTACT_TAGS = ['retail', 'reseller', 'wholesale', 'vip'];
+const CONTACT_STATUS = ['active', 'closed'];
+const ACTIVITY_TYPES = ['call', 'whatsapp', 'note', 'restock', 'meeting'];
+
+// Crear / editar un contacto de Seguimientos.
+const crmContactSchema = z.object({
+  name: z.string().min(2, 'Nombre del cliente requerido').max(80),
+  phone: z.string().max(20).optional().default(''),
+  email: z.string().email('Correo inválido').optional().or(z.literal('')),
+  product: z.string().max(120).optional().default(''),
+  source: z.enum(CONTACT_SOURCES).optional().default('other'),
+  tags: z.array(z.enum(CONTACT_TAGS)).max(8).optional().default([]),
+  status: z.enum(CONTACT_STATUS).optional().default('active'),
+});
+
+// Registrar una interacción en el historial de un contacto.
+// `dueAt`: ISO datetime con hora si es una tarea programada; null/ausente = registro ya hecho.
+const crmActivitySchema = z.object({
+  type: z.enum(ACTIVITY_TYPES),
+  body: z.string().max(2000).optional().default(''),
+  dueAt: z.string().datetime({ offset: true }).nullable().optional(),
+  outcome: z.enum(['positive', 'neutral', 'negative']).nullable().optional(),
+});
+
 module.exports = {
   roleEnum,
   createUserSchema,
@@ -104,4 +133,10 @@ module.exports = {
   installmentSchema,
   installmentPaymentSchema,
   followupSchema,
+  crmContactSchema,
+  crmActivitySchema,
+  CONTACT_SOURCES,
+  CONTACT_TAGS,
+  CONTACT_STATUS,
+  ACTIVITY_TYPES,
 };

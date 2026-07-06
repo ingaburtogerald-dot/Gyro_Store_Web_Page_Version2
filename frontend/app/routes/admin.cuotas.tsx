@@ -122,7 +122,7 @@ function InstallmentCard({ inst }: { inst: Installment }) {
   const pct = inst.totalAmount > 0 ? Math.min(100, Math.round((inst.amountPaid / inst.totalAmount) * 100)) : 0;
 
   return (
-    <div className="rounded-card border border-border bg-surface overflow-hidden">
+    <div className="rounded-card border border-border bg-surface shadow-premium overflow-hidden">
       <div className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div>

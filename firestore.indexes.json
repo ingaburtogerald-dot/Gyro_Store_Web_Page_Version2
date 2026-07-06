@@ -1,0 +1,5 @@
+{
+  "comment": "Seguimientos (contacts/activities) usa solo consultas de igualdad y orden en subcolección, cubiertas por los índices de campo único automáticos de Firestore. No requiere índices compuestos.",
+  "indexes": [],
+  "fieldOverrides": []
+}

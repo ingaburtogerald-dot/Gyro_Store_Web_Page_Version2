@@ -17,12 +17,12 @@ export function BudgetTable({ rows }: { rows: BudgetRow[] }) {
   );
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface shadow-premium p-4">
       <h3 className="mb-3 font-semibold">Presupuesto vs. Gasto (C$)</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wider text-muted">
+            <tr className="table-header-brand text-left text-[11px] font-bold uppercase tracking-wider text-muted border-b border-border">
               <th className="py-2 pr-3">Grupo</th>
               <th className="py-2 px-3 text-right">Presupuesto</th>
               <th className="py-2 px-3 text-right">Gastado</th>

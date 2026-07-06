@@ -3,6 +3,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight, Search, X, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { SALE_STATUS_META } from "./saleStatus";
+import { StatusBadge } from "~/components/ui/StatusBadge";
 import { DataTable } from "~/components/ui/DataTable";
 import { AdminSaleCard } from "./AdminSaleCard";
 import { Modal } from "~/components/ui/Modal";
@@ -179,7 +180,7 @@ export function AdminSalesHistory({
           const m = SALE_STATUS_META[s.status as Sale["status"]];
           return (
             <div className="flex flex-col gap-1 items-start">
-              <span className={`rounded-pill px-2 py-0.5 text-xs font-semibold ${m.cls}`}>{m.label}</span>
+              <StatusBadge status={m.status} label={m.label} />
               {s.editReason && (
                 <span
                   className="rounded-pill bg-accent/20 px-1.5 py-0.5 text-[11px] font-bold text-accent-2 cursor-help"
@@ -229,17 +230,20 @@ export function AdminSalesHistory({
   }, [finalSales, nameQuery]);
 
   const totals = useMemo(() => {
-    let venta = 0, comision = 0, ganancia = 0;
+    let venta = 0, comision = 0, ganancia = 0, cantidad = 0;
     for (const s of displayedSales) {
       venta += s.saleTotal || 0;
       comision += s.displayComisionVendedor || s.comisionVendedor || 0;
       ganancia += s.displayGananciaTienda || s.gananciaTienda || 0;
+      for (const it of s.items || []) {
+        cantidad += it.quantity || 0;
+      }
     }
-    return { venta, comision, ganancia };
+    return { venta, comision, ganancia, cantidad };
   }, [displayedSales]);
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4 relative">
+    <div className="rounded-card border border-border bg-surface shadow-premium p-4 relative">
       <div className="sticky top-0 z-30 flex flex-col lg:flex-row items-start justify-between gap-4 bg-surface pb-2">
         <h2 className="text-lg font-bold text-text">Desglose Detallado de Transacciones</h2>
         <div className="flex flex-wrap items-center gap-3">
@@ -261,6 +265,10 @@ export function AdminSalesHistory({
           {displayedSales.length > 0 && (
             <div className="flex items-center gap-4 rounded-lg border border-border bg-surface-2 px-4 py-2 text-xs shadow-sm">
               <div className="flex flex-col">
+                <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Artículos</span>
+                <span className="text-sm font-semibold text-text">{totals.cantidad}</span>
+              </div>
+              <div className="flex flex-col border-l border-border pl-4">
                 <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Venta Total</span>
                 <span className="text-sm font-semibold text-text">{formatCordobas(totals.venta)}</span>
               </div>

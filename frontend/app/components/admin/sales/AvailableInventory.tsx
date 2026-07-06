@@ -77,7 +77,7 @@ export function AvailableInventory() {
   );
 
   return (
-    <div className="space-y-4 rounded-card border border-border bg-surface p-4">
+    <div className="space-y-4 rounded-card border border-border bg-surface shadow-premium p-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-text">Inventario Disponible</h2>
@@ -103,7 +103,7 @@ export function AvailableInventory() {
         emptyText="No hay inventario disponible en bodega."
         initialSorting={[{ id: "code", desc: false }]}
         mobileCard={(row) => (
-          <div className="space-y-2 rounded-card border border-border bg-surface p-4">
+          <div className="space-y-2 rounded-card border border-border bg-surface shadow-premium p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-muted">{row.code}</span>

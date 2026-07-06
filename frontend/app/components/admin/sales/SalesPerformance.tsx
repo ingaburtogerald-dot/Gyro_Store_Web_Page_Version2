@@ -16,7 +16,7 @@ export function SalesPerformance({ selectedMonth }: { selectedMonth: string }) {
     return [...data].sort((a, b) => b.totalVendido - a.totalVendido);
   }, [data]);
 
-  if (isLoading) return <div className="h-40 animate-pulse rounded-card border border-border bg-surface" />;
+  if (isLoading) return <div className="h-40 animate-pulse rounded-card border border-border bg-surface shadow-premium" />;
 
   return (
     <div className="space-y-6">

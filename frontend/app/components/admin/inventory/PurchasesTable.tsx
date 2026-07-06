@@ -9,6 +9,8 @@ import { DataTable } from "~/components/ui/DataTable";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
 import { FilterSelect, type FilterSelectOption } from "~/components/ui/FilterSelect";
+import { RowActionsMenu } from "~/components/ui/RowActionsMenu";
+import { StatusBadge, type BadgeStatus } from "~/components/ui/StatusBadge";
 import { ArrivalModal } from "./ArrivalModal";
 import { EditPurchaseModal } from "./EditPurchaseModal";
 import {
@@ -18,9 +20,10 @@ import {
 } from "~/store/api/inventoryApi";
 import { formatUsd } from "~/lib/utils";
 
-const STATUS_META: Record<Purchase["status"], { label: string; cls: string }> = {
-  china: { label: "En tránsito", cls: "bg-sky-500/15 text-sky-300" },
-  received: { label: "Recibido", cls: "bg-whatsapp/15 text-whatsapp" },
+// Tono del StatusBadge canónico por estado de la compra.
+const STATUS_META: Record<Purchase["status"], { label: string; status: BadgeStatus }> = {
+  china: { label: "En tránsito", status: "info" },
+  received: { label: "Recibido", status: "whatsapp" },
 };
 
 const ALL_OPT: FilterSelectOption = { value: "all", label: "Todos" };
@@ -127,7 +130,7 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
         ),
         cell: (c) => {
           const m = STATUS_META[c.getValue() as Purchase["status"]];
-          return <span className={`rounded-pill px-2.5 py-1 text-xs font-medium ${m.cls}`}>{m.label}</span>;
+          return <StatusBadge status={m.status} label={m.label} />;
         },
       },
       { accessorKey: "quantity", header: "Cant.", meta: { align: "right" } },
@@ -138,51 +141,31 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
       { accessorKey: "total", header: "Total", meta: { align: "right" }, cell: (c) => <span className="font-semibold">{formatUsd(c.getValue())}</span> },
       {
         id: "actions",
-        header: "Acciones",
+        header: "",
         enableSorting: false,
         cell: ({ row }) => {
           const p = row.original;
           if (p.status === "china") {
             return (
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => setArrivalFor(p)}
-                  className="group inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-500/20 transition-all duration-300 hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/40"
-                >
-                  <Ship className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                  Reportar llegada
-                </button>
-                <button
-                  onClick={() => setEditFor(p)}
-                  aria-label="Editar"
-                  className="rounded-lg p-1.5 text-muted hover:text-accent"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => setDeleteFor(p)}
-                  aria-label="Eliminar"
-                  className="rounded-lg p-1.5 text-muted hover:text-red-400"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+              <div className="flex justify-end">
+                <RowActionsMenu
+                  actions={[
+                    { label: "Reportar llegada", icon: <Ship className="h-4 w-4" />, onClick: () => setArrivalFor(p) },
+                    { label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => setEditFor(p) },
+                    { label: "Eliminar", icon: <Trash2 className="h-4 w-4" />, danger: true, separatorBefore: true, onClick: () => setDeleteFor(p) },
+                  ]}
+                />
               </div>
             );
           }
           if (p.status === "received") {
             return (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center justify-end gap-1.5">
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-xs font-semibold text-emerald-400">
                   <Warehouse className="h-3.5 w-3.5" />
                   Ingresado a bodega
                 </span>
-                <button
-                  onClick={() => setEditFor(p)}
-                  aria-label="Editar"
-                  className="rounded-lg p-1.5 text-muted hover:text-accent"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
+                <RowActionsMenu actions={[{ label: "Editar", icon: <Pencil className="h-4 w-4" />, onClick: () => setEditFor(p) }]} />
               </div>
             );
           }
@@ -194,7 +177,7 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
   );
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card border border-border bg-surface" />;
+    return <div className="h-64 animate-pulse rounded-card border border-border bg-surface shadow-premium" />;
   }
 
   return (

@@ -92,5 +92,10 @@ export class EmailStrategy implements AuthStrategy {
 // Obtiene un token fresco del usuario actual (para llamadas autenticadas a la API).
 export async function getIdToken(): Promise<string | null> {
   const auth = await getFirebaseAuth();
+  // Esperar a que Firebase termine de restaurar la sesión persistida. Sin esto,
+  // durante el primer instante tras cargar la página `currentUser` es null aunque
+  // el usuario SÍ esté logueado, y la petición saldría sin token → 401 (y RTK Query
+  // no reintenta). Causaba que, p.ej., el desplegable de vendedores saliera vacío.
+  await auth.authStateReady();
   return auth.currentUser ? auth.currentUser.getIdToken() : null;
 }

@@ -394,13 +394,6 @@ export const salesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["PublicOrder"],
     }),
-    processWarranty: build.mutation<
-      { ok: boolean; costReal: number },
-      { id: string; itemIndex: number; reason: string; notes?: string }
-    >({
-      query: ({ id, ...body }) => ({ url: `/sales/${id}/warranty`, method: "POST", body }),
-      invalidatesTags: ["Order", "Product"],
-    }),
   }),
 });
 
@@ -436,6 +429,5 @@ export const {
   useUpdateCostosFijosMutation,
   useUpdateBusinessConfigMutation,
   useMarkContactedMutation,
-  useProcessWarrantyMutation,
 } = salesApi;
 

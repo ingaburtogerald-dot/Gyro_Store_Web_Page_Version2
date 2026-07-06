@@ -32,6 +32,11 @@ function lossToCordobas(loss) {
 //     = costosFijosReal × (%grupo / Σ%). Solo el excedente sobre el pozo reduce la
 //     ganancia. Los grupos sin pozo ('varios') la reducen por completo.
 // `costosFijosReal` es la reserva de costos fijos acumulada por las ventas del periodo.
+// Categorías de pérdida de inventario que se cubren con el presupuesto de Garantías:
+// consumen su pozo (como un gasto presupuestado) en vez de bajar la ganancia al 100%.
+// Solo el excedente sobre el pozo reduce la ganancia. 'robo' NO entra (no es garantía).
+const WARRANTY_CATEGORIES = new Set(['daño', 'devolucion', 'regalias']);
+
 function computeDeductions(periodLosses, costosFijosReal) {
   const groups = config.expenseGroups;
   const sumPct = groups.reduce((s, g) => s + (g.budgeted ? Number(config.costosFijos[g.key]) || 0 : 0), 0) || 1;
@@ -43,8 +48,11 @@ function computeDeductions(periodLosses, costosFijosReal) {
     if (l.kind === 'expense') {
       const g = l.group || 'varios';
       spentByGroup[g] = (spentByGroup[g] || 0) + amt;
+    } else if (WARRANTY_CATEGORIES.has(l.category)) {
+      // Daño / Devolución / Regalías → salen del pozo de Garantías.
+      spentByGroup.garantias = (spentByGroup.garantias || 0) + amt;
     } else {
-      perdidasInventario += amt; // inventory_loss o legacy
+      perdidasInventario += amt; // robo o legacy sin categoría
     }
   }
 
@@ -158,12 +166,17 @@ function buildReport({ purchases, sales, migrated = [], losses, year, month }) {
   }));
 
   // ── Performance por vendedor (incluye migradas, atribuidas a su vendedor) ──
+  // Se agrupa por NOMBRE (normalizado), no por email: un mismo vendedor puede tener
+  // ventas bajo dos correos distintos (p.ej. cuenta nueva + ventas migradas del Excel
+  // viejo) y antes salía duplicado en el ranking.
   const perfMap = {};
   for (const s of approved) {
     if (!inPeriod(s.createdAt, year, month)) continue;
-    if (!perfMap[s.sellerEmail]) perfMap[s.sellerEmail] = { sellerName: s.sellerName, totalVendido: 0, comisiones: 0 };
-    perfMap[s.sellerEmail].totalVendido += s.saleTotal || 0;
-    perfMap[s.sellerEmail].comisiones += s.comisionVendedor || 0;
+    const name = (s.sellerName || s.sellerEmail || '—').trim();
+    const key = name.toLowerCase();
+    if (!perfMap[key]) perfMap[key] = { sellerName: name, totalVendido: 0, comisiones: 0 };
+    perfMap[key].totalVendido += s.saleTotal || 0;
+    perfMap[key].comisiones += s.comisionVendedor || 0;
   }
   const performance = Object.values(perfMap)
     .map((p) => ({ ...p, comisiones: Math.round(p.comisiones) }))

@@ -11,7 +11,7 @@ export function SellerPayments() {
 
   if (payments.length === 0) {
     return (
-      <p className="rounded-card border border-border bg-surface py-10 text-center text-sm text-muted">
+      <p className="rounded-card border border-border bg-surface shadow-premium py-10 text-center text-sm text-muted">
         Aún no has recibido pagos.
       </p>
     );

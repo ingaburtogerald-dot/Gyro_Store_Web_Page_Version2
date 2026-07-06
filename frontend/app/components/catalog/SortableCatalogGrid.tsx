@@ -85,7 +85,7 @@ function SortableCard({ item, onEdit, onDelete }: { item: CatalogProduct; onEdit
   const baseName = item.name;
 
   return (
-    <div ref={setNodeRef} style={style} className="relative flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface">
+    <div ref={setNodeRef} style={style} className="relative flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface shadow-premium">
       <div className="absolute left-2 top-2 z-10 flex gap-1">
         <button {...attributes} {...listeners} className="cursor-grab rounded-lg bg-black/50 p-1.5 text-white active:cursor-grabbing" aria-label="Reordenar">
           <GripVertical className="h-4 w-4" />

@@ -25,7 +25,7 @@ export function ShipmentCard({
     : "";
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface shadow-premium p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-medium">Tracking: {shipment.trackingNumber}</p>

@@ -10,8 +10,9 @@ type Size = "sm" | "md" | "lg";
 const VARIANTS: Record<Variant, string> = {
   // Gradiente — CTAs de página (Nueva venta, Registrar compra…)
   primary: "bg-gradient-accent text-white shadow-lg shadow-accent/20",
-  // Sólido — submits dentro de modales y formularios secundarios
-  submit: "bg-accent text-white hover:bg-accent-2 shadow-md shadow-accent/20",
+  // Sólido — submits dentro de modales y formularios secundarios.
+  // Hover oscurece (patrón Vercel): el botón se "hunde" al pasar el mouse.
+  submit: "bg-accent text-white hover:bg-accent-hover shadow-md shadow-accent/20",
   // Destructivo — eliminar, rechazar
   destructive: "bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white",
   // WhatsApp — solo para botones que abren un chat de WhatsApp real

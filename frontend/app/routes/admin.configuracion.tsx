@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Save, RefreshCw } from "lucide-react";
 import { RequireRole } from "~/components/admin/RequireRole";
 import { Button } from "~/components/ui/Button";
+import { Card } from "~/components/ui/Card";
 import {
   useGetFullConfigQuery,
   useUpdateBusinessConfigMutation,
@@ -14,12 +15,26 @@ import {
   type CostosFijos,
 } from "~/store/api/salesApi";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+// Layout de dos columnas (patrón "settings page"): a la izquierda el título y
+// una descripción de qué controla la sección; a la derecha la card con los
+// campos. En pantallas angostas se apila.
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-card border border-border bg-surface p-5 space-y-4">
-      <h2 className="text-base font-semibold text-text">{title}</h2>
-      {children}
-    </div>
+    <section className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-8">
+      <div>
+        <h2 className="section-accent-border text-base font-semibold text-text">{title}</h2>
+        {description && <p className="mt-2 text-sm leading-relaxed text-muted">{description}</p>}
+      </div>
+      <Card className="space-y-4 p-5">{children}</Card>
+    </section>
   );
 }
 
@@ -168,14 +183,17 @@ export default function Configuracion() {
 
   return (
     <RequireRole allowed={["admin"]}>
-      <div className="space-y-6 max-w-3xl">
+      <div className="max-w-5xl space-y-8">
         <div>
-          <h1 className="text-xl font-bold text-text">Configuración</h1>
-          <p className="text-sm text-muted mt-0.5">Parámetros del negocio editables desde la UI</p>
+          <h1 className="gradient-text text-2xl font-bold tracking-tight sm:text-3xl">Configuración</h1>
+          <p className="mt-1 text-sm text-muted">Parámetros del negocio editables desde la UI</p>
         </div>
 
         {/* Datos de la tienda */}
-        <Section title="Datos de la tienda">
+        <Section
+          title="Datos de la tienda"
+          description="Identidad y contacto que ven tus clientes: nombre, WhatsApp, dirección y redes. El tipo de cambio alimenta todos los cálculos de precios en córdobas."
+        >
           <form onSubmit={saveBiz} className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Nombre de la tienda">
@@ -213,7 +231,10 @@ export default function Configuracion() {
         </Section>
 
         {/* Costos fijos */}
-        <Section title="Costos fijos (%)">
+        <Section
+          title="Costos fijos (%)"
+          description="Porcentajes que cada venta aparta para gastos operativos (publicidad, útiles, servicios, garantías). El total se descuenta antes de calcular la utilidad neta."
+        >
           <form onSubmit={saveCF} className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Publicidad (%)">
@@ -241,7 +262,10 @@ export default function Configuracion() {
         </Section>
 
         {/* Descuentos por mayor */}
-        <Section title="Descuentos por mayor">
+        <Section
+          title="Descuentos por mayor"
+          description="Rangos de cantidad con su descuento automático. Se aplican al cotizar y al registrar ventas cuando el cliente compra por volumen."
+        >
           <form onSubmit={savePricing} className="space-y-3">
             <div className="rounded-lg border border-border overflow-hidden">
               <table className="w-full text-sm">

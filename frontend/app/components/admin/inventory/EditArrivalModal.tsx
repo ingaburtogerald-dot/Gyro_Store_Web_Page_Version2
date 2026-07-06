@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { arrivalFormSchema, type ArrivalFormInput } from "~/lib/validators";
 import { useUpdatePurchaseMutation, type Purchase } from "~/store/api/inventoryApi";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
@@ -37,6 +38,7 @@ export function EditArrivalModal({
         arrivalDate: purchase.arrivalDate || "",
         shippingUnit: purchase.shippingUnit,
         category: purchase.category || "",
+        suggestedPrice: purchase.suggestedPrice ?? undefined,
       });
     }
   }, [purchase, reset]);
@@ -44,12 +46,15 @@ export function EditArrivalModal({
   async function onSubmit(data: ArrivalFormInput) {
     if (!purchase) return;
     try {
-      // Combinamos los datos actuales con los campos de arribo editados
+      // Combinamos los datos actuales con los campos de arribo editados.
+      // Enviar suggestedPrice explícito es lo que permite cambiar el precio de venta
+      // del producto en bodega (el server solo toca el precio cuando viene explícito).
       const body = {
         ...purchase,
         arrivalDate: data.arrivalDate,
         shippingUnit: data.shippingUnit,
         category: data.category,
+        suggestedPrice: data.suggestedPrice,
       };
       await updatePurchase({ id: purchase.id, body }).unwrap();
       toast.success("Datos de inventario actualizados correctamente.");
@@ -62,20 +67,20 @@ export function EditArrivalModal({
   return (
     <Modal open={!!purchase} onClose={onClose} title={`Editar recepción · ${purchase?.code ?? ""}`}>
       <form onSubmit={handleSubmit(onSubmit)} autoComplete="off" className="space-y-4">
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-muted">Fecha de ingreso a Nicaragua</span>
+        <Field label="Fecha de ingreso a Nicaragua" error={errors.arrivalDate?.message}>
           <DateField control={control} name="arrivalDate" invalid={!!errors.arrivalDate} />
-          {errors.arrivalDate && <span className="mt-1 block text-xs text-red-400">{errors.arrivalDate.message}</span>}
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-muted">Costo de envío unitario (USD)</span>
+        <Field label="Costo de envío unitario (USD)" error={errors.shippingUnit?.message}>
           <input type="number" step="0.0001" min={0} className="input" {...register("shippingUnit")} />
-          {errors.shippingUnit && <span className="mt-1 block text-xs text-red-400">{errors.shippingUnit.message}</span>}
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-muted">Categoría</span>
+        <Field label="Precio de venta (C$)" error={errors.suggestedPrice?.message}>
+          <input type="number" step="1" min={0} className="input" placeholder="Precio al que se vende" {...register("suggestedPrice")} />
+          <span className="mt-1 block text-xs text-muted">Es el precio que verá el vendedor al cotizar. Puedes cambiarlo cuando quieras.</span>
+        </Field>
+
+        <Field label="Categoría" error={errors.category?.message}>
           <select className="input" defaultValue="" {...register("category")}>
             <option value="" disabled>
               Selecciona una categoría
@@ -86,14 +91,13 @@ export function EditArrivalModal({
               </option>
             ))}
           </select>
-          {errors.category && <span className="mt-1 block text-xs text-red-400">{errors.category.message}</span>}
-        </label>
+        </Field>
 
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} type="button">
+        <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <Button variant="ghost" size="sm" onClick={onClose} type="button">
             Cancelar
           </Button>
-          <Button type="submit" loading={isLoading} className="bg-gradient-accent text-white">
+          <Button type="submit" size="sm" loading={isLoading}>
             Guardar cambios
           </Button>
         </div>

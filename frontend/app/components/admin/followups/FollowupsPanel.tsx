@@ -7,6 +7,7 @@ import { DataTable } from "~/components/ui/DataTable";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
 import { StatCard } from "~/components/ui/StatCard";
+import { StatusBadge } from "~/components/ui/StatusBadge";
 import { FollowupModal } from "./FollowupModal";
 import { dueState, DUE_META, TYPE_META, STATUS_META, isDue, waLink } from "./followupUtils";
 import {
@@ -126,7 +127,7 @@ export function FollowupsPanel() {
         header: "Estado",
         cell: (c) => {
           const m = STATUS_META[c.getValue() as Followup["status"]];
-          return <span className={`rounded-pill px-2 py-0.5 text-xs font-semibold ${m.cls}`}>{m.label}</span>;
+          return <StatusBadge status={m.status} label={m.label} />;
         },
       },
       {
@@ -193,7 +194,7 @@ export function FollowupsPanel() {
         <StatCard icon={AlarmClock} label="Pendientes" countTo={counts.pending} color="indigo" delay={0.1} />
       </div>
 
-      <div className="rounded-card border border-border bg-surface p-4">
+      <div className="rounded-card border border-border bg-surface shadow-premium p-4">
         <div className="mb-3 flex items-center gap-2">
           {(["pending", "all", "done", "lost"] as const).map((s) => (
             <button

@@ -26,7 +26,7 @@ function OrderRow({ order }: { order: PublicOrder }) {
   const date = order.createdAt ? new Date(order.createdAt).toLocaleString("es-NI") : "—";
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4 space-y-3">
+    <div className="rounded-card border border-border bg-surface shadow-premium p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold text-text">{order.customerName}</p>

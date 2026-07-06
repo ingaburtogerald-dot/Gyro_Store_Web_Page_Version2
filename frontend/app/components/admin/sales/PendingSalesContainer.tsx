@@ -21,7 +21,7 @@ export function PendingSalesContainer({ sales, isLoading, onRegisterSale }: Prop
   const actions = useAdminSaleActions(sales);
 
   return (
-    <div className="relative space-y-4 rounded-card border border-border bg-surface p-4">
+    <div className="relative space-y-4 rounded-card border border-border bg-surface shadow-premium p-4">
       <div className="sticky top-0 z-30 flex flex-col items-start justify-between gap-4 bg-surface pb-2 lg:flex-row">
         <div>
           <h2 className="text-lg font-bold text-text">Ventas Pendientes de Aprobación</h2>

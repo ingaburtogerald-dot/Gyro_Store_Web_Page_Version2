@@ -3,6 +3,8 @@
 // gracias a los fallbacks.
 import { Calendar } from "lucide-react";
 import { SALE_STATUS_META } from "./saleStatus";
+import { StatusBadge } from "~/components/ui/StatusBadge";
+import { Card } from "~/components/ui/Card";
 import { formatCordobas } from "~/lib/utils";
 import type { Sale } from "~/store/api/salesApi";
 import { groupSaleItems, totalQuantity } from "~/domain/sales/salesCalculations";
@@ -21,7 +23,7 @@ export function AdminSaleCard({ sale }: { sale: any }) {
   const invRecuperada = (sale.saleTotal || 0) - costReal;
 
   return (
-    <div className="space-y-3 rounded-card border border-border bg-surface p-4">
+    <Card className="space-y-3 p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <span className="flex items-center gap-1.5 text-xs text-muted">
@@ -30,7 +32,7 @@ export function AdminSaleCard({ sale }: { sale: any }) {
           <p className="truncate font-semibold text-text">{sale.sellerName}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <span className={`rounded-pill px-2 py-0.5 text-xs font-semibold ${meta.cls}`}>{meta.label}</span>
+          <StatusBadge status={meta.status} label={meta.label} />
           {sale.editReason && (
             <span className="rounded-pill bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-accent-2">Editada</span>
           )}
@@ -61,7 +63,7 @@ export function AdminSaleCard({ sale }: { sale: any }) {
         />
         <Metric label="Ganancia" value={formatCordobas(ganancia)} className="font-bold text-whatsapp" />
       </div>
-    </div>
+    </Card>
   );
 }
 

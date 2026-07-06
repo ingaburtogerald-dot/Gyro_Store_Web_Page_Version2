@@ -286,7 +286,22 @@ router.put('/purchases/:id', requireAdmin, asyncHandler(async (req, res) => {
   // Si ya fue recibido, sincronizar el cambio con la colección de PRODUCTS (bodega)
   if (current.status === inv.STATUS.RECEIVED) {
     const diffQty = calc.quantity - (current.quantity || 0);
-    const newPrice = merged.suggestedPrice != null ? Number(merged.suggestedPrice) : inv.suggestedPriceCordobas(calc.priceUnit + (calc.shippingUnit || 0));
+
+    // El precio de venta del producto SOLO se cambia cuando la edición trae un
+    // suggestedPrice explícito (p.ej. desde el modal de recepción). Editar otros
+    // datos de la compra (nombre, cantidad, costo…) NO debe pisar el precio: si el
+    // admin lo ajustó a mano, se respeta. Antes se reescribía siempre y "cambiaba solo".
+    const priceProvided =
+      req.body.suggestedPrice !== undefined &&
+      req.body.suggestedPrice !== null &&
+      req.body.suggestedPrice !== '';
+    const explicitPrice = priceProvided ? Number(req.body.suggestedPrice) : null;
+    // Precio inicial solo para productos que haya que CREAR aquí (necesitan un valor).
+    const newPrice = explicitPrice != null
+      ? explicitPrice
+      : (merged.suggestedPrice != null
+          ? Number(merged.suggestedPrice)
+          : inv.suggestedPriceCordobas(calc.priceUnit + (calc.shippingUnit || 0)));
 
     // Si cambió el código del producto, mover el stock de un producto a otro
     if (merged.code !== current.code) {
@@ -317,25 +332,28 @@ router.put('/purchases/:id', requireAdmin, asyncHandler(async (req, res) => {
           updatedAt: FieldValue.serverTimestamp(),
         });
       } else {
-        await newProdQuery.docs[0].ref.update({
+        const upd = {
           name: merged.productName,
           category: merged.category || null,
           stock: FieldValue.increment(calc.quantity),
-          price: newPrice,
           updatedAt: FieldValue.serverTimestamp(),
-        });
+        };
+        if (explicitPrice != null) upd.price = explicitPrice;
+        await newProdQuery.docs[0].ref.update(upd);
       }
     } else {
-      // Si el código es el mismo, solo actualizamos el stock relativo, nombre, categoría y precio
+      // Si el código es el mismo, actualizamos stock relativo, nombre y categoría.
+      // El precio solo si vino explícito (ver comentario arriba).
       const prodQuery = await db.collection(PRODUCTS).where('code', '==', current.code).limit(1).get();
       if (!prodQuery.empty) {
-        await prodQuery.docs[0].ref.update({
+        const upd = {
           name: merged.productName,
           category: merged.category || null,
           stock: FieldValue.increment(diffQty),
-          price: newPrice,
           updatedAt: FieldValue.serverTimestamp(),
-        });
+        };
+        if (explicitPrice != null) upd.price = explicitPrice;
+        await prodQuery.docs[0].ref.update(upd);
       } else {
         // Por si acaso no existía el producto (consistencia), lo agregamos
         await db.collection(PRODUCTS).add({

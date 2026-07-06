@@ -144,14 +144,14 @@ export function PricingConfigModal({ open, onClose, initialTab = "pricing" }: Pr
                   <input
                     type="number"
                     min={1}
-                    className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
+                    className="input"
                     value={row.minQty}
                     onChange={(e) => handleDiscountChange(i, "minQty", e.target.value)}
                   />
                   <input
                     type="number"
                     min={1}
-                    className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
+                    className="input"
                     value={row.maxQty ?? ""}
                     onChange={(e) => handleDiscountChange(i, "maxQty", e.target.value)}
                     placeholder="Sin límite"
@@ -160,7 +160,7 @@ export function PricingConfigModal({ open, onClose, initialTab = "pricing" }: Pr
                     type="number"
                     min={0}
                     max={100}
-                    className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
+                    className="input"
                     value={row.discountPercent}
                     onChange={(e) => handleDiscountChange(i, "discountPercent", e.target.value)}
                   />
@@ -184,9 +184,9 @@ export function PricingConfigModal({ open, onClose, initialTab = "pricing" }: Pr
             </button>
 
             <div className="flex justify-end gap-2 border-t border-border pt-4">
-              <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
-              <Button size="sm" onClick={savePricing} loading={savingPricing} className="group gap-2 shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30">
-                <Save className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-y-0.5" />
+              <Button variant="ghost" size="sm" onClick={onClose}>Cancelar</Button>
+              <Button size="sm" onClick={savePricing} loading={savingPricing}>
+                <Save className="h-3.5 w-3.5" />
                 Guardar Cambios
               </Button>
             </div>
@@ -214,7 +214,7 @@ export function PricingConfigModal({ open, onClose, initialTab = "pricing" }: Pr
                   <input
                     type="number"
                     min={0}
-                    className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
+                    className="input"
                     value={costosFijos[key]}
                     onChange={(e) => setCostosFijos((prev) => ({ ...prev, [key]: Number(e.target.value) }))}
                   />
@@ -229,9 +229,9 @@ export function PricingConfigModal({ open, onClose, initialTab = "pricing" }: Pr
             </div>
 
             <div className="flex justify-end gap-2 border-t border-border pt-4">
-              <Button variant="outline" size="sm" onClick={onClose}>Cancelar</Button>
-              <Button size="sm" onClick={saveBusiness} loading={savingBusiness} className="group gap-2 shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30">
-                <Save className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-y-0.5" />
+              <Button variant="ghost" size="sm" onClick={onClose}>Cancelar</Button>
+              <Button size="sm" onClick={saveBusiness} loading={savingBusiness}>
+                <Save className="h-3.5 w-3.5" />
                 Guardar Configuración
               </Button>
             </div>

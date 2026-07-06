@@ -52,7 +52,7 @@ export function MigratedAvailable() {
   );
 
   return (
-    <div className="space-y-4 rounded-card border border-border bg-surface p-4">
+    <div className="space-y-4 rounded-card border border-border bg-surface shadow-premium p-4">
       <div>
         <h2 className="text-lg font-bold text-text">Inventario Migrado Disponible</h2>
         <p className="text-xs text-muted">Artículos migrados con stock listo para vender.</p>

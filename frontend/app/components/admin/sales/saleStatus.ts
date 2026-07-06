@@ -1,9 +1,11 @@
-// Etiquetas y colores de estado de venta (reutilizado en vistas de vendedor y admin).
+// Etiquetas y tono de estado de venta (reutilizado en vistas de vendedor y admin).
+// El tono mapea al StatusBadge canónico del sistema de diseño.
 import type { SaleStatus } from "~/store/api/salesApi";
+import type { BadgeStatus } from "~/components/ui/StatusBadge";
 
-export const SALE_STATUS_META: Record<SaleStatus, { label: string; cls: string }> = {
-  pending_approval: { label: "Pendiente", cls: "bg-amber-500/15 text-amber-300" },
-  approved: { label: "Aprobada", cls: "bg-accent/15 text-accent-2" },
-  rejected: { label: "Rechazada", cls: "bg-red-500/15 text-red-300" },
-  paid: { label: "Pagada", cls: "bg-whatsapp/15 text-whatsapp" },
+export const SALE_STATUS_META: Record<SaleStatus, { label: string; status: BadgeStatus }> = {
+  pending_approval: { label: "Pendiente", status: "pending" },
+  approved: { label: "Aprobada", status: "success" },
+  rejected: { label: "Rechazada", status: "error" },
+  paid: { label: "Pagada", status: "whatsapp" },
 };

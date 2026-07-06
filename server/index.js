@@ -58,6 +58,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/logistics', require('./routes/logistics'));
 app.use('/api/installments', require('./routes/installments'));
 app.use('/api/followups', require('./routes/followups'));
+app.use('/api/contacts', require('./routes/contacts'));
 
 // 404 para endpoints de API no encontrados
 app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint no encontrado.' }));

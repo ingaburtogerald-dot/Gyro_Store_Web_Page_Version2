@@ -141,25 +141,68 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
   }
 
   // 1. Obtener todas las ventas y validar que pertenezcan al mismo vendedor y estén pendientes
+  // Usamos una transacción para "bloquearlas" atómicamente y evitar duplicados por peticiones concurrentes
   const sales = [];
-  for (const id of saleIds) {
-    const snap = await db.collection(ORDERS).doc(id).get();
-    if (!snap.exists) return res.status(404).json({ error: `Venta ${id} no encontrada.` });
-    const order = snap.data();
-    if (order.status !== 'pending_approval') {
-      return res.status(400).json({ error: `La venta ${id} ya no está pendiente.` });
-    }
-    sales.push({ id, ...order });
+  try {
+    await db.runTransaction(async (t) => {
+      sales.length = 0; // limpiar por si la transacción reintenta
+      const snaps = await Promise.all(saleIds.map(id => t.get(db.collection(ORDERS).doc(id))));
+      for (let i = 0; i < snaps.length; i++) {
+        const snap = snaps[i];
+        const id = saleIds[i];
+        if (!snap.exists) throw new Error(`Venta ${id} no encontrada.`);
+        const order = snap.data();
+        if (order.status !== 'pending_approval') {
+          throw new Error(`La venta ${id} ya no está pendiente.`);
+        }
+        sales.push({ id, ...order });
+        t.update(snap.ref, { status: 'processing_approval' });
+      }
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 
   const sellerEmail = sales[0].sellerEmail;
   const sellerName = sales[0].sellerName;
   if (sales.some((s) => s.sellerEmail !== sellerEmail)) {
+    // revertir
+    const revertBatch = db.batch();
+    saleIds.forEach(id => revertBatch.update(db.collection(ORDERS).doc(id), { status: 'pending_approval' }));
+    await revertBatch.commit();
     return res.status(400).json({ error: 'Todas las ventas seleccionadas deben ser del mismo vendedor.' });
   }
 
-  // 2. Procesar aprobación para cada una
+  try {
+
+  const weekOf = getISOWeekString(baseDate);
+
+  // 2. VALIDAR el stock de TODO el lote ANTES de escribir nada. Las ventas con
+  //    reserva (nativa o migrada) ya tienen stock apartado; solo las órdenes FIFO
+  //    sin reserva pueden quedarse sin stock. Se agrega la demanda por código de
+  //    todas esas órdenes y se verifica una sola vez: si algo no alcanza, se aborta
+  //    aquí, sin haber tocado ninguna venta ni el inventario.
+  const fifoDemand = new Map();
+  for (const order of sales) {
+    if (order.saleOrigin === 'migrated') continue;
+    if ((order.reservations || []).length > 0) continue;
+    for (const it of order.items) fifoDemand.set(it.code, (fifoDemand.get(it.code) || 0) + it.quantity);
+  }
+  for (const [code, qty] of fifoDemand) {
+    try {
+      await fifoForCode(code, qty, false); // solo verifica disponibilidad (no consume)
+    } catch (err) {
+      const revertBatch = db.batch();
+      saleIds.forEach(id => revertBatch.update(db.collection(ORDERS).doc(id), { status: 'pending_approval' }));
+      await revertBatch.commit();
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  // 3. Consumir inventario y calcular financieros de cada venta, ACUMULANDO los
+  //    cambios de estado en memoria (todavía sin marcar ninguna como pagada).
   let totalComision = 0;
+  const statusUpdates = [];
   for (const order of sales) {
     const reservations = order.reservations || [];
     const updatedItems = [];
@@ -180,11 +223,6 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
           it.lineCost = costByCode[it.code] || 0;
         }
       } else {
-        try {
-          for (const it of order.items) await fifoForCode(it.code, it.quantity, false);
-        } catch (err) {
-          return res.status(400).json({ error: err.message });
-        }
         for (const it of order.items) {
           it.lineCost = await fifoForCode(it.code, it.quantity, true);
         }
@@ -195,25 +233,25 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
 
     totalComision += fin.comisionVendedor;
 
-    const approvedDate = baseDate;
-    const weekOf = getISOWeekString(approvedDate);
-    const updatePayload = {
-      ...fin,
-      totalSaleAmount: order.saleTotal,
-      totalCostReal: fin.costReal,
-      totalUtilidadBruta: fin.utilidadBruta,
-      totalCostosFijos: fin.costosFijos,
-      totalUtilidadNeta: fin.utilidadNeta,
-      items: updatedItems,
-      status: 'paid', // Directamente a pagado
-      approvedAt: serverDate,
-      approvedBy: req.user.email,
-      weekOf,
-    };
-    await db.collection(ORDERS).doc(order.id).update(updatePayload);
+    statusUpdates.push({
+      id: order.id,
+      payload: {
+        ...fin,
+        totalSaleAmount: order.saleTotal,
+        totalCostReal: fin.costReal,
+        totalUtilidadBruta: fin.utilidadBruta,
+        totalCostosFijos: fin.costosFijos,
+        totalUtilidadNeta: fin.utilidadNeta,
+        items: updatedItems,
+        status: 'paid', // Directamente a pagado
+        approvedAt: serverDate,
+        approvedBy: req.user.email,
+        weekOf,
+      },
+    });
   }
 
-  // 3. Subir comprobante a Storage si se proporcionó
+  // 4. Subir comprobante a Storage si se proporcionó
   let receiptUrl = null;
   if (req.file) {
     const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.png'])[0];
@@ -225,7 +263,7 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
     );
   }
 
-  // 3.5. Aplicar el saldo pendiente del vendedor (ajustes por ediciones de ventas pagadas).
+  // 4.5. Aplicar el saldo pendiente del vendedor (ajustes por ediciones de ventas pagadas).
   //   saldoAplicado > 0 → la tienda le debía: se suma al pago.
   //   saldoAplicado < 0 → recibió de más: se descuenta del pago.
   const grossComision = round(totalComision);
@@ -233,7 +271,7 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
   const netToPay = round(grossComision + saldoAplicado);
   const totalPagado = Math.max(0, netToPay);
 
-  // 4. Ver tipo de usuario para notificar
+  // 5. Ver tipo de usuario para notificar
   const userSnap = await db.collection(config.collections.users).where('email', '==', sellerEmail.toLowerCase()).limit(1).get();
   const sellerUser = userSnap.empty ? null : userSnap.docs[0].data();
   const isLocal = sellerUser && sellerUser.provider === 'local';
@@ -253,10 +291,16 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
     createdBy: req.user.email,
   };
 
-  // 5. Crear lote de pago
-  const paymentRef = await db.collection(config.collections.payments).add(paymentRecord);
+  // 6. Aplicar TODO en un solo batch atómico: marcar cada venta como pagada Y crear
+  //    el lote de pago juntos. Un batch es todo-o-nada, así que ya no puede quedar
+  //    "media tanda" pagada y el resto pendiente si algo falla al escribir.
+  const paymentRef = db.collection(config.collections.payments).doc();
+  const batch = db.batch();
+  for (const u of statusUpdates) batch.update(db.collection(ORDERS).doc(u.id), u.payload);
+  batch.set(paymentRef, paymentRecord);
+  await batch.commit();
 
-  // 5.5. Saldar los ajustes aplicados. Si el saldo en contra superó la comisión del
+  // 6.5. Saldar los ajustes aplicados. Si el saldo en contra superó la comisión del
   // lote (netToPay < 0), el vendedor aún debe: se arrastra como un nuevo ajuste.
   await settleAdjustments(pendingAdjustments.map((a) => a.id), paymentRef.id).catch(() => {});
   if (netToPay < 0) {
@@ -295,6 +339,16 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
   }
 
   res.json({ ok: true, paymentId: paymentRef.id, receiptUrl, whatsappUrl, paymentMethod, notifiedVia: paymentRecord.notifiedVia, grossComision, saldoAplicado, totalPagado });
+
+  } catch (err) {
+    // If anything fails during processing, revert the locks
+    const revertBatch = db.batch();
+    saleIds.forEach(id => revertBatch.update(db.collection(ORDERS).doc(id), { status: 'pending_approval' }));
+    await revertBatch.commit();
+    
+    // Si ya sabíamos qué responder (como el error de firebase), lo mandamos. Si no, 500.
+    return res.status(500).json({ error: 'Error procesando el pago. Se revirtieron las ventas. ' + err.message });
+  }
 }));
 
 // POST /api/sales/pay-week — marcar semana como pagada y subir captura.

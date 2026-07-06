@@ -7,6 +7,7 @@ import { CheckCircle2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { migratedItemFormSchema, type MigratedItemFormInput } from "~/lib/validators";
 import {
   useCreateMigratedItemMutation,
@@ -221,23 +222,5 @@ export function MigratedInventoryForm({ item, onDone }: { item?: MigratedItem | 
         </Button>
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
-      {children}
-      {error && <span className="mt-1 block text-xs text-red-400">{error}</span>}
-    </label>
   );
 }

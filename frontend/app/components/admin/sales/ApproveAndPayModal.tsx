@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { DatePicker } from "~/components/ui/DatePicker";
 import { useGetBalancesQuery, type Sale } from "~/store/api/salesApi";
 import { computePayout } from "~/domain/sales/salesCalculations";
@@ -84,13 +85,11 @@ export function ApproveAndPayModal({ sales, onClose, onSubmit }: Props) {
           </div>
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">Fecha de Pago</label>
+        <Field label="Fecha de Pago">
           <DatePicker value={paymentDate} onChange={setPaymentDate} placeholder="Selecciona la fecha de pago" />
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">Método de Pago</label>
+        <Field label="Método de Pago">
           <div className="grid grid-cols-2 gap-2">
             <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border p-3 text-sm font-medium transition-colors ${method === "cash" ? "border-accent bg-accent/10 text-accent" : "border-border bg-surface text-muted hover:bg-surface-2"}`}>
               <input type="radio" name="method" value="cash" className="hidden" checked={method === "cash"} onChange={() => setMethod("cash")} />
@@ -101,35 +100,35 @@ export function ApproveAndPayModal({ sales, onClose, onSubmit }: Props) {
               🏦 Depósito (Screenshot)
             </label>
           </div>
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">Comprobante (Opcional si justificas)</label>
+        <Field label="Comprobante (Opcional si justificas)">
           <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-surface-2 p-6 text-sm text-muted transition-colors hover:border-accent hover:text-accent">
             {file ? file.name : method === "cash" ? "Sube la foto de la factura" : "Sube el screenshot del depósito"}
             <input type="file" accept="image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           </label>
-        </div>
+        </Field>
 
         {!file && (
           <div className="animate-fade-in">
-            <label className="mb-1.5 block text-xs font-semibold text-rose-400">Motivo por no subir comprobante (Obligatorio)</label>
-            <textarea
-              className="input w-full"
-              rows={2}
-              placeholder="Ej: Pago realizado previamente, venta migrada..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              required
-            />
+            <Field label="Motivo por no subir comprobante (Obligatorio)">
+              <textarea
+                className="input w-full"
+                rows={2}
+                placeholder="Ej: Pago realizado previamente, venta migrada..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                required
+              />
+            </Field>
           </div>
         )}
 
-        <div className="mt-4 flex justify-end gap-3 border-t border-border pt-4">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
+        <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading} className="bg-emerald-500 text-white hover:bg-emerald-600">
+          <Button type="submit" size="sm" disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Aprobar y Pagar
           </Button>

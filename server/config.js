@@ -24,7 +24,7 @@ module.exports = {
       : `http://localhost:${Number(process.env.PORT) || 3000}`),
 
   // Credenciales de Firebase Admin
-  serviceAccountPath: process.env.SERVICE_ACCOUNT_PATH || './server/serviceAccountKey.json',
+  serviceAccountPath: process.env.SERVICE_ACCOUNT_PATH || 'serviceAccountKey.json',
 
   // Roles válidos del sistema. global_admin tiene acceso total a todos los portales.
   // El orden define la prioridad para elegir el "rol primario" de un usuario multi-rol.
@@ -111,8 +111,10 @@ module.exports = {
     stockReservations: 'stock_reservations',
     auditLogs: 'audit_logs',
     followups: 'followups',
+    contacts: 'contacts',
     payments: 'payments',
     commissionAdjustments: 'commission_adjustments',
+    counters: 'counters',
   },
 
   // CORS: orígenes permitidos en producción

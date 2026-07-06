@@ -121,9 +121,12 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
     (s, l) => s + (Number(l.quantity) || 0) * (Number(l.salePrice) || 0),
   0);
 
-  // Productos distintos (por código) en la venta: cada uno se registra como venta aparte.
+  // Ventas distintas (por código+precio) en la registración: cada combinación se registra como venta aparte.
   const distinctProductCount = new Set(
-    validLines.map((l) => productsForUi.find((pr) => pr.id === l.productId)?.code ?? l.productId),
+    validLines.map((l) => {
+      const code = productsForUi.find((pr) => pr.id === l.productId)?.code ?? l.productId;
+      return `${code}|${l.salePrice}`;
+    }),
   ).size;
 
   // Una sola razón visible a la vez: el botón deshabilitado siempre explica por qué.
@@ -253,7 +256,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
         {/* COLUMNA IZQUIERDA: datos + productos */}
         <div className="space-y-4">
           {/* Sección: datos de la venta */}
-          <div className="space-y-3 rounded-card border border-border bg-surface p-4">
+          <div className="space-y-3 rounded-card border border-border bg-surface shadow-premium p-4">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-accent-2" />
               <h3 className="text-sm font-semibold text-text">Datos de la venta</h3>
@@ -263,7 +266,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                 <label className="block">
                   <span className="mb-1 block text-xs font-medium text-muted">Registrar a nombre de</span>
                   <select
-                    className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
+                    className="input"
                     value={selectedSellerEmail}
                     onChange={(e) => setSelectedSellerEmail(e.target.value)}
                   >
@@ -286,7 +289,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
           </div>
 
           {/* Sección: productos */}
-          <div className="space-y-3 rounded-card border border-border bg-surface p-4">
+          <div className="space-y-3 rounded-card border border-border bg-surface shadow-premium p-4">
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-accent-2" />
               <h3 className="text-sm font-semibold text-text">Productos</h3>
@@ -352,7 +355,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                         type="number"
                         min={1}
                         max={p?.stock}
-                        className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
+                        className="input"
                         placeholder="0"
                         value={line.quantity}
                         onChange={(e) => update(i, { quantity: e.target.value === "" ? "" : (parseInt(e.target.value, 10) || 0) })}
@@ -375,7 +378,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                                   (prev.discountPercent > current.discountPercent) ? prev : current
                                 );
                                 discountPercent = bestTier.discountPercent;
-                                suggestedPrice = p.price * (1 - discountPercent / 100);
+                                suggestedPrice = Math.round((p.price * (1 - discountPercent / 100)) / 10) * 10;
                               }
                             }
 
@@ -389,7 +392,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                                 {/* Chip sólido: hace obvio que un clic aplica el precio */}
                                 <button
                                   type="button"
-                                  onClick={() => update(i, { salePrice: suggestedPrice })}
+                                  onClick={() => update(i, { salePrice: Math.round(suggestedPrice) })}
                                   className="flex items-center gap-1 rounded-pill bg-accent/15 px-2 py-0.5 font-semibold text-accent-2 ring-1 ring-accent/30 transition-all hover:bg-accent hover:text-white active:scale-95 nums"
                                   title="Aplicar el precio sugerido a esta línea"
                                 >
@@ -402,7 +405,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                       <input
                         type="number"
                         min={0}
-                        className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
+                        className="input"
                         placeholder="Precio..."
                         value={line.salePrice}
                         onChange={(e) => update(i, { salePrice: e.target.value === "" ? "" : (parseFloat(e.target.value) || 0) })}
@@ -512,7 +515,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
 
           {/* Motivo de edición de venta ya procesada */}
           {isEdit && sale?.status !== "pending_approval" && (
-            <div className="rounded-card border border-border bg-surface p-4 animate-in fade-in">
+            <div className="rounded-card border border-border bg-surface shadow-premium p-4 animate-in fade-in">
               <label className="block">
                 <span className="mb-1 block text-sm font-bold text-accent-2">
                   Motivo de la edición (Obligatorio)

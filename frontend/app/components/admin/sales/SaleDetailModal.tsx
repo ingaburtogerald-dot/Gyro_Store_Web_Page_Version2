@@ -4,6 +4,7 @@
 import { ImageIcon, AlertCircle } from "lucide-react";
 import { Modal } from "~/components/ui/Modal";
 import { SALE_STATUS_META } from "./saleStatus";
+import { StatusBadge } from "~/components/ui/StatusBadge";
 import { formatCordobas } from "~/lib/utils";
 import type { Sale } from "~/store/api/salesApi";
 
@@ -21,7 +22,7 @@ export function SaleDetailModal({ sale, onClose }: { sale: Sale | null; onClose:
     <Modal open={!!sale} onClose={onClose} title="Detalle de venta" maxWidth="max-w-lg">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <span className={`rounded-pill px-2.5 py-1 text-xs font-semibold ${meta.cls}`}>{meta.label}</span>
+          <StatusBadge status={meta.status} label={meta.label} />
           <div className="text-right">
             <span className="block text-xs text-muted">Mi comisión</span>
             <span className="text-lg font-bold text-whatsapp">

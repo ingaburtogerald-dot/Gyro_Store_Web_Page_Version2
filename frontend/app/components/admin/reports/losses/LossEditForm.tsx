@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "~/components/ui/Button";
 import { DateField } from "~/components/ui/DatePicker";
-import { Field } from "~/components/admin/reports/_shared/Field";
+import { Field } from "~/components/ui/Field";
 import { useLossActions } from "~/hooks/reports/useLossActions";
 import { lossEditSchema, type LossEditInput } from "~/schemas/losses";
 import type { LossRecord, LossCategory } from "~/store/api/reportsApi";
@@ -41,6 +41,7 @@ export function LossEditForm({ loss, onDone }: { loss: LossRecord; onDone: () =>
           <option value="daño">Daño</option>
           <option value="robo">Robo</option>
           <option value="devolucion">Devolución</option>
+          <option value="regalias">Regalías</option>
         </select>
       </Field>
       <Field label="Nota (opcional)" className="sm:col-span-2">

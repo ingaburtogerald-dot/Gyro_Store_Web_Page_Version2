@@ -7,15 +7,17 @@
    (bg-bg, text-accent, rounded-card, font-heading, etc.)
    ─────────────────────────────────────────────────────────── */
 @theme {
-  /* Superficies */
-  --color-bg: #0a0a0f;
-  --color-surface: #12121a;
-  --color-surface-2: #1a1a24;
+  /* Superficies — Paleta Obsidian (neutra, sin tinte azul) */
+  --color-bg: #09090b;
+  --color-surface: #121214;
+  --color-surface-2: #1a1a1c;
+  --color-surface-hover: #1a1a1c;
   --color-border: rgba(255, 255, 255, 0.06);
 
   /* Acentos — Esmeralda (identidad fintech) */
   --color-accent: #10b981;
   --color-accent-2: #34d399;
+  --color-accent-hover: #059669;
   --color-whatsapp: #00d4aa;
 
   /* Gradiente de botones: verdes más profundos que el acento brillante para
@@ -25,7 +27,7 @@
 
   /* Texto */
   --color-text: #e2e8f0;
-  --color-muted: #717a9c;
+  --color-muted: #71717a;
 
   /* Estados semánticos — usar estos en vez de hex sueltos (bg-danger, text-warning…) */
   --color-danger: #ef4444;
@@ -39,7 +41,11 @@
 
   /* Radios */
   --radius-card: 16px;
+  --radius-input: 12px;
   --radius-pill: 99px;
+
+  /* Sombra premium: anillo sutil + elevación profunda (genera `shadow-premium`) */
+  --shadow-premium: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
 }
 
 /* Gradiente de acento reutilizable */
@@ -74,9 +80,13 @@
   --color-bg: #e7ede9;        /* fondo gris-esmeralda: hace que los cards blancos resalten */
   --color-surface: #ffffff;
   --color-surface-2: #eef3f0;
-  --color-border: #d3ded8;    /* borde más definido (no casi invisible) */
+  --color-surface-hover: #eef3f0;
+  --color-border: #c2d1c9;    /* borde más definido y con mejor contraste */
   --color-accent: #059669;
   --color-accent-2: #10b981;
+  --color-accent-hover: #047857;
+  /* En claro el anillo blanco no se ve: sombra de elevación suave en su lugar */
+  --shadow-premium: 0 1px 2px rgba(16, 40, 30, 0.05), 0 12px 28px -14px rgba(16, 40, 30, 0.18);
   --color-grad-from: #059669;
   --color-grad-to: #047857;
   --color-whatsapp: #059669;
@@ -91,27 +101,6 @@
   color: var(--color-muted);
 }
 
-/* Tab/Pill Buttons */
-@utility tab-active {
-  background-image: linear-gradient(135deg, var(--color-grad-from), var(--color-grad-to));
-  color: white;
-}
-[data-theme="light"] .tab-active {
-  background-image: none;
-  background-color: #059669;
-  color: #ffffff;
-  box-shadow: 0 2px 8px -2px rgba(5, 150, 105, 0.4);
-}
-
-@utility tab-active-red {
-  background-color: var(--color-danger);
-  color: white;
-}
-[data-theme="light"] .tab-active-red {
-  background-color: var(--color-danger);
-  color: #ffffff;
-  box-shadow: 0 2px 8px -2px rgba(239, 68, 68, 0.4);
-}
 
 /* ── StatCard en modo claro ──
    El componente marca su tono con data-tone; cada tono solo define dos
@@ -181,8 +170,13 @@
 /* Scrollbar acorde al modo claro. */
 [data-theme="light"] ::-webkit-scrollbar-track { background: var(--color-bg); }
 [data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: #c4d2cb;
+  background: #a9beba;
+  background-clip: padding-box;
+  border: 3px solid transparent;
   border-radius: 99px;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background-color: #92a7a3;
 }
 
 /* Glassmorphism sutil para cards y modales */
@@ -190,6 +184,34 @@
   background: color-mix(in srgb, var(--color-surface) 80%, transparent);
   backdrop-filter: blur(12px);
   border: 1px solid var(--color-border);
+}
+
+/* ── Glow de estado para badges de tickets (efecto neón suave) ── */
+@utility glow-amber {
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.35), 0 0 20px rgba(251, 191, 36, 0.15);
+}
+@utility glow-emerald {
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.35), 0 0 20px rgba(16, 185, 129, 0.15);
+}
+@utility glow-rose {
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.35), 0 0 20px rgba(244, 63, 94, 0.15);
+}
+@utility glow-whatsapp {
+  box-shadow: 0 0 8px rgba(0, 212, 170, 0.35), 0 0 20px rgba(0, 212, 170, 0.15);
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+@utility animate-badge-pulse {
+  animation: badge-pulse 2.5s ease-in-out infinite;
+}
+
+/* ── Borde izquierdo de acento para secciones de formulario ── */
+@utility section-accent-border {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  padding-left: 0.75rem;
 }
 
 @layer base {
@@ -200,6 +222,12 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Alternates de Inter (a, g, y…) = look Vercel/Geist */
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
   }
 
   h1, h2, h3, h4 {
@@ -213,12 +241,17 @@
   /* Iconos lucide con trazo más fino = look más premium/refinado. */
   svg.lucide { stroke-width: 1.75; }
 
-  /* Scrollbar discreta acorde al tema oscuro */
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  /* Scrollbar discreta pero visible en fondos muy oscuros */
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
   ::-webkit-scrollbar-track { background: var(--color-bg); }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-surface-2);
+    background: rgba(255, 255, 255, 0.15);
+    background-clip: padding-box;
+    border: 3px solid transparent;
     border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.25);
   }
 }
 
@@ -226,7 +259,7 @@
 @layer components {
   .input {
     width: 100%;
-    border-radius: 12px;
+    border-radius: var(--radius-input);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg);
     padding: 0.625rem 0.75rem;

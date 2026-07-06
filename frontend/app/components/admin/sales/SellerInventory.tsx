@@ -32,7 +32,7 @@ export function SellerInventory() {
   const isEmpty = sub === "available" ? filteredAvailable.length === 0 : filteredIncoming.length === 0;
 
   return (
-    <div className="space-y-4 rounded-card border border-border bg-surface p-4">
+    <div className="space-y-4 rounded-card border border-border bg-surface shadow-premium p-4">
       {/* Sub-toggle Disponible / Próximamente */}
       <div className="flex gap-1 rounded-pill border border-border bg-bg/40 p-1">
         <button

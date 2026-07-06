@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { purchaseFormSchema, type PurchaseFormInput } from "~/lib/validators";
 import { useUpdatePurchaseMutation, useGetPurchasesQuery, type Purchase } from "~/store/api/inventoryApi";
 import { DateField } from "~/components/ui/DatePicker";
@@ -65,7 +66,7 @@ export function EditPurchaseModal({ purchase, onClose }: { purchase: Purchase | 
             <DateField control={control} name="purchaseDate" invalid={!!errors.purchaseDate} />
           </Field>
           <Field label="Lote" error={errors.lot?.message}>
-            <input className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("lot")} />
+            <input className="input" {...register("lot")} />
           </Field>
 
           {/* Fila 2: Código — media columna */}
@@ -74,22 +75,22 @@ export function EditPurchaseModal({ purchase, onClose }: { purchase: Purchase | 
               const { onBlur: rhfBlur, onChange: rhfChange, ...codeReg } = register("code");
               return (
                 <input
-                  className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
-                  {...codeReg}
-                  onChange={(e) => { rhfChange(e); setCodeWarn(null); }}
-                  onBlur={(e) => {
-                    rhfBlur(e);
-                    const val = e.target.value.trim().toUpperCase();
-                    const isDuplicate = purchases.some(
-                      (p) => p.code.toUpperCase() === val && p.id !== purchase?.id
-                    );
-                    if (val && isDuplicate) {
-                      setCodeWarn(`El código "${val}" ya está en uso por otra compra.`);
-                      toast.warning(`"${val}" ya está registrado en el inventario.`);
-                    } else {
-                      setCodeWarn(null);
-                    }
-                  }}
+                    className="input"
+                    {...codeReg}
+                    onChange={(e) => { rhfChange(e); setCodeWarn(null); }}
+                    onBlur={(e) => {
+                      rhfBlur(e);
+                      const val = e.target.value.trim().toUpperCase();
+                      const isDuplicate = purchases.some(
+                        (p) => p.code.toUpperCase() === val && p.id !== purchase?.id
+                      );
+                      if (val && isDuplicate) {
+                        setCodeWarn(`El código "${val}" ya está en uso por otra compra.`);
+                        toast.warning(`"${val}" ya está registrado en el inventario.`);
+                      } else {
+                        setCodeWarn(null);
+                      }
+                    }}
                 />
               );
             })()}
@@ -98,7 +99,7 @@ export function EditPurchaseModal({ purchase, onClose }: { purchase: Purchase | 
           {/* Fila 3: Nombre — ancho completo */}
           <div className="sm:col-span-2">
             <Field label="Nombre del producto" error={errors.productName?.message}>
-              <input className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("productName")} />
+              <input className="input" {...register("productName")} />
             </Field>
           </div>
         </div>
@@ -106,13 +107,13 @@ export function EditPurchaseModal({ purchase, onClose }: { purchase: Purchase | 
         {/* ── Bloque 2: Datos financieros ── */}
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Cantidad" error={errors.quantity?.message}>
-            <input type="number" min={1} className="input h-10 bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("quantity")} />
+            <input type="number" min={1} className="input h-10" {...register("quantity")} />
           </Field>
           <Field label="Precio base (USD)" error={errors.costUnit?.message}>
-            <input type="number" step="0.01" min={0} className="input h-10 bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("costUnit")} />
+            <input type="number" step="0.01" min={0} className="input h-10" {...register("costUnit")} />
           </Field>
           <Field label="Imp. unitario (USD)" error={errors.taxUnit?.message}>
-            <input type="number" step="0.0001" min={0} className="input h-10 bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("taxUnit")} />
+            <input type="number" step="0.0001" min={0} className="input h-10" {...register("taxUnit")} />
           </Field>
 
           {/* Tarjeta de totales estilo ticket */}
@@ -133,22 +134,11 @@ export function EditPurchaseModal({ purchase, onClose }: { purchase: Purchase | 
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose} type="button">Cancelar</Button>
-          <Button type="submit" loading={isLoading} className="bg-gradient-accent">Guardar cambios</Button>
+        <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <Button variant="ghost" size="sm" onClick={onClose} type="button">Cancelar</Button>
+          <Button type="submit" size="sm" loading={isLoading}>Guardar cambios</Button>
         </div>
       </form>
     </Modal>
-  );
-}
-
-function Field({ label, error, warn, children }: { label: string; error?: string; warn?: string | null; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
-      {children}
-      {error && <span className="mt-1 block text-xs text-red-400">{error}</span>}
-      {!error && warn && <span className="mt-1 block text-xs text-amber-400">⚠ {warn}</span>}
-    </label>
   );
 }

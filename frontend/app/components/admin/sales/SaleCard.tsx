@@ -3,6 +3,8 @@
 // permitidos al vendedor: productos, total y SU comisión (nunca costos/utilidad/ganancia).
 import { Calendar, AlertCircle, ImageIcon } from "lucide-react";
 import { SALE_STATUS_META } from "./saleStatus";
+import { StatusBadge } from "~/components/ui/StatusBadge";
+import { Card } from "~/components/ui/Card";
 import { formatCordobas } from "~/lib/utils";
 import type { Sale } from "~/store/api/salesApi";
 
@@ -13,15 +15,15 @@ export function SaleCard({ sale, onClick }: { sale: Sale; onClick?: () => void }
     : "—";
 
   return (
-    <div
+    <Card
       onClick={onClick}
-      className={`flex min-w-0 flex-col gap-3 overflow-hidden rounded-card border border-border bg-surface p-4 transition-all duration-200 hover:border-accent-2/40${onClick ? " cursor-pointer hover:-translate-y-0.5 active:scale-[0.99]" : ""}`}
+      className={`flex min-w-0 flex-col gap-3 overflow-hidden p-4 transition-all duration-200 hover:border-accent-2/40${onClick ? " cursor-pointer hover:-translate-y-0.5 active:scale-[0.99]" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs text-muted">
           <Calendar className="h-3.5 w-3.5" /> {date}
         </span>
-        <span className={`rounded-pill px-2.5 py-1 text-xs font-semibold ${meta.cls}`}>{meta.label}</span>
+        <StatusBadge status={meta.status} label={meta.label} />
       </div>
 
       <div className="space-y-1.5">
@@ -69,6 +71,6 @@ export function SaleCard({ sale, onClick }: { sale: Sale; onClick?: () => void }
           <ImageIcon className="h-3.5 w-3.5" /> Ver recibo
         </a>
       )}
-    </div>
+    </Card>
   );
 }

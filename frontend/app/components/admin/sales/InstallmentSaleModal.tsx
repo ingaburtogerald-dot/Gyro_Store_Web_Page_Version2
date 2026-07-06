@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { CreditCard } from "lucide-react";
 import { useCreateInstallmentMutation } from "~/store/api/installmentsApi";
 import { installmentFormSchema, type InstallmentFormInput } from "~/lib/validators";
@@ -99,44 +100,33 @@ export function InstallmentSaleModal({
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Cliente *</span>
-            <input className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" placeholder="Nombre del cliente" {...register("customerName")} />
-            {errors.customerName && <span className="mt-1 block text-xs text-red-400">{errors.customerName.message}</span>}
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Teléfono</span>
-            <input className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" placeholder="Opcional" {...register("customerPhone")} />
-            {errors.customerPhone && <span className="mt-1 block text-xs text-red-400">{errors.customerPhone.message}</span>}
-          </label>
+          <Field label="Cliente *" error={errors.customerName?.message}>
+            <input className="input" placeholder="Nombre del cliente" {...register("customerName")} />
+          </Field>
+          <Field label="Teléfono" error={errors.customerPhone?.message}>
+            <input className="input" placeholder="Opcional" {...register("customerPhone")} />
+          </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Nº de cuotas *</span>
-              <input type="number" min={2} max={24} className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("numInstallments")} />
-              {errors.numInstallments && <span className="mt-1 block text-xs text-red-400">{errors.numInstallments.message}</span>}
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Monto por cuota (C$) *</span>
-              <input type="number" step="1" min={1} className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("installmentAmount")} />
-              {errors.installmentAmount && <span className="mt-1 block text-xs text-red-400">{errors.installmentAmount.message}</span>}
-            </label>
+            <Field label="Nº de cuotas *" error={errors.numInstallments?.message}>
+              <input type="number" min={2} max={24} className="input" {...register("numInstallments")} />
+            </Field>
+            <Field label="Monto por cuota (C$) *" error={errors.installmentAmount?.message}>
+              <input type="number" step="1" min={1} className="input" {...register("installmentAmount")} />
+            </Field>
           </div>
 
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Fecha del primer pago *</span>
+          <Field label="Fecha del primer pago *" error={errors.firstPaymentDate?.message}>
             <DateField control={control} name="firstPaymentDate" invalid={!!errors.firstPaymentDate} />
-            {errors.firstPaymentDate && <span className="mt-1 block text-xs text-red-400">{errors.firstPaymentDate.message}</span>}
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Notas</span>
-            <input className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" placeholder="Opcional..." {...register("notes")} />
-          </label>
+          </Field>
+          <Field label="Notas">
+            <input className="input" placeholder="Opcional..." {...register("notes")} />
+          </Field>
 
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" loading={isLoading} className="group gap-2 shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30">
-              <CreditCard className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" />
+          <div className="flex justify-end gap-2 border-t border-border pt-4">
+            <Button variant="ghost" size="sm" type="button" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" size="sm" loading={isLoading}>
+              <CreditCard className="h-4 w-4" />
               Crear venta en cuotas
             </Button>
           </div>

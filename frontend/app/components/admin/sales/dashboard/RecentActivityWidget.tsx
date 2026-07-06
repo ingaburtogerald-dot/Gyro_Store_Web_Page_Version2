@@ -4,15 +4,17 @@ import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Activity, ArrowUpRight } from "lucide-react";
 import { useGetSalesPaginatedQuery, type Sale, type SaleStatus } from "~/store/api/salesApi";
-import { formatCordobas, cn } from "~/lib/utils";
+import { formatCordobas } from "~/lib/utils";
+import { StatusBadge, type BadgeStatus } from "~/components/ui/StatusBadge";
 import { useSalesDashboard } from "./useSalesDashboard";
 import { WidgetShell, WidgetRowsSkeleton } from "./WidgetShell";
 
-const STATUS_META: Record<SaleStatus, { label: string; dot: string; text: string }> = {
-  pending_approval: { label: "Pendiente", dot: "bg-amber-400", text: "text-amber-400" },
-  approved: { label: "Aprobada", dot: "bg-emerald-400", text: "text-accent-2" },
-  paid: { label: "Pagada", dot: "bg-indigo-400", text: "text-indigo-400" },
-  rejected: { label: "Rechazada", dot: "bg-rose-400", text: "text-rose-400" },
+// Mismo tono que el resto del admin (antes "Pagada" era índigo solo aquí).
+const STATUS_META: Record<SaleStatus, { label: string; status: BadgeStatus }> = {
+  pending_approval: { label: "Pendiente", status: "pending" },
+  approved: { label: "Aprobada", status: "success" },
+  paid: { label: "Pagada", status: "whatsapp" },
+  rejected: { label: "Rechazada", status: "error" },
 };
 
 const RECENT_LIMIT = 6;
@@ -76,10 +78,8 @@ export function RecentActivityWidget() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-text">{sale.sellerName}</p>
-                    <p className="flex items-center gap-1.5 text-xs text-muted">
-                      <span className={cn("inline-block h-1.5 w-1.5 rounded-full", meta.dot)} />
-                      <span className={meta.text}>{meta.label}</span>
-                      <span aria-hidden>·</span>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
+                      <StatusBadge status={meta.status} label={meta.label} />
                       <span>{relativeTime(sale.createdAt)}</span>
                     </p>
                   </div>
