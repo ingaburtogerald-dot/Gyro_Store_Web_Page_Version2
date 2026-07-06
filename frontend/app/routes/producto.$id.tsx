@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useParams, Link, useLoaderData } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, ImageOff, MessageCircle, ShoppingBag, X, ShieldCheck, Check, Bike, Package, Banknote } from "lucide-react";
+import { ChevronRight, ImageOff, MessageCircle, ShoppingBag, X, ShieldCheck, Check, Bike, Package, Banknote, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { PublicHeader } from "~/components/layout/PublicHeader";
 import { PublicFooter } from "~/components/layout/PublicFooter";
@@ -219,7 +219,7 @@ export default function ProductDetail() {
                     setIsHovered(false);
                     setZoomPos({ x: 50, y: 50 });
                   }}
-                  className="group relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-[2rem] border border-border bg-surface-2/80 p-6 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent backdrop-blur-sm"
+                  className="product-stage group relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-[2rem] p-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
                   aria-label="Ampliar imagen"
                 >
                   <AnimatePresence mode="wait">
@@ -321,24 +321,24 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-text/90 leading-tight">
+                <h1 className="font-heading text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.1] tracking-[-0.02em] text-balance text-text">
                   {selectedVariant ? selectedVariant.name : baseName}
                 </h1>
               </motion.div>
 
               <motion.div variants={itemFade} className="mt-5 flex flex-wrap items-baseline gap-4">
-                <p className="font-heading text-4xl font-bold text-accent-2 drop-shadow-sm">{formatCordobas(unitPrice)}</p>
+                <p className="font-heading text-[clamp(2rem,5vw,2.5rem)] font-bold tabular-nums leading-none text-text">{formatCordobas(unitPrice)}</p>
                 {tier ? (
                   <span className="text-lg text-muted line-through">{formatCordobas(price)}</span>
                 ) : onSale ? (
                   <span className="text-lg text-muted line-through">{formatCordobas(compareAt)}</span>
                 ) : null}
                 {tier ? (
-                  <span className="rounded-pill bg-whatsapp/15 px-2.5 py-1 text-xs font-bold tracking-wide text-whatsapp">
+                  <span className="rounded-pill bg-whatsapp/12 px-2.5 py-1 text-xs font-semibold tabular-nums tracking-wide text-whatsapp">
                     −{tier.discountPercent}% por {qty} uds
                   </span>
                 ) : onSale ? (
-                  <span className="rounded-pill bg-red-500/15 px-2.5 py-1 text-xs font-bold tracking-wide text-red-400">
+                  <span className="rounded-pill bg-bg/70 px-2.5 py-1 text-xs font-semibold tracking-wide text-accent-2 ring-1 ring-white/10 backdrop-blur-md">
                     En oferta
                   </span>
                 ) : null}
@@ -350,8 +350,24 @@ export default function ProductDetail() {
                 </motion.p>
               )}
               
-              <motion.p variants={itemFade} className={`mt-2 text-sm font-semibold tracking-wide ${inStock ? "text-orange-500 dark:text-orange-400" : "text-red-400"}`}>
-                {inStock ? `🔥 Solo quedan ${stockCount} unidades disponibles` : "Agotado"}
+              <motion.p
+                variants={itemFade}
+                className={cn(
+                  "mt-3 inline-flex items-center gap-2 text-sm font-medium",
+                  !inStock ? "text-danger" : stockCount <= 5 ? "text-warning" : "text-muted",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    !inStock ? "bg-danger" : stockCount <= 5 ? "bg-warning" : "bg-whatsapp",
+                  )}
+                />
+                {!inStock
+                  ? "Agotado"
+                  : stockCount <= 5
+                    ? `Últimas ${stockCount} unidades`
+                    : "Disponible"}
               </motion.p>
 
               {/* Selector de variantes multi-eje */}
@@ -424,7 +440,7 @@ export default function ProductDetail() {
                           <span className="mt-1.5 font-heading text-xl font-bold text-text">{formatCordobas(u)}</span>
                           <span className="text-[10px] font-medium text-muted">por unidad</span>
                           {saved > 0 ? (
-                            <div className="mt-2 w-full rounded-md bg-emerald-950/60 py-1 text-[11px] font-bold text-emerald-400">
+                            <div className="mt-2 w-full rounded-md bg-accent/12 py-1 text-[11px] font-bold tabular-nums text-accent-2">
                               Ahorras {formatCordobas(saved)}
                             </div>
                           ) : (
@@ -443,7 +459,7 @@ export default function ProductDetail() {
                       animate={{ opacity: 1, y: 0 }}
                       className="mt-4 flex items-center gap-2.5 rounded-2xl bg-accent/10 border border-accent/20 px-4.5 py-3 text-sm text-accent-2"
                     >
-                      <span className="text-base shrink-0">💡</span>
+                      <TrendingUp className="h-4 w-4 shrink-0" />
                       <p className="leading-snug font-medium">
                         {nextTier ? (
                           <>
@@ -462,14 +478,12 @@ export default function ProductDetail() {
 
               {/* Botones de acción principales */}
               <motion.div variants={itemFade} className="mt-10 flex flex-col gap-4 sm:flex-row">
-                <Button 
+                <Button
                   className={cn(
-                    "flex-1 h-14 rounded-2xl text-base shadow-xl transition-all hover:scale-[1.02] active:scale-95 duration-300",
-                    isAdded 
-                      ? "bg-whatsapp hover:bg-whatsapp shadow-whatsapp/20 hover:shadow-whatsapp/30 border-transparent text-white" 
-                      : "shadow-accent/20 hover:shadow-accent/30"
+                    "ease-expo flex-1 h-14 rounded-2xl text-base transition duration-300 hover:-translate-y-0.5 active:scale-95",
+                    isAdded && "bg-whatsapp hover:bg-whatsapp border-transparent text-white",
                   )}
-                  onClick={add} 
+                  onClick={add}
                   disabled={!inStock}
                 >
                   {isAdded ? (
@@ -483,9 +497,9 @@ export default function ProductDetail() {
                   )}
                 </Button>
                 <a href={whatsappUrl} target="_blank" rel="noreferrer" className="flex-1">
-                  <Button 
-                    variant="whatsapp" 
-                    className="w-full h-14 rounded-2xl text-base shadow-xl shadow-whatsapp/20 transition-all hover:scale-[1.02] hover:shadow-whatsapp/30 active:scale-95"
+                  <Button
+                    variant="whatsapp"
+                    className="ease-expo w-full h-14 rounded-2xl text-base transition duration-300 hover:-translate-y-0.5 active:scale-95"
                   >
                     <MessageCircle className="h-5 w-5 mr-2" /> Consultar por WhatsApp
                   </Button>
@@ -493,7 +507,7 @@ export default function ProductDetail() {
               </motion.div>
 
               {/* Trust Box: envíos y garantía consolidados (reemplaza textos sueltos) */}
-              <motion.div variants={itemFade} className="mt-6 space-y-3 rounded-xl bg-zinc-900/50 p-4">
+              <motion.div variants={itemFade} className="mt-6 space-y-3 rounded-2xl bg-surface-2/50 p-5">
                 <div className="flex items-center gap-3">
                   <Bike className="h-5 w-5 shrink-0 text-accent" />
                   <p className="text-sm text-muted">
@@ -521,7 +535,7 @@ export default function ProductDetail() {
               </motion.div>
 
               {/* Contenedor Unificado en Pestañas */}
-              <motion.div variants={itemFade} className="mt-12 rounded-3xl border border-border bg-surface-2/65 backdrop-blur-sm p-6 sm:p-8 shadow-sm">
+              <motion.div variants={itemFade} className="mt-12 rounded-3xl border border-border/60 bg-surface-2/40 p-6 sm:p-8">
                 {/* Cabecera de pestañas */}
                 <div className="flex border-b border-border/40 pb-px mb-6 overflow-x-auto scrollbar-none gap-6">
                   <button
@@ -622,9 +636,9 @@ export default function ProductDetail() {
         <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-border bg-bg/95 px-4 py-3 pr-20 backdrop-blur-xl md:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)]">
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium text-muted">{selectedVariant ? selectedVariant.name : baseName}</p>
-            <p className="font-heading text-xl font-bold text-accent-2 drop-shadow-sm">{formatCordobas(unitPrice)}</p>
+            <p className="font-heading text-xl font-bold tabular-nums text-text">{formatCordobas(unitPrice)}</p>
           </div>
-          <Button onClick={add} disabled={!inStock} className="shrink-0 rounded-xl px-5 shadow-lg shadow-accent/20">
+          <Button onClick={add} disabled={!inStock} className="shrink-0 rounded-xl px-5">
             <ShoppingBag className="h-4 w-4 mr-1.5" /> {inStock ? "Agregar" : "Agotado"}
           </Button>
         </div>

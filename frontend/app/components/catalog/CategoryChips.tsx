@@ -2,6 +2,7 @@
 // Extraído de la ruta _index para reutilizarlo y mantener la vista limpia.
 // La barra de scroll se oculta; los chips usan snap para "engancharse" al deslizar.
 import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import type { Category } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { setCategory } from "~/store/slices/uiSlice";
@@ -34,14 +35,20 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
             ref={active ? activeRef : null}
             onClick={() => dispatch(setCategory(id))}
             className={cn(
-              "shrink-0 snap-start whitespace-nowrap rounded-pill border px-4 py-2 text-sm transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-              active
-                ? "border-transparent bg-gradient-accent text-white"
-                : "border-border bg-surface text-muted hover:text-text",
+              "relative shrink-0 snap-start whitespace-nowrap rounded-pill px-4 py-2 text-sm transition-colors duration-300",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+              active ? "text-bg" : "text-muted hover:text-text",
             )}
           >
-            {label}
+            {/* Píldora invertida que se desliza entre categorías (editorial, alto contraste) */}
+            {active && (
+              <motion.span
+                layoutId="category-pill"
+                className="absolute inset-0 rounded-pill bg-text"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
+            )}
+            <span className="relative z-10">{label}</span>
           </button>
         );
       })}
