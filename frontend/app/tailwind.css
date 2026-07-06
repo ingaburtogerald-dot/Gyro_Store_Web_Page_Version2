@@ -27,7 +27,9 @@
 
   /* Texto */
   --color-text: #e2e8f0;
-  --color-muted: #71717a;
+  /* muted a ~4.9:1 sobre --color-bg (#09090b): #71717a daba 4.1:1 y no pasaba
+     AA para texto secundario (fechas, productos, subtítulos). */
+  --color-muted: #7d7d86;
 
   /* Estados semánticos — usar estos en vez de hex sueltos (bg-danger, text-warning…) */
   --color-danger: #ef4444;

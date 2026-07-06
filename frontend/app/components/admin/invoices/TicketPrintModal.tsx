@@ -13,7 +13,18 @@ import type { Invoice } from "~/store/api/invoicesApi";
 
 export function TicketPrintModal({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
   const ticketRef = useRef<HTMLDivElement>(null);
-  const handlePrint = useReactToPrint({ contentRef: ticketRef, documentTitle: invoice.ticketNumber });
+  // `@page { margin: 0 }` elimina el margen de impresión que el navegador añade
+  // por defecto ENCIMA del margen físico de la impresora térmica: ese doble
+  // margen es lo que desperdiciaba papel arriba. El rollo define el ancho 80mm;
+  // la altura es automática (recibo continuo).
+  const handlePrint = useReactToPrint({
+    contentRef: ticketRef,
+    documentTitle: invoice.ticketNumber,
+    pageStyle: `
+      @page { size: 80mm auto; margin: 0; }
+      @media print { html, body { margin: 0 !important; padding: 0 !important; } }
+    `,
+  });
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = useCallback(async () => {

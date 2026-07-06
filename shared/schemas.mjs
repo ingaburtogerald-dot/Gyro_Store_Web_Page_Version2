@@ -62,6 +62,10 @@ export const PAYMENT_METHODS = /** @type {["Efectivo", "Transferencia", "Tarjeta
 // cajera lo ajusta si hubo regateo) y se valida contra el piso FIFO en el server.
 export const invoiceItemInputSchema = z.object({
   productCode: z.string().min(1, "Código requerido"),
+  // Origen del ítem: nativo (PRODUCTS) o migrado (MIGRATED_INVENTORY). El server
+  // resuelve el migrado por doc id (productId), ya que sus códigos no son únicos.
+  origin: z.enum(["native", "migrated"]).optional().default("native"),
+  productId: z.string().optional().default(""),
   quantity: z.coerce.number().int().positive("Cantidad inválida"),
   unitPrice: z.coerce.number().nonnegative("Precio inválido"),
 });

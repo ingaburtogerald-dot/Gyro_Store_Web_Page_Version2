@@ -119,17 +119,40 @@ async function registerFromInvoice(req, res) {
     return res.status(403).json({ error: 'Este ticket está asignado a otro vendedor.' });
   }
 
-  // Líneas desde el ticket, con la misma forma que produce buildLines (nativo).
-  const lines = (inv.items || []).map((it) => ({
-    productId: it.productId || '',
-    origin: 'native',
-    code: it.productCode,
-    name: it.productName,
-    variantName: 'Estándar',
-    quantity: it.quantity,
-    salePrice: it.unitPrice,
-    lineTotal: it.lineTotal,
-  }));
+  // Origen del ticket: sus reservas viven en purchases (nativo) o en
+  // migrated_inventory (migrado). La venta DEBE heredar ese origen o la
+  // aprobación consumiría las reservas contra la colección equivocada.
+  const invOrigin = inv.saleOrigin || 'native';
+
+  // Líneas desde el ticket, con la misma forma que produce buildLines para cada
+  // origen (migrado necesita migratedId/unitCostReal/mode para comisión y consumo).
+  const lines = (inv.items || []).map((it) => {
+    if ((it.origin || 'native') === 'migrated') {
+      return {
+        productId: it.productId || it.migratedId || '',
+        migratedId: it.migratedId || it.productId || '',
+        origin: 'migrated',
+        mode: 'M1',
+        code: it.productCode,
+        name: it.productName,
+        variantName: 'Migrado',
+        quantity: it.quantity,
+        salePrice: it.unitPrice,
+        lineTotal: it.lineTotal,
+        unitCostReal: it.unitCostReal || 0,
+      };
+    }
+    return {
+      productId: it.productId || '',
+      origin: 'native',
+      code: it.productCode,
+      name: it.productName,
+      variantName: 'Estándar',
+      quantity: it.quantity,
+      salePrice: it.unitPrice,
+      lineTotal: it.lineTotal,
+    };
+  });
   if (!lines.length) return res.status(400).json({ error: 'El ticket no tiene productos.' });
 
   let receiptPhotoUrl = '';
@@ -167,7 +190,7 @@ async function registerFromInvoice(req, res) {
         const groupTotal = groupLines.reduce((s, l) => s + l.lineTotal, 0);
         const order = {
           type,
-          saleOrigin: 'native',
+          saleOrigin: invOrigin,
           sellerUid: assigned.uid,
           sellerEmail: assigned.email,
           sellerName: assigned.name,
