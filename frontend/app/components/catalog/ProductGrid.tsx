@@ -6,6 +6,7 @@ import { PackageSearch } from "lucide-react";
 import { ProductCardMobile } from "./ProductCardMobile";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useAppSelector } from "~/store/hooks";
+import { cn } from "~/lib/utils";
 
 export function ProductGrid({ products, categories }: { products: CatalogProduct[]; categories: Category[] }) {
   const category = useAppSelector((s) => s.ui.activeCategory);
@@ -44,11 +45,31 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
     );
   }
 
+  // Bento asimétrico: ciertos productos se vuelven tiles ANCHOS (2 columnas,
+  // disposición horizontal editorial). Con `grid-auto-flow: dense` el resto se
+  // acomoda sin huecos. Es determinista → sobrevive al filtrado sin verse aleatorio.
+  //  · El primero abre como pieza destacada.
+  //  · Las ofertas se llevan un tile ancho (se ganan la prominencia).
+  //  · Un ritmo posicional añade variedad cuando no hay ofertas.
+  const isWide = (p: CatalogProduct, i: number) => {
+    const deal = p.isPromo || (p.compareAtPrice ?? 0) > p.price;
+    return i === 0 || deal || i % 9 === 7;
+  };
+
   return (
-    <div className="grid grid-cols-2 gap-4 pb-8 sm:grid-cols-3 lg:grid-cols-4">
-      {filtered.map((p) => (
-        <ProductCardMobile key={p.id} product={p} categories={categories} />
-      ))}
+    <div className="grid grid-cols-2 gap-4 pb-12 [grid-auto-flow:dense] sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
+      {filtered.map((p, i) => {
+        const wide = isWide(p, i);
+        return (
+          <div key={p.id} className={cn(wide && "col-span-2")}>
+            <ProductCardMobile
+              product={p}
+              categories={categories}
+              layout={wide ? "list" : "grid"}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }

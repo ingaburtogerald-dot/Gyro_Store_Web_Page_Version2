@@ -105,7 +105,7 @@ export function FilterSheet() {
                       className={cn(
                         "rounded-pill border px-4 py-2 text-sm transition-colors",
                         sort === o.value
-                          ? "border-transparent bg-gradient-accent text-white"
+                          ? "border-accent/30 bg-accent/12 text-accent-2"
                           : "border-border bg-surface-2 text-muted hover:text-text",
                       )}
                     >
@@ -170,7 +170,7 @@ export function FilterSheet() {
               </button>
               <button
                 onClick={() => dispatch(closeFilterSheet())}
-                className="min-h-[48px] flex-[2] rounded-xl bg-gradient-accent text-sm font-semibold text-white active:scale-95"
+                className="ease-expo min-h-[48px] flex-[2] rounded-xl bg-accent text-sm font-semibold text-white transition duration-300 hover:bg-accent-hover active:scale-95"
               >
                 Ver resultados
               </button>
@@ -208,7 +208,7 @@ function ToggleRow({
       <span
         className={cn(
           "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-          checked ? "bg-gradient-accent" : "bg-surface-2",
+          checked ? "bg-accent" : "bg-surface-2",
         )}
       >
         <span
