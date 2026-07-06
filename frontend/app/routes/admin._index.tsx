@@ -23,7 +23,7 @@ export default function AdminHome() {
         ))}
       </div>
 
-      <div className="mt-8 rounded-card border border-border bg-surface p-6 text-sm text-muted">
+      <div className="mt-8 rounded-card border border-border bg-surface shadow-premium p-6 text-sm text-muted">
         Selecciona un portal en el menú lateral para comenzar. Los módulos de
         inventario, ventas, facturación, reportes, logística y usuarios se irán
         habilitando por fases.

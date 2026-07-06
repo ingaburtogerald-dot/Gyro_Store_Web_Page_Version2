@@ -3,6 +3,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight, Search, X, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { SALE_STATUS_META } from "./saleStatus";
+import { StatusBadge } from "~/components/ui/StatusBadge";
 import { DataTable } from "~/components/ui/DataTable";
 import { AdminSaleCard } from "./AdminSaleCard";
 import { Modal } from "~/components/ui/Modal";
@@ -179,7 +180,7 @@ export function AdminSalesHistory({
           const m = SALE_STATUS_META[s.status as Sale["status"]];
           return (
             <div className="flex flex-col gap-1 items-start">
-              <span className={`rounded-pill px-2 py-0.5 text-xs font-semibold ${m.cls}`}>{m.label}</span>
+              <StatusBadge status={m.status} label={m.label} />
               {s.editReason && (
                 <span
                   className="rounded-pill bg-accent/20 px-1.5 py-0.5 text-[11px] font-bold text-accent-2 cursor-help"
@@ -242,7 +243,7 @@ export function AdminSalesHistory({
   }, [displayedSales]);
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4 relative">
+    <div className="rounded-card border border-border bg-surface shadow-premium p-4 relative">
       <div className="sticky top-0 z-30 flex flex-col lg:flex-row items-start justify-between gap-4 bg-surface pb-2">
         <h2 className="text-lg font-bold text-text">Desglose Detallado de Transacciones</h2>
         <div className="flex flex-wrap items-center gap-3">

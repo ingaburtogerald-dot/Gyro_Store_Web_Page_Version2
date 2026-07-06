@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { arrivalFormSchema, type ArrivalFormInput } from "~/lib/validators";
 import { useReportArrivalMutation, type Purchase } from "~/store/api/inventoryApi";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
@@ -45,20 +46,15 @@ export function ArrivalModal({
   return (
     <Modal open={!!purchase} onClose={onClose} title={`Reportar llegada · ${purchase?.code ?? ""}`}>
       <form onSubmit={handleSubmit(onSubmit)} autoComplete="off" className="space-y-3">
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Fecha de ingreso a Nicaragua</span>
+        <Field label="Fecha de ingreso a Nicaragua" error={errors.arrivalDate?.message}>
           <DateField control={control} name="arrivalDate" invalid={!!errors.arrivalDate} />
-          {errors.arrivalDate && <span className="mt-1 block text-xs text-red-400">{errors.arrivalDate.message}</span>}
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Costo de envío unitario (USD)</span>
+        <Field label="Costo de envío unitario (USD)" error={errors.shippingUnit?.message}>
           <input type="number" step="0.0001" min={0} className="input" {...register("shippingUnit")} />
-          {errors.shippingUnit && <span className="mt-1 block text-xs text-red-400">{errors.shippingUnit.message}</span>}
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Categoría</span>
+        <Field label="Categoría" error={errors.category?.message}>
           <select className="input" defaultValue="" {...register("category")}>
             <option value="" disabled>
               Selecciona una categoría
@@ -69,12 +65,16 @@ export function ArrivalModal({
               </option>
             ))}
           </select>
-          {errors.category && <span className="mt-1 block text-xs text-red-400">{errors.category.message}</span>}
-        </label>
+        </Field>
 
-        <Button type="submit" className="w-full" loading={isLoading}>
-          Confirmar llegada
-        </Button>
+        <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <Button variant="ghost" size="sm" onClick={onClose} type="button">
+            Cancelar
+          </Button>
+          <Button type="submit" size="sm" loading={isLoading}>
+            Confirmar llegada
+          </Button>
+        </div>
       </form>
     </Modal>
   );

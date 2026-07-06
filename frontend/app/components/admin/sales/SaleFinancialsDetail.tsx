@@ -181,7 +181,7 @@ function ItemBreakdown({
   const totalInv = item.inversionRecuperada ?? totalCost;
 
   return (
-    <div className="rounded-card border border-border bg-surface overflow-hidden">
+    <div className="rounded-card border border-border bg-surface shadow-premium overflow-hidden">
       {/* Header del producto — clic para expandir */}
       <button
         onClick={onToggle}

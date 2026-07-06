@@ -286,7 +286,7 @@ export function PaymentHistory({ selectedSeller }: { selectedSeller: string }) {
     return Array.from(map.values());
   }, [filteredPayments, groupBy]);
 
-  if (isLoading) return <div className="h-40 animate-pulse rounded-card border border-border bg-surface" />;
+  if (isLoading) return <div className="h-40 animate-pulse rounded-card border border-border bg-surface shadow-premium" />;
 
   return (
     <div className="space-y-6">
@@ -298,11 +298,11 @@ export function PaymentHistory({ selectedSeller }: { selectedSeller: string }) {
           <p className="text-xs font-semibold text-muted">Total Pagado</p>
           <p className="mt-1 text-2xl font-bold text-whatsapp drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]">{formatCordobas(summary.total)}</p>
         </div>
-        <div className="rounded-card border border-border bg-surface p-4 shadow-sm">
+        <div className="rounded-card border border-border bg-surface shadow-premium p-4 shadow-sm">
           <p className="text-xs font-semibold text-muted">Pagos Procesados</p>
           <p className="mt-1 text-2xl font-bold text-text">{summary.count}</p>
         </div>
-        <div className="rounded-card border border-border bg-surface p-4 shadow-sm">
+        <div className="rounded-card border border-border bg-surface shadow-premium p-4 shadow-sm">
           <p className="text-xs font-semibold text-muted">Vendedores</p>
           <p className="mt-1 text-2xl font-bold text-text">{summary.sellers}</p>
         </div>

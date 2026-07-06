@@ -107,10 +107,11 @@ export function SalesPerformanceWidget() {
   const title = isAdmin ? "Rendimiento de ventas" : "Mis ventas y comisiones";
   const emptyMsg = "Sin ventas aprobadas en este período.";
 
-  // Colores del tema
+  // Colores del tema — la comisión del vendedor usa violeta para
+  // que contraste con las barras verdes de ventas.
   const COL_VENTAS = "var(--color-accent)";
   const COL_GANANCIA = "#a78bfa"; // purple-400 — contraste claro sobre barras verdes
-  const COL_COMISION = "var(--color-whatsapp)";
+  const COL_COMISION = "#c084fc"; // purple-300 — contrasta con barras verdes (antes era whatsapp green)
 
   return (
     <WidgetShell title={title} icon={TrendingUp} tone="emerald">
@@ -125,15 +126,26 @@ export function SalesPerformanceWidget() {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 12, right: 12, left: 4, bottom: 4 }}>
               <defs>
-                {/* Gradiente vertical para las barras de ventas */}
+                {/* Gradiente vertical para las barras de ventas — 3 stops para profundidad */}
                 <linearGradient id="gradBarVentas" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={COL_VENTAS} stopOpacity={0.85} />
-                  <stop offset="100%" stopColor={COL_VENTAS} stopOpacity={0.45} />
+                  <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                  <stop offset="50%" stopColor={COL_VENTAS} stopOpacity={0.85} />
+                  <stop offset="100%" stopColor="#047857" stopOpacity={0.6} />
                 </linearGradient>
                 {/* Gradiente para barras de comisión (vista vendedor) */}
                 <linearGradient id="gradBarComision" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={COL_COMISION} stopOpacity={0.85} />
                   <stop offset="100%" stopColor={COL_COMISION} stopOpacity={0.45} />
+                </linearGradient>
+                {/* Área bajo la línea de comisión (vendedor) */}
+                <linearGradient id="gradAreaComision" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COL_COMISION} stopOpacity={0.25} />
+                  <stop offset="100%" stopColor={COL_COMISION} stopOpacity={0.02} />
+                </linearGradient>
+                {/* Área bajo la línea de ganancia (admin) */}
+                <linearGradient id="gradAreaGanancia" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COL_GANANCIA} stopOpacity={0.2} />
+                  <stop offset="100%" stopColor={COL_GANANCIA} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
 
@@ -162,11 +174,12 @@ export function SalesPerformanceWidget() {
                 tickFormatter={fmtAxis}
               />
 
-              {/* Eje derecho: ganancia (admin) o comisión (vendedor) — escala independiente */}
+              {/* Eje derecho: ganancia (admin) — solo visible para admin con línea */}
+              {isAdmin && (
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fill: isAdmin ? COL_GANANCIA : COL_COMISION, fontSize: 11 }}
+                tick={{ fill: COL_GANANCIA, fontSize: 11, fontWeight: 500 }}
                 tickLine={false}
                 axisLine={false}
                 width={48}
@@ -174,6 +187,7 @@ export function SalesPerformanceWidget() {
                 domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.25) / 1000) * 1000]}
                 tickFormatter={fmtAxis}
               />
+              )}
 
               <Tooltip
                 content={<ChartTooltip />}
@@ -194,7 +208,7 @@ export function SalesPerformanceWidget() {
                     maxBarSize={48}
                     animationDuration={600}
                   />
-                  {/* Línea de ganancia: eje derecho — flota sobre las barras */}
+                  {/* Línea de ganancia: eje derecho — linear para que los puntos caigan exacto en cada barra */}
                   <Line
                     yAxisId="right"
                     type="linear"
@@ -202,13 +216,13 @@ export function SalesPerformanceWidget() {
                     name="Ganancia"
                     stroke={COL_GANANCIA}
                     strokeWidth={2.5}
-                    dot={{ r: 4, fill: COL_GANANCIA, strokeWidth: 2, stroke: "var(--color-surface)" }}
-                    activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--color-surface)" }}
+                    dot={{ r: 5, fill: COL_GANANCIA, strokeWidth: 2.5, stroke: "var(--color-surface)" }}
+                    activeDot={{ r: 7, strokeWidth: 2.5, stroke: "var(--color-surface)" }}
                     animationDuration={900}
                   />
                 </>
               ) : (
-                /* Vendedor: barras de ventas + línea de comisión (misma estructura que admin) */
+                /* Vendedor: barras agrupadas de ventas + comisión (mismo eje, sin confusión) */
                 <>
                   <Bar
                     yAxisId="left"
@@ -216,19 +230,17 @@ export function SalesPerformanceWidget() {
                     name="Ventas"
                     fill="url(#gradBarVentas)"
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={48}
+                    maxBarSize={40}
                     animationDuration={600}
                   />
-                  <Line
-                    yAxisId="right"
-                    type="linear"
+                  <Bar
+                    yAxisId="left"
                     dataKey="comision"
                     name="Comisión"
-                    stroke={COL_COMISION}
-                    strokeWidth={2.5}
-                    dot={{ r: 4, fill: COL_COMISION, strokeWidth: 2, stroke: "var(--color-surface)" }}
-                    activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--color-surface)" }}
-                    animationDuration={900}
+                    fill="url(#gradBarComision)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={40}
+                    animationDuration={800}
                   />
                 </>
               )}

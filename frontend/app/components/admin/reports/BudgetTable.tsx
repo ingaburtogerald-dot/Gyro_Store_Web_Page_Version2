@@ -17,7 +17,7 @@ export function BudgetTable({ rows }: { rows: BudgetRow[] }) {
   );
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface shadow-premium p-4">
       <h3 className="mb-3 font-semibold">Presupuesto vs. Gasto (C$)</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

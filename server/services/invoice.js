@@ -2,25 +2,19 @@
 const { db } = require('../firebase');
 const config = require('../config');
 
-const INVOICES = config.collections.invoices;
-
 // Genera el siguiente número de ticket del día: GS-YYYYMMDD-NNN (NNN secuencial).
+// Contador transaccional en counters/invoices-YYYYMMDD: dos requests simultáneos
+// nunca obtienen el mismo número (el conteo por rango de string sí tenía esa carrera).
 async function nextTicketNumber() {
   const now = new Date();
   const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-  const prefix = `GS-${ymd}-`;
-  // Límite superior del rango de prefijo (carácter alto de Unicode usado por Firestore).
-  const upper = prefix + String.fromCharCode(0xf8ff);
 
-  // Cuenta los tickets de hoy mediante un rango de string (sin índice compuesto).
-  const snap = await db
-    .collection(INVOICES)
-    .where('ticketNumber', '>=', prefix)
-    .where('ticketNumber', '<', upper)
-    .get();
-
-  const seq = String(snap.size + 1).padStart(3, '0');
-  return `${prefix}${seq}`;
+  return db.runTransaction(async (tx) => {
+    const ref = db.collection(config.collections.counters).doc(`invoices-${ymd}`);
+    const seq = ((await tx.get(ref)).data()?.seq || 0) + 1;
+    tx.set(ref, { seq }, { merge: true });
+    return `GS-${ymd}-${String(seq).padStart(3, '0')}`;
+  });
 }
 
 // Normaliza las líneas y calcula totales. discount es un monto en C$.
@@ -29,6 +23,7 @@ function computeTotals(items, discount = 0) {
     const quantity = Math.max(1, parseInt(it.quantity, 10) || 1);
     const unitPrice = Math.max(0, parseFloat(it.unitPrice) || 0);
     return {
+      productId: String(it.productId || ''),
       productCode: String(it.productCode || ''),
       productName: String(it.productName || ''),
       quantity,

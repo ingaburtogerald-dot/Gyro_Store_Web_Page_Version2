@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Tag } from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { DateField } from "~/components/ui/DatePicker";
-import { Field } from "~/components/admin/reports/_shared/Field";
+import { Field } from "~/components/ui/Field";
 import { Select } from "~/components/admin/reports/_shared/Select";
 import { ProductAutocomplete } from "~/components/admin/sales/ProductAutocomplete";
 import { formStagger, fieldItem } from "~/components/admin/reports/_shared/motion";

@@ -1,7 +1,10 @@
-// API del portal de Facturación.
+// API del portal de Facturación. El ticket reserva stock FIFO al crearse;
+// el vendedor registra su venta desde él (hereda reservas). deliveryFee es
+// solo informativo (se imprime, no entra al total ni a comisiones).
 import { baseApi } from "./baseApi";
 
 export interface InvoiceItem {
+  productId?: string;
   productCode: string;
   productName: string;
   quantity: number;
@@ -9,29 +12,55 @@ export interface InvoiceItem {
   lineTotal: number;
 }
 
-export type InvoiceStatus = "unlinked" | "linked" | "paid";
+export type InvoiceStatus = "unlinked" | "linked" | "void" | "paid";
+
+export interface InvoiceCustomer {
+  firstName: string;
+  lastName: string;
+  phone: string;
+}
+
+export interface TicketSeller {
+  uid: string;
+  email: string;
+  name: string;
+}
 
 export interface Invoice {
   id: string;
   ticketNumber: string;
+  status: InvoiceStatus;
+  customer?: InvoiceCustomer | null;
+  contactId?: string | null;
   items: InvoiceItem[];
   subtotal: number;
   discount: number;
   total: number;
+  deliveryFee?: number;
   paymentMethod: string;
-  sellerName: string;
+  assignedSeller?: TicketSeller | null;
+  createdBy?: TicketSeller | null; // cajera que emitió el ticket
+  sellerName: string; // legacy: tickets pre-reforma
   linkedToOrder: string | null;
-  status: InvoiceStatus;
+  linkedOrderIds?: string[];
+  voidInfo?: { reason: string; at: string | null; by: string } | null;
   createdAt: string | null;
+  updatedAt?: string | null;
+  linkedAt?: string | null;
 }
 
 export interface NewInvoice {
-  items: { productCode: string; productName: string; quantity: number; unitPrice: number }[];
+  customer: InvoiceCustomer;
+  items: { productCode: string; quantity: number; unitPrice: number }[];
   discount: number;
+  deliveryFee: number;
   paymentMethod: string;
+  assignedSeller: TicketSeller;
+  contactId?: string | null;
 }
 
 export interface ProductLookup {
+  productId: string;
   code: string;
   name: string;
   price: number;
@@ -47,8 +76,22 @@ export const invoicesApi = baseApi.injectEndpoints({
     lookupProduct: build.query<ProductLookup, string>({
       query: (code) => `/invoices/lookup?code=${encodeURIComponent(code)}`,
     }),
+    searchProducts: build.query<ProductLookup[], string>({
+      query: (q) => `/invoices/search?q=${encodeURIComponent(q)}`,
+    }),
+    getTicketSellers: build.query<TicketSeller[], void>({
+      query: () => "/invoices/sellers",
+    }),
     createInvoice: build.mutation<Invoice, NewInvoice>({
       query: (body) => ({ url: "/invoices", method: "POST", body }),
+      invalidatesTags: ["Invoice"],
+    }),
+    updateInvoice: build.mutation<{ ok: boolean }, { id: string; body: NewInvoice }>({
+      query: ({ id, body }) => ({ url: `/invoices/${id}`, method: "PUT", body }),
+      invalidatesTags: ["Invoice"],
+    }),
+    voidInvoice: build.mutation<{ ok: boolean }, { id: string; reason: string }>({
+      query: ({ id, reason }) => ({ url: `/invoices/${id}/void`, method: "POST", body: { reason } }),
       invalidatesTags: ["Invoice"],
     }),
     linkInvoice: build.mutation<{ ok: boolean }, { id: string; orderId: string }>({
@@ -61,6 +104,10 @@ export const invoicesApi = baseApi.injectEndpoints({
 export const {
   useGetInvoicesQuery,
   useLazyLookupProductQuery,
+  useSearchProductsQuery,
+  useGetTicketSellersQuery,
   useCreateInvoiceMutation,
+  useUpdateInvoiceMutation,
+  useVoidInvoiceMutation,
   useLinkInvoiceMutation,
 } = invoicesApi;

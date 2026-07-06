@@ -7,15 +7,17 @@
    (bg-bg, text-accent, rounded-card, font-heading, etc.)
    ─────────────────────────────────────────────────────────── */
 @theme {
-  /* Superficies */
-  --color-bg: #0a0a0f;
-  --color-surface: #12121a;
-  --color-surface-2: #1a1a24;
+  /* Superficies — Paleta Obsidian (neutra, sin tinte azul) */
+  --color-bg: #09090b;
+  --color-surface: #121214;
+  --color-surface-2: #1a1a1c;
+  --color-surface-hover: #1a1a1c;
   --color-border: rgba(255, 255, 255, 0.06);
 
   /* Acentos — Esmeralda (identidad fintech) */
   --color-accent: #10b981;
   --color-accent-2: #34d399;
+  --color-accent-hover: #059669;
   --color-whatsapp: #00d4aa;
 
   /* Gradiente de botones: verdes más profundos que el acento brillante para
@@ -25,7 +27,7 @@
 
   /* Texto */
   --color-text: #e2e8f0;
-  --color-muted: #717a9c;
+  --color-muted: #71717a;
 
   /* Estados semánticos — usar estos en vez de hex sueltos (bg-danger, text-warning…) */
   --color-danger: #ef4444;
@@ -39,7 +41,11 @@
 
   /* Radios */
   --radius-card: 16px;
+  --radius-input: 12px;
   --radius-pill: 99px;
+
+  /* Sombra premium: anillo sutil + elevación profunda (genera `shadow-premium`) */
+  --shadow-premium: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
 }
 
 /* Gradiente de acento reutilizable */
@@ -74,9 +80,13 @@
   --color-bg: #e7ede9;        /* fondo gris-esmeralda: hace que los cards blancos resalten */
   --color-surface: #ffffff;
   --color-surface-2: #eef3f0;
+  --color-surface-hover: #eef3f0;
   --color-border: #c2d1c9;    /* borde más definido y con mejor contraste */
   --color-accent: #059669;
   --color-accent-2: #10b981;
+  --color-accent-hover: #047857;
+  /* En claro el anillo blanco no se ve: sombra de elevación suave en su lugar */
+  --shadow-premium: 0 1px 2px rgba(16, 40, 30, 0.05), 0 12px 28px -14px rgba(16, 40, 30, 0.18);
   --color-grad-from: #059669;
   --color-grad-to: #047857;
   --color-whatsapp: #059669;
@@ -176,6 +186,34 @@
   border: 1px solid var(--color-border);
 }
 
+/* ── Glow de estado para badges de tickets (efecto neón suave) ── */
+@utility glow-amber {
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.35), 0 0 20px rgba(251, 191, 36, 0.15);
+}
+@utility glow-emerald {
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.35), 0 0 20px rgba(16, 185, 129, 0.15);
+}
+@utility glow-rose {
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.35), 0 0 20px rgba(244, 63, 94, 0.15);
+}
+@utility glow-whatsapp {
+  box-shadow: 0 0 8px rgba(0, 212, 170, 0.35), 0 0 20px rgba(0, 212, 170, 0.15);
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+@utility animate-badge-pulse {
+  animation: badge-pulse 2.5s ease-in-out infinite;
+}
+
+/* ── Borde izquierdo de acento para secciones de formulario ── */
+@utility section-accent-border {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  padding-left: 0.75rem;
+}
+
 @layer base {
   html,
   body {
@@ -184,6 +222,12 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Alternates de Inter (a, g, y…) = look Vercel/Geist */
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
   }
 
   h1, h2, h3, h4 {
@@ -215,7 +259,7 @@
 @layer components {
   .input {
     width: 100%;
-    border-radius: 12px;
+    border-radius: var(--radius-input);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg);
     padding: 0.625rem 0.75rem;

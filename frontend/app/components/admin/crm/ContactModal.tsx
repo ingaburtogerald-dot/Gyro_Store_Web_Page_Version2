@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { cn } from "~/lib/utils";
 import {
   useCreateContactMutation,
@@ -110,14 +111,5 @@ export function ContactModal({ open, onClose, item }: { open: boolean; onClose: 
         </div>
       </div>
     </Modal>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
-      {children}
-    </label>
   );
 }

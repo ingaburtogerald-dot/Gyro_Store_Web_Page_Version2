@@ -162,7 +162,7 @@ export function UsersTable({ onEdit }: { onEdit: (u: ManagedUser) => void }) {
     [onEdit],
   );
 
-  if (isLoading) return <div className="h-64 animate-pulse rounded-card border border-border bg-surface" />;
+  if (isLoading) return <div className="h-64 animate-pulse rounded-card border border-border bg-surface shadow-premium" />;
 
   return (
     <>

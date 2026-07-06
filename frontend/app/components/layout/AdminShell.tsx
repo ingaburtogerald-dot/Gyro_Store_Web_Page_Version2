@@ -311,9 +311,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
+        {/* key por ruta = cada portal entra con fade+slide (sin exit: con Remix
+            el Outlet ya trae el contenido nuevo y animar la salida lo duplica). */}
         <motion.main
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          key={location.pathname}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
           className="flex-1 p-4 md:p-6"
         >
           {children}

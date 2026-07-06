@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Camera, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { DatePicker } from "~/components/ui/DatePicker";
 import { useCreateShipmentMutation } from "~/store/api/logisticsApi";
 
@@ -47,7 +48,7 @@ export function RegisterShipmentForm() {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-3 rounded-card border border-border bg-surface p-4 sm:grid-cols-2">
+    <form onSubmit={submit} className="grid gap-3 rounded-card border border-border bg-surface shadow-premium p-4 sm:grid-cols-2">
       <Field label="Tracking number *">
         <input className="input" value={form.trackingNumber} onChange={set("trackingNumber")} placeholder="N° de seguimiento" />
       </Field>
@@ -90,14 +91,5 @@ export function RegisterShipmentForm() {
         <Button type="submit" loading={isLoading}>Registrar paquete</Button>
       </div>
     </form>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
-      {children}
-    </label>
   );
 }

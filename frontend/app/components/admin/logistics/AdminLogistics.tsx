@@ -98,7 +98,7 @@ export function AdminLogistics() {
       </div>
 
       {isLoading ? (
-        <div className="h-40 animate-pulse rounded-card border border-border bg-surface" />
+        <div className="h-40 animate-pulse rounded-card border border-border bg-surface shadow-premium" />
       ) : filtered.length === 0 ? (
         <p className="rounded-card border border-dashed border-border py-12 text-center text-muted">Sin paquetes en este estado.</p>
       ) : (

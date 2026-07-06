@@ -31,7 +31,7 @@ export function ChartCard({
     <motion.div
       variants={cardVariants}
       className={cn(
-        "group relative break-inside-avoid overflow-hidden rounded-card border border-border bg-surface p-5",
+        "group relative break-inside-avoid overflow-hidden rounded-card border border-border bg-surface shadow-premium p-5",
         "transition-all duration-300 hover:border-accent/25 hover:shadow-[0_10px_40px_-12px_rgba(0,0,0,0.5)]",
         className,
       )}

@@ -27,14 +27,14 @@ export function TrashPanel() {
     }
   }
 
-  if (isLoading) return <div className="h-40 animate-pulse rounded-card border border-border bg-surface" />;
+  if (isLoading) return <div className="h-40 animate-pulse rounded-card border border-border bg-surface shadow-premium" />;
   if (trash.length === 0)
     return <p className="rounded-card border border-dashed border-border py-12 text-center text-muted">La papelera está vacía.</p>;
 
   return (
     <div className="space-y-2">
       {trash.map((u) => (
-        <div key={u.id} className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-border bg-surface p-4">
+        <div key={u.id} className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-border bg-surface shadow-premium p-4">
           <div>
             <p className="font-medium">{u.displayName}</p>
             <p className="text-xs text-muted">{u.email} · expira en {u.daysLeft} días</p>

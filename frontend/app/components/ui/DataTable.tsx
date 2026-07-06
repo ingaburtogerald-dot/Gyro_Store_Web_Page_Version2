@@ -96,7 +96,7 @@ export function DataTable<T>({
         <TableSkeleton rows={6} cols={onRowClick ? columns.length + 1 : columns.length} />
       ) : (
       <>
-      <div className="hidden md:block overflow-auto max-h-[75vh] rounded-card border border-border bg-surface relative">
+      <div className="hidden md:block overflow-auto max-h-[75vh] rounded-card border border-border bg-surface shadow-premium relative">
         <table className="w-full text-sm">
           <thead className="table-header-brand text-left sticky top-0 z-20 shadow-sm">
             {table.getHeaderGroups().map((hg) => (
@@ -252,7 +252,7 @@ export function DataTable<T>({
       {/* Vista móvil: tarjetas (bonitas si el panel define mobileCard; genéricas si no). */}
       <div className="space-y-3 md:hidden">
         {table.getRowModel().rows.length === 0 ? (
-          <p className="rounded-card border border-border bg-surface py-8 text-center text-muted">{emptyText}</p>
+          <p className="rounded-card border border-border bg-surface shadow-premium py-8 text-center text-muted">{emptyText}</p>
         ) : (
           table.getRowModel().rows.map((row) => {
             const rowId = (row.original as any).id;
@@ -267,7 +267,7 @@ export function DataTable<T>({
                 {mobileCard ? (
                   mobileCard(row.original)
                 ) : (
-                  <div className="space-y-1.5 rounded-card border border-border bg-surface p-4">
+                  <div className="space-y-1.5 rounded-card border border-border bg-surface shadow-premium p-4">
                     {row.getVisibleCells().map((cell) => {
                       const header = cell.column.columnDef.header;
                       const label = typeof header === "string" ? header : "";

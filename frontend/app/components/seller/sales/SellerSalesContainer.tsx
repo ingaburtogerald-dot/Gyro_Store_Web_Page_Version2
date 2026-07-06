@@ -56,7 +56,7 @@ export function SellerSalesContainer({ selectedMonth }: { selectedMonth: string 
       {isLoading ? (
         <CardGridSkeleton count={6} />
       ) : sales.length === 0 ? (
-        <p className="rounded-card border border-border bg-surface py-10 text-center text-sm text-muted">
+        <p className="rounded-card border border-border bg-surface shadow-premium py-10 text-center text-sm text-muted">
           No tienes ventas {status !== "all" ? "con este estado " : ""}para este período.
         </p>
       ) : (

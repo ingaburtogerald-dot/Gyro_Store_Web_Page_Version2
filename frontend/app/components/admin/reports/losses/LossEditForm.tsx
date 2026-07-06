@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "~/components/ui/Button";
 import { DateField } from "~/components/ui/DatePicker";
-import { Field } from "~/components/admin/reports/_shared/Field";
+import { Field } from "~/components/ui/Field";
 import { useLossActions } from "~/hooks/reports/useLossActions";
 import { lossEditSchema, type LossEditInput } from "~/schemas/losses";
 import type { LossRecord, LossCategory } from "~/store/api/reportsApi";

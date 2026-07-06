@@ -66,7 +66,7 @@ export default function Contacto() {
           </motion.form>
 
           <div className="space-y-4">
-            <div className="rounded-card border border-border bg-surface p-5">
+            <div className="rounded-card border border-border bg-surface shadow-premium p-5">
               <h2 className="font-semibold">Visitanos</h2>
               <a
                 href="https://maps.google.com/?q=Managua,Nicaragua"
@@ -77,7 +77,7 @@ export default function Contacto() {
                 <MapPin className="h-4 w-4" /> {config?.storeAddress ?? "Managua, Nicaragua"}
               </a>
             </div>
-            <div className="rounded-card border border-border bg-surface p-5">
+            <div className="rounded-card border border-border bg-surface shadow-premium p-5">
               <h2 className="font-semibold">Síguenos</h2>
               <div className="mt-3 flex gap-3">
                 <a href={config?.socialLinks?.instagram ?? "#"} aria-label="Instagram"

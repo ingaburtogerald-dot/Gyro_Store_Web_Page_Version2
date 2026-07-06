@@ -10,6 +10,7 @@ import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
 import { FilterSelect, type FilterSelectOption } from "~/components/ui/FilterSelect";
 import { RowActionsMenu } from "~/components/ui/RowActionsMenu";
+import { StatusBadge, type BadgeStatus } from "~/components/ui/StatusBadge";
 import { ArrivalModal } from "./ArrivalModal";
 import { EditPurchaseModal } from "./EditPurchaseModal";
 import {
@@ -19,9 +20,10 @@ import {
 } from "~/store/api/inventoryApi";
 import { formatUsd } from "~/lib/utils";
 
-const STATUS_META: Record<Purchase["status"], { label: string; cls: string }> = {
-  china: { label: "En tránsito", cls: "bg-sky-500/15 text-sky-300" },
-  received: { label: "Recibido", cls: "bg-whatsapp/15 text-whatsapp" },
+// Tono del StatusBadge canónico por estado de la compra.
+const STATUS_META: Record<Purchase["status"], { label: string; status: BadgeStatus }> = {
+  china: { label: "En tránsito", status: "info" },
+  received: { label: "Recibido", status: "whatsapp" },
 };
 
 const ALL_OPT: FilterSelectOption = { value: "all", label: "Todos" };
@@ -128,7 +130,7 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
         ),
         cell: (c) => {
           const m = STATUS_META[c.getValue() as Purchase["status"]];
-          return <span className={`rounded-pill px-2.5 py-1 text-xs font-medium ${m.cls}`}>{m.label}</span>;
+          return <StatusBadge status={m.status} label={m.label} />;
         },
       },
       { accessorKey: "quantity", header: "Cant.", meta: { align: "right" } },
@@ -175,7 +177,7 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
   );
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card border border-border bg-surface" />;
+    return <div className="h-64 animate-pulse rounded-card border border-border bg-surface shadow-premium" />;
   }
 
   return (

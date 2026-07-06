@@ -77,11 +77,11 @@ export function ContactsTable({
   }
 
   if (visibleSections.length === 0) {
-    return <p className="rounded-card border border-border bg-surface py-16 text-center text-sm text-muted">No hay contactos con este filtro.</p>;
+    return <p className="rounded-card border border-border bg-surface shadow-premium py-16 text-center text-sm text-muted">No hay contactos con este filtro.</p>;
   }
 
   return (
-    <div className="overflow-x-auto rounded-card border border-border bg-surface">
+    <div className="overflow-x-auto rounded-card border border-border bg-surface shadow-premium">
       <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="table-header-brand text-left text-[11px] font-bold uppercase tracking-wider text-muted border-b border-border">

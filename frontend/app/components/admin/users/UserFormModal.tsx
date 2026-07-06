@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Copy, Check } from "lucide-react";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { useCreateUserMutation, useUpdateUserMutation, type ManagedUser } from "~/store/api/usersApi";
 import { ROLE_LABELS, type Role } from "~/lib/constants";
 import { cn } from "~/lib/utils";
@@ -132,23 +133,20 @@ export function UserFormModal({
     <Modal open={open} onClose={onClose} title={isEdit ? "Editar usuario" : "Nuevo usuario"}>
       <div className="space-y-3">
         {!isEdit && (
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium">Tipo de cuenta</span>
+          <Field label="Tipo de cuenta">
             <select className="input" value={provider} onChange={(e) => setProvider(e.target.value as any)}>
               <option value="local">Local (@gyrostore.com)</option>
               <option value="google">Google</option>
               <option value="microsoft">Microsoft</option>
             </select>
-          </label>
+          </Field>
         )}
 
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Nombre</span>
+        <Field label="Nombre">
           <input className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Nombre completo" />
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Correo</span>
+        <Field label="Correo">
           <input
             className="input"
             type="email"
@@ -157,10 +155,10 @@ export function UserFormModal({
             disabled={isEdit}
             placeholder={provider === "local" ? "usuario@gyrostore.com" : "correo@gmail.com"}
           />
-        </label>
+        </Field>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium">Roles</span>
+          <span className="mb-1.5 block text-xs font-medium text-muted">Roles</span>
           <div className="flex flex-wrap gap-2">
             {ALL_ROLES.map((r) => (
               <button
@@ -178,9 +176,9 @@ export function UserFormModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={submit} loading={creating || updating}>{isEdit ? "Guardar" : "Crear e invitar"}</Button>
+        <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <Button variant="ghost" size="sm" onClick={onClose}>Cancelar</Button>
+          <Button size="sm" onClick={submit} loading={creating || updating}>{isEdit ? "Guardar" : "Crear e invitar"}</Button>
         </div>
       </div>
     </Modal>

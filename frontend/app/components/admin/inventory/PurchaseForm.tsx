@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
+import { Field } from "~/components/ui/Field";
 import { purchaseFormSchema, type PurchaseFormInput } from "~/lib/validators";
 import { useCreatePurchaseMutation, useGetPurchasesQuery } from "~/store/api/inventoryApi";
 import { DateField } from "~/components/ui/DatePicker";
@@ -116,7 +117,7 @@ export function PurchaseForm({ onDone }: { onDone?: () => void } = {}) {
             return (
               <>
                 <input
-                  className="input bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
+                  className="input"
                   {...codeReg}
                   onChange={(e) => { rhfChange(e); setCodeError(null); }}
                   onBlur={(e) => {
@@ -160,13 +161,13 @@ export function PurchaseForm({ onDone }: { onDone?: () => void } = {}) {
       {/* ── Bloque 2: Datos financieros ── */}
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Cantidad" error={errors.quantity?.message}>
-          <input type="number" min={1} className="input h-10 bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("quantity")} />
+          <input type="number" min={1} className="input h-10" {...register("quantity")} />
         </Field>
         <Field label="Precio base (USD)" error={errors.costUnit?.message}>
-          <input type="number" step="0.01" min={0} className="input h-10 bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("costUnit")} />
+          <input type="number" step="0.01" min={0} className="input h-10" {...register("costUnit")} />
         </Field>
         <Field label="Imp. unitario (USD)" error={errors.taxUnit?.message}>
-          <input type="number" step="0.0001" min={0} className="input h-10 bg-surface-2/30 hover:bg-surface-2 focus:ring-1 focus:ring-accent" {...register("taxUnit")} />
+          <input type="number" step="0.0001" min={0} className="input h-10" {...register("taxUnit")} />
         </Field>
 
         {/* Tarjeta de totales estilo ticket */}
@@ -191,15 +192,5 @@ export function PurchaseForm({ onDone }: { onDone?: () => void } = {}) {
         Registrar compra
       </Button>
     </form>
-  );
-}
-
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
-      {children}
-      {error && <span className="mt-1 block text-xs text-red-400">{error}</span>}
-    </label>
   );
 }

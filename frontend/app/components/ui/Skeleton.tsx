@@ -33,7 +33,7 @@ export function CardGridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="space-y-3 rounded-card border border-border bg-surface p-4">
+        <div key={i} className="space-y-3 rounded-card border border-border bg-surface shadow-premium p-4">
           <div className="flex items-center justify-between">
             <Skeleton className="h-3 w-24" />
             <Skeleton className="h-5 w-16 rounded-pill" />
@@ -54,7 +54,7 @@ export function StatCardSkeleton({ count = 4 }: { count?: number }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-card border border-border bg-surface p-4">
+        <div key={i} className="rounded-card border border-border bg-surface shadow-premium p-4">
           <Skeleton className="h-3 w-2/3" />
           <Skeleton className="mt-3 h-6 w-1/2" />
         </div>

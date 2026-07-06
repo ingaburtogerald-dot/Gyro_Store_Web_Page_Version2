@@ -1,5 +1,6 @@
 // Utilidades del CRM de seguimientos: semáforo por fecha y link de WhatsApp.
 import type { Followup } from "~/store/api/followupsApi";
+import type { BadgeStatus } from "~/components/ui/StatusBadge";
 
 export function todayYmd(): string {
   const d = new Date();
@@ -35,10 +36,11 @@ export const TYPE_META: Record<Followup["type"], { label: string; cls: string }>
   other: { label: "📝 Otro", cls: "bg-slate-500/15 text-slate-300" },
 };
 
-export const STATUS_META: Record<Followup["status"], { label: string; cls: string }> = {
-  pending: { label: "Pendiente", cls: "bg-amber-500/15 text-amber-300" },
-  done: { label: "Hecho", cls: "bg-whatsapp/15 text-whatsapp" },
-  lost: { label: "Perdido", cls: "bg-rose-500/15 text-rose-300" },
+// Tono del StatusBadge canónico por estado del seguimiento.
+export const STATUS_META: Record<Followup["status"], { label: string; status: BadgeStatus }> = {
+  pending: { label: "Pendiente", status: "pending" },
+  done: { label: "Hecho", status: "whatsapp" },
+  lost: { label: "Perdido", status: "error" },
 };
 
 // Link de WhatsApp; antepone 505 (Nicaragua) a números locales de 8 dígitos.

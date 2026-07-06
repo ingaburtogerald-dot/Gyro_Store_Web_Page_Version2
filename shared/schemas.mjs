@@ -52,3 +52,36 @@ export const makeExpenseSchema = (groupKeys) =>
   expenseBaseSchema.extend({
     group: z.string().refine((g) => groupKeys.includes(g), "Grupo inválido"),
   });
+
+// ── Facturación (tickets POS) ────────────────────────────────────────────────
+
+export const PAYMENT_METHODS = /** @type {["Efectivo", "Transferencia", "Tarjeta"]} */ (["Efectivo", "Transferencia", "Tarjeta"]);
+
+// Línea de un ticket tal como la envía el TicketBuilder. El servidor resuelve
+// productId/productName reales desde el código; el precio es negociable (la
+// cajera lo ajusta si hubo regateo) y se valida contra el piso FIFO en el server.
+export const invoiceItemInputSchema = z.object({
+  productCode: z.string().min(1, "Código requerido"),
+  quantity: z.coerce.number().int().positive("Cantidad inválida"),
+  unitPrice: z.coerce.number().nonnegative("Precio inválido"),
+});
+
+// Contrato del POST/PUT /api/invoices. El deliveryFee es SOLO informativo:
+// se imprime para el cliente pero no entra al total (ni a comisiones/reportes).
+export const invoiceBaseSchema = z.object({
+  customer: z.object({
+    firstName: z.string().min(1, "Nombre del cliente requerido").max(60),
+    lastName: z.string().max(60).optional().default(""),
+    phone: z.string().max(20).optional().default(""),
+  }),
+  items: z.array(invoiceItemInputSchema).min(1, "El ticket no tiene productos."),
+  discount: z.coerce.number().nonnegative().optional().default(0),
+  deliveryFee: z.coerce.number().nonnegative().optional().default(0),
+  paymentMethod: z.enum(PAYMENT_METHODS).default("Efectivo"),
+  assignedSeller: z.object({
+    uid: z.string().min(1, "Vendedor requerido"),
+    email: z.string().email("Correo del vendedor inválido"),
+    name: z.string().min(1),
+  }),
+  contactId: z.string().nullable().optional().default(null),
+});

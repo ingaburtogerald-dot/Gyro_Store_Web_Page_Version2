@@ -29,7 +29,7 @@ export function QuoteSummary({ result, loading, errorMsg }: { result: QuoteResul
   const isAdmin = useAppSelector(selectIsAdmin);
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface shadow-premium p-4">
       <div className="mb-3 flex items-center gap-2">
         <Receipt className="h-4 w-4 text-accent-2" />
         <h3 className="font-semibold">Resumen</h3>

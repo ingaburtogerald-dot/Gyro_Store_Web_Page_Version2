@@ -27,27 +27,7 @@ export interface SaleFinancials {
   inversionRecuperada: number;
 }
 
-/** Extrae el desglose de costos fijos sumando items, soportando estructuras viejas y nuevas. */
-export function extractCostosFijosDesglose(sale: Sale) {
-  // Preferimos el agregado a nivel venta si existe (ventas nuevas):
-  if (sale.cfDesglose && Object.keys(sale.cfDesglose).length > 0) return { ...sale.cfDesglose };
-  
-  // Fallback a sumatoria por ítem (ventas legacy migradas):
-  const desglose: Record<string, number> = {};
-  if (sale.items) {
-    for (const it of sale.items) {
-      if (it.costosFijosDesglose) {
-        for (const [k, v] of Object.entries(it.costosFijosDesglose)) {
-          if (!desglose[k]) desglose[k] = 0;
-          desglose[k] += (v as number) * (it.quantity || 1);
-        }
-      }
-    }
-  }
-  return desglose;
-}
-
-/** 
+/**
  * Agrupa los items de una venta por código y precio de venta.
  * Si tienen el mismo código y el mismo precio, se unifican.
  * De lo contrario, se separan.

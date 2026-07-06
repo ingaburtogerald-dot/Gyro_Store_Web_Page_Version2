@@ -129,6 +129,54 @@ async function validatePriceFloor(lines) {
   }
 }
 
+// Distribuye las reservas ya tomadas entre los grupos de líneas (una venta por
+// código+precio): para cada código, asigna reservas a los grupos en orden hasta
+// cubrir la cantidad de cada grupo, partiendo una reserva si hace falta.
+// Retorna Map(groupIndex → reservations[]).
+function distributeReservations(lineGroups, reservations) {
+  const reservationsByCode = new Map();
+  for (const r of reservations || []) {
+    const arr = reservationsByCode.get(r.code) || [];
+    arr.push(r);
+    reservationsByCode.set(r.code, arr);
+  }
+
+  const reservationsForGroup = new Map(); // groupIndex → reservations[]
+  const codeReservationCursors = new Map(); // code → { idx, offset } cursor en el array de reservas
+  for (let gi = 0; gi < lineGroups.length; gi++) {
+    const groupLines = lineGroups[gi];
+    const code = groupLines[0].code;
+    const groupQty = groupLines.reduce((s, l) => s + l.quantity, 0);
+    const codeRes = reservationsByCode.get(code) || [];
+    if (!codeReservationCursors.has(code)) codeReservationCursors.set(code, { idx: 0, offset: 0 });
+    const cursor = codeReservationCursors.get(code);
+    const assigned = [];
+    let remaining = groupQty;
+    while (remaining > 0 && cursor.idx < codeRes.length) {
+      const r = codeRes[cursor.idx];
+      const available = r.quantity - cursor.offset;
+      if (available <= remaining) {
+        // Tomar el resto de esta reserva.
+        if (cursor.offset > 0) {
+          assigned.push({ ...r, quantity: available });
+        } else {
+          assigned.push({ ...r });
+        }
+        remaining -= available;
+        cursor.idx++;
+        cursor.offset = 0;
+      } else {
+        // Partir: tomar solo una parte de esta reserva.
+        assigned.push({ ...r, quantity: remaining });
+        cursor.offset += remaining;
+        remaining = 0;
+      }
+    }
+    reservationsForGroup.set(gi, assigned);
+  }
+  return reservationsForGroup;
+}
+
 // Libera reservas según el origen de la venta.
 async function releaseAny(saleOrigin, reservations) {
   if (!reservations || reservations.length === 0) return;
@@ -147,5 +195,6 @@ module.exports = {
   buildLines,
   migratedFinancialsFromLines,
   validatePriceFloor,
+  distributeReservations,
   releaseAny,
 };

@@ -130,7 +130,7 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
   );
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-card border border-border bg-surface" />;
+    return <div className="h-64 animate-pulse rounded-card border border-border bg-surface shadow-premium" />;
   }
 
   return (

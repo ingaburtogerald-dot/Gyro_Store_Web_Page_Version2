@@ -35,7 +35,7 @@ export function CustomerLogistics() {
       {tab === "new" ? (
         <RegisterShipmentForm />
       ) : isLoading ? (
-        <div className="h-40 animate-pulse rounded-card border border-border bg-surface" />
+        <div className="h-40 animate-pulse rounded-card border border-border bg-surface shadow-premium" />
       ) : shipments.length === 0 ? (
         <p className="rounded-card border border-dashed border-border py-12 text-center text-muted">Aún no tienes paquetes registrados.</p>
       ) : (

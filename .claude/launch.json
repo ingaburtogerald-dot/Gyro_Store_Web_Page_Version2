@@ -5,14 +5,14 @@
       "name": "api-server",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:server"],
-      "cwd": "C:\\Users\\Gerald\\Desktop\\Gyro_Store_Web_Page_Version2",
+      "cwd": ".",
       "port": 3000
     },
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "cwd": "C:\\Users\\Gerald\\Desktop\\Gyro_Store_Web_Page_Version2\\frontend",
+      "cwd": "frontend",
       "port": 5173
     }
   ]

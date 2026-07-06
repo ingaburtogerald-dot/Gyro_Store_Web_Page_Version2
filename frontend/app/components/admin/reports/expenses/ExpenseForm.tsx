@@ -7,7 +7,7 @@ import { Wallet, Coins } from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { DateField } from "~/components/ui/DatePicker";
 import { Autocomplete } from "~/components/ui/Autocomplete";
-import { Field } from "~/components/admin/reports/_shared/Field";
+import { Field } from "~/components/ui/Field";
 import { Select } from "~/components/admin/reports/_shared/Select";
 import { formStagger, fieldItem } from "~/components/admin/reports/_shared/motion";
 import { useGetExpenseCategoriesQuery, type LossRecord } from "~/store/api/reportsApi";
