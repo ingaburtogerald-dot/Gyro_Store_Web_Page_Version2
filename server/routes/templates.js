@@ -6,6 +6,9 @@ const { db, FieldValue } = require('../firebase');
 const config = require('../config');
 const { requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
+// El caché del catálogo público incluye axesSummary derivado de las plantillas:
+// cualquier mutación aquí debe invalidarlo para que las cards no queden desfasadas.
+const { clearCatalogCache } = require('./catalog');
 
 const TEMPLATES = config.collections.templates;
 
@@ -55,6 +58,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });
+  clearCatalogCache();
   res.status(201).json({ id: ref.id, ...fields });
 }));
 
@@ -64,6 +68,7 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   if (!(await ref.get()).exists) return res.status(404).json({ error: 'Plantilla no encontrada.' });
   const fields = buildTemplateFields(req.body);
   await ref.update({ ...fields, updatedAt: FieldValue.serverTimestamp() });
+  clearCatalogCache();
   res.json({ id: req.params.id, ...fields });
 }));
 
@@ -72,6 +77,7 @@ router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(TEMPLATES).doc(req.params.id);
   if (!(await ref.get()).exists) return res.status(404).json({ error: 'Plantilla no encontrada.' });
   await ref.delete();
+  clearCatalogCache();
   res.json({ ok: true });
 }));
 

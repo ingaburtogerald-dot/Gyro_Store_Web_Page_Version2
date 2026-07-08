@@ -1,65 +1,85 @@
 // Campana de notificaciones del header.
 //  - Para todos: seguimientos vencidos / de hoy (CRM).
 //  - Para vendedores: avisos de sus ventas aprobadas / pagadas / rechazadas, AGRUPADOS
-//    por tipo (ej. "Te pagaron 23 ventas"). Se derivan de sus datos (sin colección nueva)
-//    y se marcan como "vistos" en localStorage al abrir la campana.
+//    por tipo (ej. "Te pagaron 23 ventas"). Se derivan de sus datos (sin colección nueva).
+//  - Para admin: ventas por aprobar AGRUPADAS POR VENDEDOR (no un total genérico), con
+//    una fila propia y separada para las ventas del propio admin.
+//    Red: una sola query de pendientes (limit 50, poll 15s) → agrupada en cliente.
+//  Se marcan como "vistos" en localStorage al abrir la campana.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@remix-run/react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Bell, CheckCircle2, Banknote, XCircle, Package, PackageCheck } from "lucide-react";
 import { useGetAgendaQuery } from "~/store/api/contactsApi";
 import { useGetSalesQuery, useGetSalesPaginatedQuery } from "~/store/api/salesApi";
 import { useGetShipmentsQuery } from "~/store/api/logisticsApi";
+import { useGetUsersQuery } from "~/store/api/usersApi";
 import { useAppSelector } from "~/store/hooks";
-import { selectIsAdmin, selectRoles } from "~/store/slices/authSlice";
+import { selectIsAdmin, selectRoles, selectUser } from "~/store/slices/authSlice";
 import { dueState, isDue, DUE_META, fmtDate } from "~/components/admin/crm/crmMeta";
 import { formatCordobas, cn } from "~/lib/utils";
 
 const SALE_META: Record<
   string,
-  { dot: string; text: string; Icon: typeof CheckCircle2; one: string; many: (n: number) => string }
+  { text: string; Icon: typeof CheckCircle2; one: string; many: (n: number) => string }
 > = {
-  paid: {
-    dot: "bg-whatsapp",
-    text: "text-whatsapp",
-    Icon: Banknote,
-    one: "Te pagaron tu comisión",
-    many: (n) => `Te pagaron ${n} ventas`,
-  },
-  approved: {
-    dot: "bg-accent",
-    text: "text-accent-2",
-    Icon: CheckCircle2,
-    one: "Tu venta fue aprobada",
-    many: (n) => `${n} ventas aprobadas`,
-  },
-  rejected: {
-    dot: "bg-red-500",
-    text: "text-red-400",
-    Icon: XCircle,
-    one: "Tu venta fue rechazada",
-    many: (n) => `${n} ventas rechazadas`,
-  },
+  paid: { text: "text-whatsapp", Icon: Banknote, one: "Te pagaron tu comisión", many: (n) => `Te pagaron ${n} ventas` },
+  approved: { text: "text-accent-2", Icon: CheckCircle2, one: "Tu venta fue aprobada", many: (n) => `${n} ventas aprobadas` },
+  rejected: { text: "text-red-400", Icon: XCircle, one: "Tu venta fue rechazada", many: (n) => `${n} ventas rechazadas` },
 };
 const SALE_ORDER = ["paid", "approved", "rejected"] as const;
 const SEEN_KEY = "seenSaleNotifs";
 
+// Paleta de avatares (tinte + texto brillante) para reconocer al vendedor de un vistazo.
+const AVATAR_COLORS = [
+  "bg-indigo-500/15 text-indigo-300",
+  "bg-sky-500/15 text-sky-300",
+  "bg-emerald-500/15 text-emerald-300",
+  "bg-amber-500/15 text-amber-300",
+  "bg-rose-500/15 text-rose-300",
+  "bg-violet-500/15 text-violet-300",
+  "bg-teal-500/15 text-teal-300",
+];
+function initials(name: string): string {
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
+}
+function colorFor(key: string): string {
+  let h = 0;
+  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
 export function NotificationsBell() {
   const isAdmin = useAppSelector(selectIsAdmin);
   const roles = useAppSelector(selectRoles);
+  const user = useAppSelector(selectUser);
+  const myEmail = user?.email?.toLowerCase() ?? "";
+  const myName = user?.name || "Tú";
   const isLogisticsAdmin = roles.some((r) => r === "global_admin" || r === "admin" || r === "logistics_admin");
+
   const { data: agenda = [] } = useGetAgendaQuery();
   const { data: sales = [] } = useGetSalesQuery(undefined, { skip: isAdmin });
   const { data: shipments = [] } = useGetShipmentsQuery(undefined, { skip: !isLogisticsAdmin });
-  const { data: pendingSales } = useGetSalesPaginatedQuery(
-    { page: 1, limit: 1, status: "pending_approval", sellerEmail: "all", date: "all" },
-    { skip: !isAdmin, pollingInterval: 15000 }
+  // Una sola query trae hasta 50 pendientes reales; el agrupamiento es en cliente.
+  const { data: pendingData } = useGetSalesPaginatedQuery(
+    { page: 1, limit: 50, status: "pending_approval", sellerEmail: "all", date: "all" },
+    { skip: !isAdmin, pollingInterval: 15000 },
   );
+  // Fotos de los vendedores (mapa email→foto). La query ya la usa el admin, así
+  // que RTK reutiliza la caché: cero red extra.
+  const { data: users = [] } = useGetUsersQuery(undefined, { skip: !isAdmin });
+  const photoByEmail = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const u of users) if (u.email && u.photoURL) m.set(u.email.toLowerCase(), u.photoURL);
+    return m;
+  }, [users]);
+
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(new Set());
   const [isHydrated, setIsHydrated] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     try {
@@ -71,14 +91,40 @@ export function NotificationsBell() {
   }, []);
 
   const due = useMemo(
-    () =>
-      agenda
-        .filter(isDue)
-        .sort((a, b) => (a.nextActivityAt || "").localeCompare(b.nextActivityAt || "")),
+    () => agenda.filter(isDue).sort((a, b) => (a.nextActivityAt || "").localeCompare(b.nextActivityAt || "")),
     [agenda],
   );
 
-  // Agrupa los avisos de ventas por estado.
+  // ── Ventas por aprobar, AGRUPADAS por vendedor + fila propia del admin ──
+  const { sellerGroups, mine, othersPending } = useMemo(() => {
+    // Acumulamos la COMISIÓN estimada a pagar (comisionVendedor) — es lo que el
+    // admin decide al aprobar — en vez del monto de venta.
+    const map = new Map<string, { email: string; name: string; count: number; comision: number }>();
+    let mineCount = 0;
+    let mineComision = 0;
+    for (const s of pendingData?.data ?? []) {
+      const isMine = !!myEmail && s.sellerEmail?.toLowerCase() === myEmail;
+      if (isMine) {
+        mineCount += 1;
+        mineComision += s.comisionVendedor || 0;
+        continue;
+      }
+      const key = s.sellerEmail || s.sellerName;
+      const g = map.get(key) ?? { email: s.sellerEmail, name: s.sellerName || s.sellerEmail, count: 0, comision: 0 };
+      g.count += 1;
+      g.comision += s.comisionVendedor || 0;
+      map.set(key, g);
+    }
+    // Ordenado por comisión (mayor plata en juego primero), luego por cantidad.
+    const sellerGroups = [...map.values()].sort((a, b) => b.comision - a.comision || b.count - a.count);
+    return {
+      sellerGroups,
+      mine: { count: mineCount, comision: mineComision },
+      othersPending: sellerGroups.reduce((sum, g) => sum + g.count, 0),
+    };
+  }, [pendingData, myEmail]);
+
+  // Avisos de ventas del vendedor, agrupados por estado.
   const { groups, saleIds } = useMemo(() => {
     const map: Record<string, { status: string; count: number; comision: number; ids: string[] }> = {};
     for (const s of sales) {
@@ -92,7 +138,7 @@ export function NotificationsBell() {
     return { groups, saleIds: groups.flatMap((g) => g.ids) };
   }, [sales]);
 
-  // Avisos de logística para admins: paquetes nuevos y entregas por validar.
+  // Avisos de logística para admins.
   const logistics = useMemo(() => {
     if (!isLogisticsAdmin) return [];
     return shipments
@@ -101,10 +147,12 @@ export function NotificationsBell() {
   }, [shipments, isLogisticsAdmin]);
 
   const allIds = useMemo(() => [...saleIds, ...logistics.map((l) => l.notifId)], [saleIds, logistics]);
-
   const unseenCount = allIds.filter((id) => !seen.has(id)).length;
-  const pendingSalesCount = isAdmin ? (pendingSales?.total ?? 0) : 0;
-  const badge = due.length + unseenCount + pendingSalesCount;
+
+  // El badge rojo cuenta solo lo ACCIONABLE: ventas de otros por aprobar (tus propias
+  // no te las apruebas → no inflan la alarma) + avisos + seguimientos.
+  const badge = due.length + unseenCount + (isAdmin ? othersPending : 0);
+  const headerCount = badge + (isAdmin ? mine.count : 0);
 
   function handleToggle() {
     setOpen((o) => {
@@ -130,7 +178,18 @@ export function NotificationsBell() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  const empty = due.length === 0 && groups.length === 0 && logistics.length === 0 && pendingSalesCount === 0;
+  function goPending(sellerEmail?: string) {
+    setOpen(false);
+    const seller = sellerEmail ? `&seller=${encodeURIComponent(sellerEmail)}` : "";
+    navigate(`/admin/ventas?section=ventas&sub=pending${seller}`);
+  }
+
+  const empty =
+    due.length === 0 &&
+    groups.length === 0 &&
+    logistics.length === 0 &&
+    othersPending === 0 &&
+    mine.count === 0;
 
   return (
     <div className="relative" ref={ref}>
@@ -142,7 +201,7 @@ export function NotificationsBell() {
       >
         <Bell className="h-[18px] w-[18px]" />
         {badge > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-bg">
             {badge}
           </span>
         )}
@@ -151,149 +210,133 @@ export function NotificationsBell() {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.12 }}
-            className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-card border border-border bg-surface shadow-2xl"
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.96 }}
+            transition={reduce ? { duration: 0.12 } : { type: "spring", stiffness: 500, damping: 32, mass: 0.7 }}
+            className="absolute right-0 z-50 mt-2.5 w-[23rem] max-w-[calc(100vw-1.5rem)] origin-top-right overflow-hidden rounded-2xl border border-border/70 bg-surface p-1.5 shadow-[0_20px_50px_-16px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.03)]"
           >
-            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-              <span className="text-sm font-bold">Notificaciones</span>
-              <span className="text-xs text-muted">{badge}</span>
+            {/* Cabecera */}
+            <div className="flex items-center justify-between px-3 pb-1.5 pt-2">
+              <span className="text-sm font-semibold text-text">Notificaciones</span>
+              {headerCount > 0 && (
+                <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted">
+                  {headerCount}
+                </span>
+              )}
             </div>
 
-            <div className="max-h-[70vh] overflow-y-auto">
+            <div className="max-h-[70vh] overflow-y-auto px-0.5 pb-1">
               {empty ? (
-                <p className="px-4 py-6 text-center text-sm text-muted">Todo al día 🎉</p>
+                <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+                  <span className="grid h-12 w-12 place-items-center rounded-full bg-accent/10 text-accent-2">
+                    <CheckCircle2 className="h-6 w-6" strokeWidth={1.5} />
+                  </span>
+                  <p className="text-sm font-medium text-text">Todo al día</p>
+                  <p className="text-xs text-muted">No hay nada que requiera tu atención.</p>
+                </div>
               ) : (
                 <>
-                  {pendingSalesCount > 0 && (
+                  {/* ── Ventas por aprobar (admin): por vendedor + propias ── */}
+                  {isAdmin && (othersPending > 0 || mine.count > 0) && (
                     <>
-                      <p className="bg-surface-2/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
-                        Administración
-                      </p>
-                      <button
-                        onClick={() => {
-                          setOpen(false);
-                          navigate("/admin/ventas");
-                        }}
-                        className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-surface-2"
-                      >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
-                          <CheckCircle2 className="h-4 w-4" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-semibold text-amber-500">
-                            Ventas por aprobar
-                          </span>
-                          <span className="block text-xs text-muted">
-                            Tienes {pendingSalesCount} {pendingSalesCount === 1 ? "venta" : "ventas"} pendiente{pendingSalesCount === 1 ? "" : "s"}
-                          </span>
-                        </span>
-                      </button>
+                      <SectionLabel>Ventas por aprobar</SectionLabel>
+                      {sellerGroups.map((g) => (
+                        <NotifRow
+                          key={g.email || g.name}
+                          onClick={() => goPending(g.email)}
+                          avatar={
+                            <Avatar
+                              label={initials(g.name)}
+                              src={photoByEmail.get((g.email || "").toLowerCase())}
+                              className={colorFor(g.email || g.name)}
+                            />
+                          }
+                          title={g.name}
+                          subtitle={`${g.count} ${g.count === 1 ? "venta espera" : "ventas esperan"} tu aprobación`}
+                          right={<CommissionTag value={g.comision} />}
+                        />
+                      ))}
+                      {mine.count > 0 && (
+                        <NotifRow
+                          onClick={() => goPending(myEmail)}
+                          avatar={<Avatar label={initials(myName)} src={user?.photoURL} className="bg-accent/15 text-accent-2 ring-1 ring-accent/30" />}
+                          title="Tus ventas"
+                          titleClass="text-accent-2"
+                          subtitle={`${mine.count} ${mine.count === 1 ? "venta propia" : "ventas propias"} en espera`}
+                          right={<CommissionTag value={mine.comision} />}
+                        />
+                      )}
                     </>
                   )}
 
+                  {/* ── Logística ── */}
                   {logistics.length > 0 && (
                     <>
-                      <p className="bg-surface-2/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
-                        Gyro Logistics
-                      </p>
+                      <SectionLabel>Gyro Logistics</SectionLabel>
                       {logistics.map((l) => {
                         const pending = l.status === "entregado_china";
                         const Icon = pending ? PackageCheck : Package;
                         return (
-                          <button
+                          <NotifRow
                             key={l.notifId}
-                            onClick={() => {
-                              setOpen(false);
-                              navigate("/admin/logistica");
-                            }}
-                            className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-surface-2"
-                          >
-                            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2", pending ? "text-amber-400" : "text-accent-2")}>
-                              <Icon className="h-4 w-4" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className={cn("block font-semibold", pending ? "text-amber-400" : "text-accent-2")}>
-                                {pending ? "Entrega en China por validar" : "Nuevo paquete registrado"}
-                              </span>
-                              <span className="block truncate text-xs text-muted">
-                                {l.customerName} · {l.trackingNumber}
-                              </span>
-                            </span>
-                          </button>
+                            onClick={() => { setOpen(false); navigate("/admin/logistica"); }}
+                            avatar={
+                              <Avatar
+                                label={<Icon className="h-4 w-4" />}
+                                className={cn("bg-surface-2", pending ? "text-amber-400" : "text-accent-2")}
+                              />
+                            }
+                            title={pending ? "Entrega en China por validar" : "Nuevo paquete registrado"}
+                            titleClass={pending ? "text-amber-400" : "text-accent-2"}
+                            subtitle={`${l.customerName} · ${l.trackingNumber}`}
+                          />
                         );
                       })}
                     </>
                   )}
 
+                  {/* ── Ventas del vendedor ── */}
                   {groups.length > 0 && (
                     <>
-                      <p className="bg-surface-2/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
-                        Tus ventas
-                      </p>
+                      <SectionLabel>Tus ventas</SectionLabel>
                       {groups.map((g) => {
                         const m = SALE_META[g.status];
                         const Icon = m.Icon;
                         return (
-                          <button
+                          <NotifRow
                             key={g.status}
-                            onClick={() => {
-                              setOpen(false);
-                              navigate("/admin/ventas");
-                            }}
-                            className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-surface-2"
-                          >
-                            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2", m.text)}>
-                              <Icon className="h-4 w-4" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="flex items-center justify-between gap-2">
-                                <span className={cn("font-semibold", m.text)}>
-                                  {g.count === 1 ? m.one : m.many(g.count)}
-                                </span>
-                                {g.status !== "rejected" && g.comision > 0 && (
-                                  <span className="shrink-0 text-[11px] font-medium text-whatsapp">
-                                    {formatCordobas(g.comision)}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="block text-xs text-muted">Toca para ver tus ventas</span>
-                            </span>
-                          </button>
+                            onClick={() => { setOpen(false); navigate("/admin/ventas"); }}
+                            avatar={<Avatar label={<Icon className="h-4 w-4" />} className={cn("bg-surface-2", m.text)} />}
+                            title={g.count === 1 ? m.one : m.many(g.count)}
+                            titleClass={m.text}
+                            subtitle="Toca para ver tus ventas"
+                            right={
+                              g.status !== "rejected" && g.comision > 0 ? (
+                                <Money value={g.comision} className="text-whatsapp" />
+                              ) : undefined
+                            }
+                          />
                         );
                       })}
                     </>
                   )}
 
+                  {/* ── Seguimientos (CRM) ── */}
                   {due.length > 0 && (
                     <>
-                      <p className="bg-surface-2/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
-                        Seguimientos por atender
-                      </p>
+                      <SectionLabel>Seguimientos por atender</SectionLabel>
                       {due.map((c) => {
                         const m = DUE_META[dueState(c)];
                         return (
-                          <button
+                          <NotifRow
                             key={c.id}
-                            onClick={() => {
-                              setOpen(false);
-                              navigate("/admin/crm");
-                            }}
-                            className="flex w-full items-start gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-surface-2"
-                          >
-                            <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", m.dot)} />
-                            <span className="min-w-0 flex-1">
-                              <span className="flex items-center justify-between gap-2">
-                                <span className="truncate font-semibold text-text">{c.name}</span>
-                                <span className={cn("shrink-0 text-[11px] font-medium", m.text)}>{m.label}</span>
-                              </span>
-                              <span className="block truncate text-xs text-muted">
-                                {c.product || "Seguimiento"} · {fmtDate(c.nextActivityAt)}
-                              </span>
-                            </span>
-                          </button>
+                            onClick={() => { setOpen(false); navigate("/admin/crm"); }}
+                            avatar={<Avatar label={initials(c.name)} className={colorFor(c.name)} />}
+                            title={c.name}
+                            subtitle={`${c.product || "Seguimiento"} · ${fmtDate(c.nextActivityAt)}`}
+                            right={<span className={cn("shrink-0 text-[11px] font-medium", m.text)}>{m.label}</span>}
+                          />
                         );
                       })}
                     </>
@@ -305,5 +348,86 @@ export function NotificationsBell() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/* ── Piezas internas ── */
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted/70">
+      {children}
+    </p>
+  );
+}
+
+function Avatar({ label, src, className }: { label: React.ReactNode; src?: string; className?: string }) {
+  const [imgError, setImgError] = useState(false);
+  const showImg = !!src && !imgError;
+  return (
+    <span className={cn("relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full text-xs font-semibold", className)}>
+      {/* Iniciales de base: quedan visibles si no hay foto o si la imagen falla. */}
+      {label}
+      {showImg && (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          onError={() => setImgError(true)}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
+    </span>
+  );
+}
+
+function Money({ value, className }: { value: number; className?: string }) {
+  return (
+    <span className={cn("shrink-0 text-[11px] font-medium tabular-nums text-muted", className)}>
+      {formatCordobas(value)}
+    </span>
+  );
+}
+
+// Comisión estimada a pagar: el número que el admin realmente sopesa al aprobar.
+function CommissionTag({ value }: { value: number }) {
+  return (
+    <span className="block text-right leading-tight" title="Comisión estimada a pagar">
+      <span className="block text-sm font-semibold tabular-nums text-text">{formatCordobas(value)}</span>
+      <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-wide text-muted/70">
+        comisión est.
+      </span>
+    </span>
+  );
+}
+
+function NotifRow({
+  avatar,
+  title,
+  subtitle,
+  right,
+  onClick,
+  titleClass,
+}: {
+  avatar: React.ReactNode;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  right?: React.ReactNode;
+  onClick: () => void;
+  titleClass?: string;
+}) {
+  return (
+    <motion.button
+      whileTap={{ scale: 0.985 }}
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-surface-2/60"
+    >
+      {avatar}
+      <span className="min-w-0 flex-1">
+        <span className={cn("block truncate text-sm font-semibold text-text", titleClass)}>{title}</span>
+        {subtitle && <span className="mt-0.5 block truncate text-xs text-muted">{subtitle}</span>}
+      </span>
+      {right && <span className="shrink-0 self-center">{right}</span>}
+    </motion.button>
   );
 }

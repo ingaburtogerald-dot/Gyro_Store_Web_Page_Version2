@@ -74,7 +74,7 @@ export const invoiceItemInputSchema = z.object({
 // se imprime para el cliente pero no entra al total (ni a comisiones/reportes).
 export const invoiceBaseSchema = z.object({
   customer: z.object({
-    firstName: z.string().min(1, "Nombre del cliente requerido").max(60),
+    firstName: z.string().max(60).optional().default(""),
     lastName: z.string().max(60).optional().default(""),
     phone: z.string().max(20).optional().default(""),
   }),

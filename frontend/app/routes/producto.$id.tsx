@@ -167,7 +167,8 @@ export default function ProductDetail() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
+    // Piel "Midnight Neon" del storefront (misma que _index; ver tailwind.css).
+    <div data-skin="store" className="flex min-h-dvh flex-col bg-bg font-sans text-text">
       <PublicHeader />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 md:pb-12">

@@ -19,7 +19,7 @@ export function FilterFab() {
       <SlidersHorizontal className="h-5 w-5" />
       Filtros
       {activeCount > 0 && (
-        <span className="grid h-6 min-w-6 place-items-center rounded-full bg-accent px-1.5 text-xs font-bold tabular-nums text-white">
+        <span className="grid h-6 min-w-6 place-items-center rounded-full bg-accent px-1.5 text-xs font-bold tabular-nums text-bg">
           {activeCount}
         </span>
       )}

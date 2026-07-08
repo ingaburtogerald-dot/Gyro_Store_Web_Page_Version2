@@ -1,21 +1,17 @@
-// Inventario del vendedor (móvil): un solo tab con sub-toggle Disponible / Próximamente,
-// búsqueda instantánea y lista compacta (sin cards). En "Disponible" cada producto se
+// Inventario del vendedor (móvil): lista compacta (sin cards). Cada producto se
 // puede compartir al cliente por WhatsApp con un toque.
 import { useState, useMemo } from "react";
-import { Search, Package, Truck, Share2 } from "lucide-react";
+import { Search, Share2 } from "lucide-react";
 import {
   useGetAvailableInventoryQuery,
-  useGetIncomingInventoryQuery,
 } from "~/store/api/inventoryApi";
 import { useGetPricingConfigQuery } from "~/store/api/salesApi";
 import { formatCordobas, buildWhatsappUrl, cn } from "~/lib/utils";
 
 export function SellerInventory() {
-  const [sub, setSub] = useState<"available" | "incoming">("available");
   const [search, setSearch] = useState("");
 
-  const { data: available = [], isLoading: loadingAvail } = useGetAvailableInventoryQuery();
-  const { data: incoming = [], isLoading: loadingInc } = useGetIncomingInventoryQuery();
+  const { data: available = [], isLoading } = useGetAvailableInventoryQuery();
   const { data: pricing } = useGetPricingConfigQuery();
 
   const maxDiscount = useMemo(() => {
@@ -26,35 +22,11 @@ export function SellerInventory() {
   const q = search.trim().toLowerCase();
   const matches = (p: any) => !q || `${p.code} ${p.productName}`.toLowerCase().includes(q);
   const filteredAvailable = useMemo(() => available.filter(matches), [available, q]);
-  const filteredIncoming = useMemo(() => incoming.filter(matches), [incoming, q]);
 
-  const loading = sub === "available" ? loadingAvail : loadingInc;
-  const isEmpty = sub === "available" ? filteredAvailable.length === 0 : filteredIncoming.length === 0;
+  const isEmpty = filteredAvailable.length === 0;
 
   return (
     <div className="space-y-4 rounded-card border border-border bg-surface shadow-premium p-4">
-      {/* Sub-toggle Disponible / Próximamente */}
-      <div className="flex gap-1 rounded-pill border border-border bg-bg/40 p-1">
-        <button
-          onClick={() => setSub("available")}
-          className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-pill px-3 py-1.5 text-sm font-medium transition-colors",
-            sub === "available" ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-          )}
-        >
-          <Package className="h-4 w-4" /> Disponible <span className="opacity-70">({available.length})</span>
-        </button>
-        <button
-          onClick={() => setSub("incoming")}
-          className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-pill px-3 py-1.5 text-sm font-medium transition-colors",
-            sub === "incoming" ? "bg-gradient-accent text-white" : "text-muted hover:text-text",
-          )}
-        >
-          <Truck className="h-4 w-4" /> Próximamente <span className="opacity-70">({incoming.length})</span>
-        </button>
-      </div>
-
       {/* Búsqueda */}
       <div className="flex items-center gap-2 rounded-pill border border-border bg-bg/40 px-3">
         <Search className="h-4 w-4 text-muted" />
@@ -66,17 +38,15 @@ export function SellerInventory() {
         />
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <p className="py-8 text-center text-sm text-muted">Cargando inventario…</p>
       ) : isEmpty ? (
         <p className="py-8 text-center text-sm text-muted">
-          {q ? "Ningún producto coincide con tu búsqueda." : sub === "available" ? "No hay productos disponibles." : "No hay productos próximamente."}
+          {q ? "Ningún producto coincide con tu búsqueda." : "No hay productos disponibles."}
         </p>
       ) : (
         <ul className="divide-y divide-border">
-          {sub === "available"
-            ? filteredAvailable.map((p: any) => <AvailableRow key={p.id} p={p} maxDiscount={maxDiscount} />)
-            : filteredIncoming.map((p: any) => <IncomingRow key={p.id ?? p.code} p={p} />)}
+          {filteredAvailable.map((p: any) => <AvailableRow key={p.id} p={p} maxDiscount={maxDiscount} />)}
         </ul>
       )}
     </div>
@@ -131,25 +101,3 @@ function AvailableRow({ p, maxDiscount }: { p: any; maxDiscount: number }) {
   );
 }
 
-function IncomingRow({ p }: { p: any }) {
-  const label = p.status === "china" ? "En tránsito" : "Pendiente";
-  const cls = p.status === "china" ? "bg-sky-500/15 text-sky-400" : "bg-amber-500/15 text-amber-400";
-  const date = p.purchaseDate
-    ? new Date(p.purchaseDate).toLocaleDateString("es-NI", { day: "2-digit", month: "short" })
-    : "—";
-
-  return (
-    <li className="flex items-center justify-between gap-3 py-3">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-muted">{p.code}</span>
-          <span className="truncate text-sm font-medium text-text">{p.productName}</span>
-        </div>
-        <span className="mt-0.5 block text-xs text-muted">
-          {p.quantity} uds · llega aprox. {date}
-        </span>
-      </div>
-      <span className={cn("shrink-0 rounded-pill px-2 py-0.5 text-xs font-semibold", cls)}>{label}</span>
-    </li>
-  );
-}

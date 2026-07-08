@@ -3,9 +3,7 @@
 // ambiental sereno (un halo, no aurora doble), wordmark display en tinta sólida
 // (sin gradient-text) y buscador refinado. La marca es la estrella; nada compite.
 import { motion, useReducedMotion } from "framer-motion";
-import { Search, Truck, ShieldCheck, Wallet } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "~/store/hooks";
-import { setSearch } from "~/store/slices/uiSlice";
+import { Truck, ShieldCheck, Wallet } from "lucide-react";
 
 // Señales de confianza bajo el buscador (estáticas).
 const TRUST = [
@@ -15,8 +13,6 @@ const TRUST = [
 ];
 
 export function Hero({ productCount = 0 }: { productCount?: number }) {
-  const dispatch = useAppDispatch();
-  const search = useAppSelector((s) => s.ui.search);
   const reduce = useReducedMotion();
 
   return (
@@ -62,20 +58,9 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
             <span className="font-semibold text-text">equípate con Gyro</span>.
           </p>
 
-          <div className="ease-expo mx-auto mt-8 flex max-w-md items-center gap-2 rounded-pill border border-border bg-surface/70 px-4 backdrop-blur-md transition duration-300 focus-within:border-accent focus-within:shadow-[0_0_0_4px_rgba(16,185,129,0.12)]">
-            <Search className="h-4 w-4 text-muted" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => dispatch(setSearch(e.target.value))}
-              placeholder="Buscar productos…"
-              aria-label="Buscar productos"
-              className="w-full bg-transparent py-3.5 text-sm outline-none placeholder:text-muted"
-            />
-          </div>
-
-          {/* Franja de confianza */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted">
+          {/* Franja de confianza (la búsqueda vive en el MegaSearchBar, justo
+              debajo del hero: un solo punto de búsqueda dominante). */}
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted">
             {TRUST.map(({ icon: Icon, label }) => (
               <span key={label} className="inline-flex items-center gap-1.5">
                 <Icon className="h-4 w-4 text-accent-2" /> {label}

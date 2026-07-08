@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Receipt, Mail, MessageSquare, Search, Calendar, Check, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
+import { Receipt, Mail, MessageSquare, Search, Calendar, Check, ChevronDown, AlertCircle, Banknote, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { DatePicker } from "~/components/ui/DatePicker";
@@ -60,47 +60,46 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
       "overflow-hidden rounded-xl border transition-all duration-300",
       expanded ? "border-accent/40 bg-surface-2/80 shadow-[0_4px_20px_rgba(0,0,0,0.3)]" : "border-border bg-surface hover:border-accent/20 hover:bg-surface-2"
     )}>
-      {/* Cabecera de la fila */}
-      <div 
+      {/* Cabecera de la fila (resumen compacto): una línea, sin fecha duplicada
+          ni espacio muerto. El detalle completo vive en el cuerpo expandible. */}
+      <div
         onClick={() => setExpanded(!expanded)}
-        className="flex cursor-pointer items-center justify-between gap-4 p-4"
+        className="flex cursor-pointer items-center gap-3 px-4 py-3"
       >
-        <div className="flex w-full min-w-0 items-center justify-between sm:w-auto sm:flex-1 sm:justify-start sm:gap-6">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-accent shadow-inner text-sm font-bold text-white">
-              {initials(p.sellerName)}
-            </span>
-            <div className="flex flex-col">
-              <span className="truncate text-sm font-bold text-text">{p.sellerName}</span>
-              <span className="text-xs text-muted">ID: {p.id.slice(-6).toUpperCase()}</span>
-            </div>
-          </div>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-accent text-xs font-bold text-white">
+          {initials(p.sellerName)}
+        </span>
 
-          <div className="hidden flex-col items-start sm:flex">
-            <span className="text-xs text-muted">Fecha</span>
-            <span className="text-sm font-medium text-text">{dayLabel(p.createdAt)}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate font-semibold text-text">{p.sellerName}</span>
+            {isSettlement && (
+              <span className="rounded-pill bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">Ajuste</span>
+            )}
           </div>
-          
-          <div className="hidden flex-col items-start md:flex">
-            <span className="text-xs text-muted">Método</span>
-            <span className="flex items-center gap-1.5 text-sm font-medium">
-              {p.paymentMethod === "cash" ? "💵 Efectivo" : "🏦 Depósito"}
-              {isSettlement && <span className="ml-1 rounded-pill bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-400">Ajuste</span>}
-            </span>
-          </div>
+          <span className="text-[11px] text-muted">
+            {dayLabel(p.createdAt)} · <span className="font-mono">{p.id.slice(-6).toUpperCase()}</span>
+          </span>
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-6">
-          <div className="flex flex-col items-end">
-            <span className="text-xs text-muted">Total</span>
-            <span className="text-base font-bold text-whatsapp drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]">
-              {formatCordobas(p.totalComision)}
-            </span>
-          </div>
-          <button className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-muted transition-colors hover:text-text">
-            {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-          </button>
+        <span className="hidden shrink-0 items-center gap-1.5 text-xs text-muted sm:inline-flex">
+          {p.paymentMethod === "cash" ? <Banknote className="h-4 w-4" /> : <Landmark className="h-4 w-4" />}
+          {p.paymentMethod === "cash" ? "Efectivo" : "Depósito"}
+        </span>
+
+        <div className="shrink-0 text-right">
+          <span className="block text-[10px] uppercase tracking-wide text-muted">Total</span>
+          <span className="font-heading text-base font-bold tabular-nums text-whatsapp">
+            {formatCordobas(p.totalComision)}
+          </span>
         </div>
+
+        <ChevronDown
+          className={cn(
+            "h-5 w-5 shrink-0 text-muted transition-transform duration-300",
+            expanded && "rotate-180 text-accent-2",
+          )}
+        />
       </div>
 
       {/* Cuerpo Expandible */}
@@ -294,17 +293,17 @@ export function PaymentHistory({ selectedSeller }: { selectedSeller: string }) {
 
       {/* Resumen del período */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-card border border-whatsapp/30 bg-whatsapp/5 p-4 shadow-sm">
+        <div className="rounded-card border border-whatsapp/30 bg-whatsapp/5 p-4">
           <p className="text-xs font-semibold text-muted">Total Pagado</p>
-          <p className="mt-1 text-2xl font-bold text-whatsapp drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]">{formatCordobas(summary.total)}</p>
+          <p className="mt-1 font-heading text-2xl font-bold tabular-nums text-whatsapp">{formatCordobas(summary.total)}</p>
         </div>
-        <div className="rounded-card border border-border bg-surface shadow-premium p-4 shadow-sm">
+        <div className="rounded-card border border-border bg-surface p-4 shadow-premium">
           <p className="text-xs font-semibold text-muted">Pagos Procesados</p>
-          <p className="mt-1 text-2xl font-bold text-text">{summary.count}</p>
+          <p className="mt-1 font-heading text-2xl font-bold tabular-nums text-text">{summary.count}</p>
         </div>
-        <div className="rounded-card border border-border bg-surface shadow-premium p-4 shadow-sm">
+        <div className="rounded-card border border-border bg-surface p-4 shadow-premium">
           <p className="text-xs font-semibold text-muted">Vendedores</p>
-          <p className="mt-1 text-2xl font-bold text-text">{summary.sellers}</p>
+          <p className="mt-1 font-heading text-2xl font-bold tabular-nums text-text">{summary.sellers}</p>
         </div>
       </div>
 

@@ -359,6 +359,8 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                         placeholder="0"
                         value={line.quantity}
                         onChange={(e) => update(i, { quantity: e.target.value === "" ? "" : (parseInt(e.target.value, 10) || 0) })}
+                        onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                        onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault(); }}
                       />
                     </label>
                     <label className="block min-w-0 flex-1">
@@ -409,6 +411,8 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                         placeholder="Precio..."
                         value={line.salePrice}
                         onChange={(e) => update(i, { salePrice: e.target.value === "" ? "" : (parseFloat(e.target.value) || 0) })}
+                        onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                        onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault(); }}
                       />
                     </label>
                     <div className="w-full pt-1 text-right sm:w-auto sm:shrink-0 sm:pt-5">
@@ -443,12 +447,14 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
 
             {/* Agregar producto + recibo opcional */}
             <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                onClick={() => setLines((ls) => [...ls, newLine()])}
-                className="inline-flex w-full justify-center items-center gap-1.5 rounded-lg border border-dashed border-accent-2/40 px-3 py-2 text-sm font-semibold text-accent-2 transition-colors hover:bg-accent-2/5 sm:w-auto"
-              >
-                <Plus className="h-4 w-4" /> Agregar producto
-              </button>
+              {!isEdit && (
+                <button
+                  onClick={() => setLines((ls) => [...ls, newLine()])}
+                  className="inline-flex w-full justify-center items-center gap-1.5 rounded-lg border border-dashed border-accent-2/40 px-3 py-2 text-sm font-semibold text-accent-2 transition-colors hover:bg-accent-2/5 sm:w-auto"
+                >
+                  <Plus className="h-4 w-4" /> Agregar producto
+                </button>
+              )}
 
               {receipt && receiptUrl ? (
                 <div className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface-2/50 p-2 sm:w-auto sm:max-w-xs animate-in fade-in">

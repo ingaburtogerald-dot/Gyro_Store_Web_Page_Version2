@@ -21,18 +21,18 @@ export function PendingSalesContainer({ sales, isLoading, onRegisterSale }: Prop
   const actions = useAdminSaleActions(sales);
 
   return (
-    <div className="relative space-y-4 rounded-card border border-border bg-surface shadow-premium p-4">
-      <div className="sticky top-0 z-30 flex flex-col items-start justify-between gap-4 bg-surface pb-2 lg:flex-row">
+    <div className="relative space-y-4 rounded-card border border-border bg-surface p-4 shadow-premium sm:p-5">
+      <div className="sticky top-0 z-30 flex flex-col items-start justify-between gap-4 bg-surface pb-3 lg:flex-row">
         <div>
-          <h2 className="text-lg font-bold text-text">Ventas Pendientes de Aprobación</h2>
-          <p className="text-xs text-muted">
+          <h2 className="font-heading text-lg font-bold tracking-tight text-text">Ventas Pendientes de Aprobación</h2>
+          <p className="mt-1 text-xs text-muted">
             Revisa las transacciones reportadas y audita sus utilidades. Selecciona una fila para editarla o eliminarla.
           </p>
         </div>
         {onRegisterSale && (
           <button
             onClick={onRegisterSale}
-            className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-gradient-accent px-4 py-2 text-sm font-bold text-white shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)] transition-all hover:opacity-90"
+            className="ease-expo flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-gradient-accent px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)] transition duration-300 hover:-translate-y-0.5 active:scale-95"
           >
             <Plus className="h-4 w-4" />
             <span>Registrar Venta</span>

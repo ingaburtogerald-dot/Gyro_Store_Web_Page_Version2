@@ -2,18 +2,24 @@
 const { db } = require('../firebase');
 const config = require('../config');
 
-// Genera el siguiente número de ticket del día: GS-YYYYMMDD-NNN (NNN secuencial).
+// Genera el siguiente número de ticket del día: GS-DDMMYY-N (N secuencial).
 // Contador transaccional en counters/invoices-YYYYMMDD: dos requests simultáneos
 // nunca obtienen el mismo número (el conteo por rango de string sí tenía esa carrera).
 async function nextTicketNumber() {
   const now = new Date();
-  const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(now.getFullYear());
+  const yy = yyyy.slice(-2);
+  
+  const dateStr = `${dd}${mm}${yy}`; // DDMMYY
+  const counterKey = `invoices-global-sequence`; // Contador global para que no se reinicie cada día
 
   return db.runTransaction(async (tx) => {
-    const ref = db.collection(config.collections.counters).doc(`invoices-${ymd}`);
+    const ref = db.collection(config.collections.counters).doc(counterKey);
     const seq = ((await tx.get(ref)).data()?.seq || 0) + 1;
     tx.set(ref, { seq }, { merge: true });
-    return `GS-${ymd}-${String(seq).padStart(3, '0')}`;
+    return `GS-${dateStr}-${seq}`;
   });
 }
 

@@ -9,7 +9,7 @@
 // El componente container solo invoca estos handlers; no sabe de RTK ni de toasts.
 // Las reglas de negocio (mismo vendedor, stock) se delegan al dominio.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   useApproveAndPayBulkMutation,
@@ -42,6 +42,19 @@ export function useAdminSaleActions(allSales: Sale[]) {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [modal, setModal] = useState<SaleModal>(null);
+
+  // Limpiar seleccionados que ya no existen en la vista (por ej. si se cambia de filtro)
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev.size === 0) return prev;
+      const currentIds = new Set(allSales.map((s) => s.id));
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (currentIds.has(id)) next.add(id);
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [allSales]);
 
   const selectedSales = useMemo(
     () => allSales.filter((s) => selected.has(s.id)),

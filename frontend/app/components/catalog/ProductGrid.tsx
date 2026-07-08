@@ -3,7 +3,7 @@
 // y el orden se hacen en cliente sobre esa lista, usando el estado de UI de Redux.
 import { useMemo } from "react";
 import { PackageSearch } from "lucide-react";
-import { ProductCardMobile } from "./ProductCardMobile";
+import { ProductCard } from "./ProductCard";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useAppSelector } from "~/store/hooks";
 import { cn } from "~/lib/utils";
@@ -62,10 +62,11 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
         const wide = isWide(p, i);
         return (
           <div key={p.id} className={cn(wide && "col-span-2")}>
-            <ProductCardMobile
+            <ProductCard
               product={p}
               categories={categories}
               layout={wide ? "list" : "grid"}
+              index={i}
             />
           </div>
         );

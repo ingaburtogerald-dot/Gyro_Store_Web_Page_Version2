@@ -170,7 +170,7 @@ export function FilterSheet() {
               </button>
               <button
                 onClick={() => dispatch(closeFilterSheet())}
-                className="ease-expo min-h-[48px] flex-[2] rounded-xl bg-accent text-sm font-semibold text-white transition duration-300 hover:bg-accent-hover active:scale-95"
+                className="ease-expo min-h-[48px] flex-[2] rounded-xl bg-accent text-sm font-bold text-bg transition duration-300 hover:bg-accent-2 active:scale-95"
               >
                 Ver resultados
               </button>

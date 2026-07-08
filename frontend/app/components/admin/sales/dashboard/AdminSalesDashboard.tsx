@@ -41,7 +41,7 @@ function DashboardFilters() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-full sm:w-52">
           <span className="mb-1 block text-xs text-muted">Período</span>
-          <UnifiedDatePicker value={filters.date} onChange={setDate} />
+          <UnifiedDatePicker value={filters.date} onChange={setDate} align="right" />
         </div>
         {/* El selector de vendedor solo aplica a admin (el vendedor solo se ve a sí mismo). */}
         {isAdmin && (
