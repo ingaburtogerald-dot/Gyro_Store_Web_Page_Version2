@@ -31,8 +31,13 @@ export function useTheme() {
   const [theme, setThemeState] = useState<ThemeId>(DEFAULT_THEME);
 
   // Sincroniza con lo que ya aplicó el script anti-flash al montar.
+  // Re-aplicamos el atributo por si React hydration lo elimina.
   useEffect(() => {
-    setThemeState(readStored());
+    const saved = readStored();
+    setThemeState(saved);
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
   }, []);
 
   const setTheme = useCallback((next: ThemeId) => {

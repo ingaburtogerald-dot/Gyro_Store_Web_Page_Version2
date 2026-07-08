@@ -319,7 +319,7 @@ export function TicketFormModal({
     }
     if (!form.paymentMethod) return toast.error("Selecciona el método de pago.");
 
-    const finalFirstName = (showCustomer && form.firstName.trim()) ? form.firstName.trim() : "Cliente General";
+    const finalFirstName = (showCustomer && form.firstName.trim()) ? form.firstName.trim() : "";
     const finalLastName = showCustomer ? form.lastName.trim() : "";
     const finalPhone = showCustomer ? form.phone.trim() : "";
 
@@ -505,6 +505,8 @@ export function TicketFormModal({
                                 min={1}
                                 value={l.quantity}
                                 onChange={(e) => updateLine(i, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                                onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                                onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault(); }}
                                 className="input w-11 px-1 text-center tabular-nums"
                               />
                               <button
@@ -522,6 +524,8 @@ export function TicketFormModal({
                               min={0}
                               value={l.unitPrice}
                               onChange={(e) => updateLine(i, { unitPrice: e.target.value })}
+                              onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                              onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault(); }}
                               placeholder="Precio"
                               className={cn(
                                 "input w-24 text-center tabular-nums",

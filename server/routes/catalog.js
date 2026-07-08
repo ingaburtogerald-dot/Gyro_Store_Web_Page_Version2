@@ -23,17 +23,62 @@ function clearCatalogCache() {
   catalogCache = null;
 }
 
+// ¿Está encendida una opción en el mapa de disponibilidad? (misma semántica que
+// buildTemplateVariants: ausente = encendida; objeto = enabled !== false).
+function optionEnabled(availability, key, opt) {
+  const val = availability?.[key]?.[opt];
+  if (val === undefined) return true;
+  if (typeof val === 'object' && val !== null) return val.enabled !== false;
+  return val !== false;
+}
+
+// Resumen compacto de variantes para las pills de la card en la lista pública:
+// opciones ENCENDIDAS de los ejes de la plantilla, en orden, sin ejes de color
+// (los colores ya se ven en las fotos). Ej: ["Tipo C", "Jack 3.5mm", "Con mic"].
+function buildAxesSummary(item, template) {
+  if (!template) return [];
+  const out = [];
+  for (const axis of template.axes || []) {
+    if (axis.isColor) continue;
+    for (const opt of axis.options || []) {
+      if (optionEnabled(item.availability, axis.key, opt)) out.push(opt);
+    }
+  }
+  return out.slice(0, 6);
+}
+
+// Cantidad de combinaciones ENCENDIDAS (producto cartesiano de opciones activas,
+// incluyendo ejes de color). La card lo usa para decidir si el quick-add necesita
+// selector de variante (>1) o puede agregar directo (<=1).
+function countEnabledCombos(item, template) {
+  if (!template) return 0;
+  let total = 1;
+  for (const axis of template.axes || []) {
+    const enabled = (axis.options || []).filter((o) => optionEnabled(item.availability, axis.key, o)).length;
+    total *= enabled;
+  }
+  return total;
+}
+
 // Calcula precio (precio base) e imágenes de un ítem para la lista/card.
-function enrich(item) {
+function enrich(item, templatesById = {}) {
   // Para la card: usa las imágenes del ítem o, si no hay, las de cualquier color.
   const colorImages = Object.values(item.imagesByColor || {}).flat();
   const images = item.images && item.images.length ? item.images : colorImages;
 
   if (item.templateId) {
-    return { ...item, images, stock: 1, price: item.basePrice || 0 };
+    const template = templatesById[item.templateId];
+    return {
+      ...item,
+      images,
+      stock: 1,
+      price: item.basePrice || 0,
+      axesSummary: buildAxesSummary(item, template),
+      variantCount: countEnabledCombos(item, template),
+    };
   }
   // Ítem sin plantilla (dato antiguo): se muestra solo en admin, sin stock.
-  return { ...item, images, stock: 0, price: item.price || 0 };
+  return { ...item, images, stock: 0, price: item.price || 0, axesSummary: [], variantCount: 0 };
 }
 
 // Normaliza una entrada de variantMappings a la lista de códigos. Soporta el
@@ -115,8 +160,16 @@ router.get('/', asyncHandler(async (req, res) => {
   const { category, promo, all } = req.query;
 
   if (!catalogCache) {
-    const snap = await db.collection(CATALOG).get();
-    catalogCache = snap.docs.map((d) => enrich({ id: d.id, ...d.data() }));
+    // Las plantillas se traen junto al catálogo para resolver axesSummary
+    // (pills de variantes de las cards) sin costo extra por request: todo
+    // queda en el mismo caché en memoria.
+    const [snap, tplSnap] = await Promise.all([
+      db.collection(CATALOG).get(),
+      db.collection(TEMPLATES).get(),
+    ]);
+    const templatesById = {};
+    tplSnap.docs.forEach((d) => { templatesById[d.id] = d.data(); });
+    catalogCache = snap.docs.map((d) => enrich({ id: d.id, ...d.data() }, templatesById));
     console.log('⚡ Caché del catálogo reconstruido desde Firestore.');
   }
 
@@ -334,3 +387,6 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+// Las rutas de plantillas invalidan este caché cuando cambian los ejes
+// (el axesSummary de las cards se computa desde la plantilla).
+module.exports.clearCatalogCache = clearCatalogCache;

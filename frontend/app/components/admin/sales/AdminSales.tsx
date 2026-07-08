@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Coins, Clock, ShoppingBag, Landmark, Plus, PiggyBank } from "lucide-react";
+import { CheckCircle2, Coins, Clock, ShoppingBag, Landmark, Plus, PiggyBank, SlidersHorizontal } from "lucide-react";
 import { PendingSalesContainer } from "./PendingSalesContainer";
 import { PaymentHistory } from "./PaymentHistory";
 import { SalesPerformance } from "./SalesPerformance";
@@ -37,7 +37,16 @@ type Section = { id: SectionId; label: string; subs: { id: SubId; label: string 
 
 // El shell es el mismo para admin y vendedor; cambian las secciones disponibles y
 // el contenido de cada una (siempre enfocado a lo que el vendedor hace).
+// "Ventas" va de PRIMERO (es la acción central del rol) y es la pestaña por
+// defecto. La sub-pestaña "Ventas aprobadas" se retiró de la navegación.
 const ADMIN_SECTIONS: Section[] = [
+  {
+    id: "ventas",
+    label: "Ventas",
+    subs: [
+      { id: "pending", label: "Ventas pendientes" },
+    ],
+  },
   { id: "resumen", label: "Resumen", subs: [{ id: "overview", label: "Vista general" }] },
   {
     id: "inventory",
@@ -46,14 +55,6 @@ const ADMIN_SECTIONS: Section[] = [
       { id: "available", label: "Inventario actual" },
       { id: "migrated", label: "Inventario migrado" },
       { id: "incoming", label: "Próximamente" },
-    ],
-  },
-  {
-    id: "ventas",
-    label: "Ventas",
-    subs: [
-      { id: "pending", label: "Ventas pendientes" },
-      { id: "approved", label: "Ventas aprobadas" },
     ],
   },
   {
@@ -67,16 +68,17 @@ const ADMIN_SECTIONS: Section[] = [
 ];
 
 const SELLER_SECTIONS: Section[] = [
+  { id: "ventas", label: "Ventas", subs: [{ id: "mine", label: "Mis ventas" }] },
   { id: "resumen", label: "Resumen", subs: [{ id: "overview", label: "Vista general" }] },
   {
     id: "inventory",
     label: "Inventario",
     subs: [
-      { id: "available", label: "Inventario" },
+      { id: "available", label: "Inventario actual" },
+      { id: "migrated", label: "Inventario migrado" },
       { id: "incoming", label: "Próximamente" },
     ],
   },
-  { id: "ventas", label: "Ventas", subs: [{ id: "mine", label: "Mis ventas" }] },
   {
     id: "reporteria",
     label: "Reportería de ventas y pagos",
@@ -96,7 +98,7 @@ export function AdminSales() {
   const rawSection = searchParams.get("section") ?? "";
   const section: SectionId = VALID_SECTIONS.includes(rawSection as SectionId)
     ? (rawSection as SectionId)
-    : "resumen";
+    : VALID_SECTIONS[0]; // "ventas" — primera pestaña y landing por defecto
 
   const currentSubs = SECTIONS.find((s) => s.id === section)!.subs;
   const validSubIds = currentSubs.map((s) => s.id);
@@ -209,8 +211,10 @@ export function AdminSales() {
     <div className="space-y-6">
       {/* ── Cabecera ── */}
       <div>
-        <h1 className="gradient-text text-2xl font-bold">{isAdmin ? "Gestión de Ventas" : "Portal de Ventas"}</h1>
-        <p className="text-muted">
+        <h1 className="font-heading text-2xl font-bold tracking-tight text-text sm:text-3xl">
+          {isAdmin ? "Gestión de Ventas" : "Portal de Ventas"}
+        </h1>
+        <p className="mt-1 text-sm text-muted">
           {isAdmin
             ? "Aprobaciones, comisiones de vendedores y configuración de precios."
             : "Tus ventas, comisiones, pagos e inventario."}
@@ -236,30 +240,29 @@ export function AdminSales() {
 
       {/* ── Filtros + KPIs de admin (solo Ventas / Reportería) ── */}
       {isAdmin && (inVentas || inReporteria) && (
-        <div className="space-y-4">
-          <div className="glass relative z-40 flex flex-wrap items-center justify-between gap-4 rounded-card p-4">
-            <div>
-              <h2 className="text-base font-semibold text-text">Filtros del Historial</h2>
-              <p className="text-xs text-muted">Ajusta los criterios para auditar las ventas.</p>
+        <div className="space-y-5">
+          {/* Barra utilitaria: los filtros son secundarios (inline, sin caja glass
+              ni títulos). No compiten con los KPIs; solo se apoyan sobre una
+              línea divisoria fina. */}
+          <div className="relative z-40 flex flex-wrap items-center gap-3 border-b border-border/60 pb-4">
+            <span className="mr-auto inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
+              <SlidersHorizontal className="h-4 w-4" />
+              Filtros
+            </span>
+            <div className="w-full sm:w-48">
+              <UnifiedDatePicker
+                value={selectedDate}
+                onChange={(val) => updateParams({ date: val, page: null })}
+              />
             </div>
-            <div className="flex flex-wrap items-end gap-3 w-full sm:w-auto">
-              <div className="block w-full sm:w-52">
-                <span className="mb-1 block text-xs text-muted">Período de Tiempo</span>
-                <UnifiedDatePicker
-                  value={selectedDate}
-                  onChange={(val) => updateParams({ date: val, page: null })}
-                />
-              </div>
-              <div className="block w-full sm:w-52">
-                <span className="mb-1 block text-xs text-muted">Vendedor</span>
-                <FilterSelect
-                  value={selectedSeller}
-                  onChange={(val) => updateParams({ seller: val, page: null })}
-                  options={sellerOptions}
-                  placeholder="Todos los vendedores"
-                  dotTitle="Tiene ventas pendientes de aprobación"
-                />
-              </div>
+            <div className="w-full sm:w-52">
+              <FilterSelect
+                value={selectedSeller}
+                onChange={(val) => updateParams({ seller: val, page: null })}
+                options={sellerOptions}
+                placeholder="Todos los vendedores"
+                dotTitle="Tiene ventas pendientes de aprobación"
+              />
             </div>
           </div>
 
@@ -286,12 +289,13 @@ export function AdminSales() {
 
           {inReporteria && (
             <KpiGrid
-              className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+              featuredKey="ganancia"
+              className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
               cards={[
+                { key: "ganancia", icon: Landmark, label: "Ganancia Tienda", value: dynamicSummary.gananciaTienda, money: true, color: "emerald" },
                 { key: "vendido", icon: ShoppingBag, label: "Total Vendido", value: dynamicSummary.totalVendido, money: true, color: "indigo" },
                 { key: "inversion", icon: PiggyBank, label: "Inversión Recuperada", value: dynamicSummary.inversionRecuperada, money: true, color: "neutral" },
                 { key: "comisiones", icon: Coins, label: "Comisiones Vendedor", value: dynamicSummary.comisiones, money: true, color: "neutral" },
-                { key: "ganancia", icon: Landmark, label: "Ganancia Tienda", value: dynamicSummary.gananciaTienda, money: true, color: "emerald" },
                 { key: "aprobadas", icon: CheckCircle2, label: "Ventas Aprobadas", value: dynamicSummary.ventasAprobadas, color: "neutral" },
                 { key: "revision", icon: Clock, label: "Ventas en Revisión", value: dynamicSummary.enRevision, color: "amber" },
               ]}
@@ -302,11 +306,11 @@ export function AdminSales() {
 
       {/* ── Filtro de período del vendedor (Ventas / Reportería) ── */}
       {showSellerDateBar && (
-        <div className="glass relative z-40 flex flex-wrap items-end justify-between gap-4 rounded-card p-4">
-          <div>
-            <h2 className="text-base font-semibold text-text">Período</h2>
-            <p className="text-xs text-muted">Filtra tus registros por fecha.</p>
-          </div>
+        <div className="relative z-40 flex flex-wrap items-center gap-3 border-b border-border/60 pb-4">
+          <span className="mr-auto inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
+            <SlidersHorizontal className="h-4 w-4" />
+            Período
+          </span>
           <div className="w-full sm:w-52">
             <UnifiedDatePicker
               value={selectedDate}
@@ -344,7 +348,12 @@ export function AdminSales() {
             onRegisterSale={() => updateParams({ newSale: "1" })}
           />
         )}
-        {sub === "mine" && <SellerSalesContainer selectedMonth={selectedDate} />}
+        {sub === "mine" && (
+          <SellerSalesContainer
+            selectedMonth={selectedDate}
+            onRegisterSale={() => updateParams({ newSale: "1" })}
+          />
+        )}
 
         {/* Reportería */}
         {sub === "payments" && (isAdmin ? <PaymentHistory selectedSeller={selectedSeller} /> : <SellerPayments />)}
@@ -353,13 +362,19 @@ export function AdminSales() {
 
       {/* FAB móvil para el vendedor (ergonomía one-thumb en celular). */}
       {!isAdmin && !saleOpen && (
-        <button
+        <motion.button
           onClick={() => updateParams({ newSale: "1" })}
-          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-accent text-white shadow-lg shadow-accent/30 transition-transform active:scale-95 sm:hidden"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          whileTap={{ scale: 0.88 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-accent text-white shadow-[0_10px_30px_-8px_rgba(16,185,129,0.6)] sm:hidden"
           aria-label="Nueva venta"
         >
+          {/* Halo que respira detrás del FAB (micro-interacción) */}
+          <span className="absolute inset-0 -z-10 rounded-full bg-accent/40 blur-md motion-safe:animate-ping [animation-duration:2.5s]" aria-hidden />
           <Plus className="h-6 w-6" />
-        </button>
+        </motion.button>
       )}
 
       {/* ── Modales ── */}

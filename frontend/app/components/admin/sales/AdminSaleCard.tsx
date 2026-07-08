@@ -5,7 +5,7 @@ import { Calendar } from "lucide-react";
 import { SALE_STATUS_META } from "./saleStatus";
 import { StatusBadge } from "~/components/ui/StatusBadge";
 import { Card } from "~/components/ui/Card";
-import { formatCordobas } from "~/lib/utils";
+import { formatCordobas, cn } from "~/lib/utils";
 import type { Sale } from "~/store/api/salesApi";
 import { groupSaleItems, totalQuantity } from "~/domain/sales/salesCalculations";
 
@@ -61,7 +61,12 @@ export function AdminSaleCard({ sale }: { sale: any }) {
           value={`${formatCordobas(comision)}${sale.comisionPercent !== undefined ? ` (${sale.comisionPercent}%)` : ""}`}
           className="text-emerald-400"
         />
-        <Metric label="Ganancia" value={formatCordobas(ganancia)} className="font-bold text-whatsapp" />
+      </div>
+
+      {/* Ancla: la ganancia de la tienda es la estrella (Sora, tabular-nums). */}
+      <div className="flex items-center justify-between border-t border-border pt-3">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Ganancia tienda</span>
+        <span className="font-heading text-lg font-bold tabular-nums text-whatsapp">{formatCordobas(ganancia)}</span>
       </div>
     </Card>
   );
@@ -70,8 +75,8 @@ export function AdminSaleCard({ sale }: { sale: any }) {
 function Metric({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
     <div>
-      <span className="block text-[10px] uppercase text-muted">{label}</span>
-      <span className={`font-mono text-xs ${className ?? "text-text"}`}>{value}</span>
+      <span className="block text-[10px] uppercase tracking-wide text-muted">{label}</span>
+      <span className={cn("text-xs tabular-nums", className ?? "text-text")}>{value}</span>
     </div>
   );
 }

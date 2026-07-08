@@ -46,6 +46,12 @@ export interface CatalogProduct {
   compareAtPrice?: number;
   published?: boolean;
   order?: number;
+  // Opciones de variantes encendidas (sin colores) para las pills de la card,
+  // p.ej. ["Tipo C", "Jack 3.5mm", "Con mic"]. Lo computa el backend en la lista.
+  axesSummary?: string[];
+  // Combinaciones encendidas (incluye ejes de color): >1 → el quick-add de la
+  // card abre el selector de variante en vez de agregar "Estándar" a ciegas.
+  variantCount?: number;
 }
 
 // ── Plantillas (molde de características reutilizable por categoría) ──

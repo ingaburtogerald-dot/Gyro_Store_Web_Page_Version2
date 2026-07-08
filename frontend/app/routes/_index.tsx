@@ -6,8 +6,9 @@ import { PublicFooter } from "~/components/layout/PublicFooter";
 import { Hero } from "~/components/catalog/Hero";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
-import { CatalogSearchBar } from "~/components/catalog/CatalogSearchBar";
+import { MegaSearchBar } from "~/components/catalog/MegaSearchBar";
 import { CategoryChips } from "~/components/catalog/CategoryChips";
+import { FilterSidebar } from "~/components/catalog/FilterSidebar";
 import { FilterFab } from "~/components/catalog/FilterFab";
 import { FilterSheet } from "~/components/catalog/FilterSheet";
 import { CartFab } from "~/components/cart/CartFab";
@@ -88,20 +89,35 @@ export default function Index() {
   }, [isAdmin, searchParams, setSearchParams, dispatch]);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    // data-skin="store": activa la piel "Midnight Neon" (tokens con scope en
+    // tailwind.css) solo en el storefront; el admin conserva Obsidian/Esmeralda.
+    <div data-skin="store" className="flex min-h-dvh flex-col bg-bg font-sans text-text">
       <PublicHeader />
       <Hero productCount={products.length} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4">
-        {/* Búsqueda + chips de categorías (se ocultan en modo edición del catálogo) */}
+        {/* Búsqueda + chips de categorías (se ocultan en modo edición del catálogo).
+            Los chips solo viven en móvil: en escritorio las categorías están en el
+            sidebar de filtros. */}
         {!editing && (
           <>
-            <CatalogSearchBar />
-            <CategoryChips categories={categories} />
+            <MegaSearchBar />
+            <div className="lg:hidden">
+              <CategoryChips categories={categories} />
+            </div>
           </>
         )}
 
-        {editing ? <SortableCatalogGrid /> : <ProductGrid products={products} categories={categories} />}
+        {editing ? (
+          <SortableCatalogGrid />
+        ) : (
+          <div className="flex items-start gap-8 pt-3 lg:pt-5">
+            <FilterSidebar categories={categories} products={products} />
+            <div className="min-w-0 flex-1">
+              <ProductGrid products={products} categories={categories} />
+            </div>
+          </div>
+        )}
       </main>
 
       <PublicFooter />

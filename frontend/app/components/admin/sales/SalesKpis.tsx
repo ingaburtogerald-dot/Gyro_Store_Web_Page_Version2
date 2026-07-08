@@ -54,7 +54,7 @@ export function SalesKpis({ sales, status, ticketCount, overrideTotals }: SalesK
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
       >
-        <KpiGrid cards={cards} className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5" />
+        <KpiGrid cards={cards} featuredKey="ganancia" className="grid-cols-2 sm:grid-cols-2 lg:grid-cols-4" />
       </motion.div>
     </AnimatePresence>
   );

@@ -38,10 +38,11 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
           Tu tienda de tecnología &amp; accesorios
         </p>
         <Separator />
-        <p className="mt-1.5 text-[11px] text-black">
+        <p className="mt-1.5 text-[11px] text-black leading-tight">
+          Tienda en línea, pero retiros en:<br/>
           Conchita Palacios 2c al lago 1c arriba · Managua
         </p>
-        <p className="text-[11px] text-black">
+        <p className="mt-1 text-[11px] text-black">
           WhatsApp: +505 8594-4758
         </p>
       </div>
@@ -52,38 +53,34 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
           DATOS DEL TICKET
           ═══════════════════════════════════════════ */}
       <div className="mb-1 space-y-0.5 text-[12px]">
-        <Row label="TICKET Nº" value={`#${invoice.ticketNumber}`} bold />
+        <Row label="Factura Nº" value={invoice.ticketNumber || "N/A"} bold />
         <Row
-          label="FECHA"
+          label="Fecha"
           value={`${date.toLocaleDateString("es-NI")} — ${date.toLocaleTimeString("es-NI", {
             hour: "2-digit",
             minute: "2-digit",
             hour12: true,
-          })}`}
+          }).toUpperCase()}`}
         />
       </div>
 
       {/* Cliente y Vendedor */}
-      {(invoice.customer?.firstName || invoice.assignedSeller?.name || invoice.sellerName) && (
-        <div className="mb-1 mt-1.5 space-y-0.5 text-[12px]">
-          {invoice.customer?.firstName && (
-            <Row
-              label="Cliente"
-              value={`${invoice.customer.firstName} ${invoice.customer.lastName || ""}`.trim()}
-              bold
-            />
-          )}
-          {invoice.customer?.phone && (
-            <Row label="Tel" value={invoice.customer.phone} />
-          )}
-          {(invoice.assignedSeller?.name || invoice.sellerName) && (
-            <Row
-              label="Vendedor"
-              value={invoice.assignedSeller?.name || invoice.sellerName}
-            />
-          )}
-        </div>
-      )}
+      <div className="mb-1 mt-1.5 space-y-0.5 text-[12px]">
+        <Row
+          label="Cliente"
+          value={invoice.customer?.firstName && invoice.customer.firstName !== "Cliente General" ? `${invoice.customer.firstName} ${invoice.customer.lastName || ""}`.trim() : "Sin especificar"}
+          bold={!!invoice.customer?.firstName && invoice.customer.firstName !== "Cliente General"}
+        />
+        {invoice.customer?.phone && (
+          <Row label="Tel" value={invoice.customer.phone} />
+        )}
+        {(invoice.assignedSeller?.name || invoice.sellerName) && (
+          <Row
+            label="Vendedor"
+            value={invoice.assignedSeller?.name || invoice.sellerName}
+          />
+        )}
+      </div>
 
       <DashedSep />
 
@@ -120,11 +117,8 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
       </div>
 
       {/* ── TOTAL DESTACADO ── */}
-      <div
-        className="mt-3 flex items-center justify-between rounded-sm px-3 py-2.5"
-        style={{ backgroundColor: "#000", color: "#fff" }}
-      >
-        <span className="text-[13px] font-extrabold tracking-[0.12em]">TOTAL A PAGAR</span>
+      <div className="mt-3 flex items-center justify-between bg-black text-white px-2 py-2">
+        <span className="text-[14px] font-black tracking-[0.1em]">TOTAL A PAGAR</span>
         <span className="text-[18px] font-black">{c$(grandTotal)}</span>
       </div>
 
@@ -154,6 +148,7 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
         </div>
         <p className="text-[11px] font-bold">gyro-store.onrender.com</p>
         <p className="mt-0.5 text-[10px]">Instagram: @gyrostore</p>
+        <p className="text-[10px]">TikTok: @gyrostore</p>
       </div>
 
       <Separator />

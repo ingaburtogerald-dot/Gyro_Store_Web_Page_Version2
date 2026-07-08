@@ -37,6 +37,11 @@
   --color-info: #0ea5e9;
   --color-success: #10b981;
 
+  /* Badge secundario del storefront (Oferta/Nuevo): morado vibrante + su tono
+     de texto legible sobre fondos oscuros. Genera bg-badge, text-badge-2, etc. */
+  --color-badge: #8b5cf6;
+  --color-badge-2: #c4b5fd;
+
   /* Tipografía */
   --font-sans: "Inter", system-ui, sans-serif;
   --font-heading: "Sora", system-ui, sans-serif;
@@ -398,6 +403,59 @@
 
 /* Header de tabla pegajoso: queda justo bajo el header de la app (h-16). */
 .table-sticky-head { position: sticky; top: 4rem; z-index: 10; }
+
+/* ───────────────────────────────────────────────────────────
+   Skin del STOREFRONT — "Midnight Neon" (scoped: NO toca el admin).
+   Se activa con data-skin="store" en el contenedor de las rutas
+   públicas (_index, producto.$id, contacto). Sobre-escribe los
+   tokens del @theme igual que [data-theme]; todas las utilidades
+   (bg-bg, text-accent, bg-gradient-accent…) lo heredan solas.
+
+   Contraste: el acento cyan es CLARO → los CTAs planos llevan
+   texto oscuro (text-bg da ~10:1 sobre #22d3ee), y el gradiente
+   de botones usa cyan profundos (#155e75→#0e7490, ≥4.5:1) para
+   que el texto blanco de header/FABs siga siendo AA sin tocarlos.
+   ─────────────────────────────────────────────────────────── */
+[data-skin="store"] {
+  /* Superficies — azul medianoche profundo */
+  --color-bg: #0a0f1c;
+  --color-surface: #0f1728;
+  --color-surface-2: #17223a;
+  --color-surface-hover: #1b2845;
+  --color-border: rgba(148, 197, 255, 0.12);
+
+  /* Acento único — cyan eléctrico calibrado (precios, focos, CTAs) */
+  --color-accent: #22d3ee;
+  --color-accent-2: #67e8f9;
+  --color-accent-hover: #06b6d4;
+  --color-grad-from: #155e75;
+  --color-grad-to: #0e7490;
+
+  /* Texto — blanco azulado + muted legible sobre medianoche (≥6:1) */
+  --color-text: #e8eefc;
+  --color-muted: #94a3b8;
+
+  /* Tipografía propia del storefront (el admin sigue en Inter/Sora) */
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-heading: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  /* body fija font/bg con los tokens de :root; aquí se re-resuelven
+     con los overrides del skin. */
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  /* Ambiente: halos cyan/violeta muy sutiles (nunca compiten con el producto) */
+  background-image:
+    radial-gradient(900px 480px at 85% -5%, rgba(34, 211, 238, 0.07), transparent 60%),
+    radial-gradient(720px 420px at -10% 35%, rgba(139, 92, 246, 0.06), transparent 55%);
+}
+
+/* Glows cyan contenidos para el storefront (también sirven en emerald) */
+@utility shadow-accent-cta {
+  box-shadow: 0 12px 30px -10px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+@utility shadow-accent-soft {
+  box-shadow: 0 24px 60px -28px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
 
 /* Respeta a quien pidió menos movimiento (accesibilidad + buena práctica). */
 @media (prefers-reduced-motion: reduce) {

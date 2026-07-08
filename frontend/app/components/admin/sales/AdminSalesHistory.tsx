@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight, Search, X, Eye } from "lucide-react";
 import { toast } from "sonner";
@@ -41,6 +41,18 @@ export function AdminSalesHistory({
   const [selectedSales, setSelectedSales] = useState<Set<string>>(new Set());
   const [nameQuery, setNameQuery] = useState("");
   const [del, { isLoading: deleting }] = useDeleteSaleMutation();
+
+  useEffect(() => {
+    setSelectedSales((prev) => {
+      if (prev.size === 0) return prev;
+      const currentIds = new Set(filteredSales.map((s) => s.id));
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (currentIds.has(id)) next.add(id);
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [filteredSales]);
 
   async function handleDelete() {
     if (!deleteFor || !deleteReason.trim()) return;
@@ -243,9 +255,9 @@ export function AdminSalesHistory({
   }, [displayedSales]);
 
   return (
-    <div className="rounded-card border border-border bg-surface shadow-premium p-4 relative">
-      <div className="sticky top-0 z-30 flex flex-col lg:flex-row items-start justify-between gap-4 bg-surface pb-2">
-        <h2 className="text-lg font-bold text-text">Desglose Detallado de Transacciones</h2>
+    <div className="relative rounded-card border border-border bg-surface p-4 shadow-premium sm:p-5">
+      <div className="sticky top-0 z-30 flex flex-col items-start justify-between gap-4 bg-surface pb-3 lg:flex-row">
+        <h2 className="font-heading text-lg font-bold tracking-tight text-text">Desglose Detallado de Transacciones</h2>
         <div className="flex flex-wrap items-center gap-3">
           {/* Búsqueda por nombre del producto vendido */}
           <div className="flex items-center gap-2 rounded-pill border border-border bg-surface-2 px-3 w-full sm:w-64">
@@ -263,22 +275,22 @@ export function AdminSalesHistory({
             )}
           </div>
           {displayedSales.length > 0 && (
-            <div className="flex items-center gap-4 rounded-lg border border-border bg-surface-2 px-4 py-2 text-xs shadow-sm">
+            <div className="flex items-center gap-4 rounded-xl border border-border/60 bg-surface-2 px-4 py-2 text-xs">
               <div className="flex flex-col">
-                <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Artículos</span>
-                <span className="text-sm font-semibold text-text">{totals.cantidad}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Artículos</span>
+                <span className="text-sm font-semibold tabular-nums text-text">{totals.cantidad}</span>
               </div>
-              <div className="flex flex-col border-l border-border pl-4">
-                <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Venta Total</span>
-                <span className="text-sm font-semibold text-text">{formatCordobas(totals.venta)}</span>
+              <div className="flex flex-col border-l border-border/60 pl-4">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Venta Total</span>
+                <span className="text-sm font-semibold tabular-nums text-text">{formatCordobas(totals.venta)}</span>
               </div>
-              <div className="flex flex-col border-l border-border pl-4">
-                <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Comisión</span>
-                <span className="text-sm font-semibold text-emerald-400">{formatCordobas(totals.comision)}</span>
+              <div className="flex flex-col border-l border-border/60 pl-4">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Comisión</span>
+                <span className="text-sm font-semibold tabular-nums text-emerald-400">{formatCordobas(totals.comision)}</span>
               </div>
-              <div className="flex flex-col border-l border-border pl-4">
-                <span className="text-[11px] text-muted uppercase font-bold tracking-wider">Ganancia</span>
-                <span className="text-sm font-bold text-whatsapp">{formatCordobas(totals.ganancia)}</span>
+              <div className="flex flex-col border-l border-border/60 pl-4">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Ganancia</span>
+                <span className="text-sm font-bold tabular-nums text-whatsapp">{formatCordobas(totals.ganancia)}</span>
               </div>
             </div>
           )}
@@ -308,7 +320,7 @@ export function AdminSalesHistory({
           {onRegisterSale && (
             <button
               onClick={onRegisterSale}
-              className="flex items-center gap-1.5 rounded-lg bg-gradient-accent px-4 py-2 text-sm font-bold text-white transition-all hover:opacity-90 whitespace-nowrap shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)]"
+              className="ease-expo flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-gradient-accent px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.5)] transition duration-300 hover:-translate-y-0.5 active:scale-95"
             >
               <Plus className="h-4 w-4" />
               <span>Registrar Venta</span>

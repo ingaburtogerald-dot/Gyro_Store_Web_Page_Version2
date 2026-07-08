@@ -50,12 +50,14 @@ export interface UnifiedDatePickerProps {
   value: string; // "" | "all" | "YYYY-MM" | "YYYY-MM-DD"
   onChange: (value: string) => void;
   placeholder?: string;
+  align?: "left" | "right";
 }
 
 export function UnifiedDatePicker({
   value,
   onChange,
   placeholder = "Todo el tiempo",
+  align = "left",
 }: UnifiedDatePickerProps) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"month" | "day">("month");
@@ -146,7 +148,10 @@ export function UnifiedDatePicker({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-0 z-50 mt-2 overflow-hidden rounded-card border border-border bg-surface shadow-2xl"
+            className={cn(
+              "absolute z-50 mt-2 overflow-hidden rounded-card border border-border bg-surface shadow-2xl",
+              align === "right" ? "right-0" : "left-0"
+            )}
             style={{ minWidth: 252 }}
           >
             {/* Toggle Mes / Día */}

@@ -21,11 +21,11 @@ import {
   LayoutGrid,
   PanelLeftClose,
   PanelLeft,
-  Search,
   Plus,
   ChevronDown,
   ChevronRight,
   KanbanSquare,
+  ArrowUpRight,
 } from "lucide-react";
 import { UserMenu } from "./UserMenu";
 import { NotificationsBell } from "./NotificationsBell";
@@ -181,15 +181,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {/* Buscador: abre la paleta ⌘K (mismo destino que el atajo de teclado). */}
-        <button
-          onClick={() => window.dispatchEvent(new Event("cmdk:open"))}
-          className="mb-3 flex w-full items-center gap-2 rounded-pill border border-border px-3 py-2 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-text"
+        {/* CTA vistoso: ir a la tienda pública (abre en pestaña nueva). La paleta
+            ⌘K sigue disponible por teclado (Cmd/Ctrl+K), sin botón visible. */}
+        <Link
+          to="/"
+          target="_blank"
+          rel="noopener"
+          onClick={() => dispatch(setSidebar(false))}
+          className="ease-expo group mb-3 flex items-center gap-2.5 rounded-xl bg-gradient-accent px-3.5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.55)] transition duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
         >
-          <Search className="h-3.5 w-3.5" />
-          Buscar
-          <kbd className="ml-auto rounded border border-border px-1.5 py-0.5 text-[10px]">⌘K</kbd>
-        </button>
+          <Store className="h-[18px] w-[18px]" />
+          <span className="flex-1">Ir al catálogo</span>
+          <ArrowUpRight className="h-4 w-4 opacity-90 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        </Link>
 
         <nav className="-mx-1 flex-1 space-y-4 overflow-y-auto px-1 pb-2">
           {visibleGroups.map((group) => (
@@ -297,16 +301,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex shrink-0 items-center gap-2">
             {canCRM && <NotificationsBell />}
-            <Link
-              to="/"
-              target="_blank"
-              rel="noopener"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-pill border border-border text-muted transition-colors hover:bg-surface-2 hover:text-accent-2"
-              title="Ver catálogo"
-              aria-label="Ver catálogo"
-            >
-              <Store className="h-[18px] w-[18px]" />
-            </Link>
             <UserMenu />
           </div>
         </header>

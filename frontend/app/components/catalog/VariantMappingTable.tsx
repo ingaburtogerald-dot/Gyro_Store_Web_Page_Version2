@@ -188,7 +188,7 @@ export function VariantMappingTable({ axes, availability, variantMappings, onCha
           type="button"
           onClick={autoMapAll}
           disabled={isLoading || pool.length === 0}
-          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-bg transition-colors hover:bg-accent/85 disabled:cursor-not-allowed disabled:opacity-40"
           title="Asigna todos los códigos de bodega que coincidan con cada combinación"
         >
           <Zap className="h-3.5 w-3.5" />
