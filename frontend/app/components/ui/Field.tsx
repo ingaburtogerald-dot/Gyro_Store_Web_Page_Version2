@@ -20,8 +20,8 @@ export function Field({
     <label className={cn("block", className)}>
       <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
       {children}
-      {error && <span className="mt-1 block text-xs text-red-400">{error}</span>}
-      {!error && warn && <span className="mt-1 block text-xs text-amber-400">⚠ {warn}</span>}
+      {error && <span className="mt-1 block text-xs text-danger">{error}</span>}
+      {!error && warn && <span className="mt-1 block text-xs text-warning">⚠ {warn}</span>}
     </label>
   );
 }

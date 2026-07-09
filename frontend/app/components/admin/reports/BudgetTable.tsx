@@ -39,10 +39,10 @@ export function BudgetTable({ rows }: { rows: BudgetRow[] }) {
                 </td>
                 <td className="py-2 px-3 text-right tabular-nums text-muted">{r.budgeted ? formatCordobas(r.pool) : "—"}</td>
                 <td className="py-2 px-3 text-right tabular-nums">{formatCordobas(r.spent)}</td>
-                <td className={cn("py-2 px-3 text-right tabular-nums", r.budgeted && (r.saldo < 0 ? "text-rose-400" : "text-emerald-400"))}>
+                <td className={cn("py-2 px-3 text-right tabular-nums", r.budgeted && (r.saldo < 0 ? "text-danger" : "text-accent-2"))}>
                   {r.budgeted ? formatCordobas(r.saldo) : "—"}
                 </td>
-                <td className={cn("py-2 pl-3 text-right tabular-nums", r.excedente > 0 ? "text-rose-400" : "text-muted")}>
+                <td className={cn("py-2 pl-3 text-right tabular-nums", r.excedente > 0 ? "text-danger" : "text-muted")}>
                   {r.excedente > 0 ? `−${formatCordobas(r.excedente)}` : formatCordobas(0)}
                 </td>
               </tr>
@@ -54,7 +54,7 @@ export function BudgetTable({ rows }: { rows: BudgetRow[] }) {
               <td className="py-2 px-3 text-right tabular-nums text-muted">{formatCordobas(totals.pool)}</td>
               <td className="py-2 px-3 text-right tabular-nums">{formatCordobas(totals.spent)}</td>
               <td className="py-2 px-3 text-right tabular-nums">{formatCordobas(totals.pool - totals.spent)}</td>
-              <td className={cn("py-2 pl-3 text-right tabular-nums", totals.excedente > 0 ? "text-rose-400" : "text-muted")}>
+              <td className={cn("py-2 pl-3 text-right tabular-nums", totals.excedente > 0 ? "text-danger" : "text-muted")}>
                 {totals.excedente > 0 ? `−${formatCordobas(totals.excedente)}` : formatCordobas(0)}
               </td>
             </tr>

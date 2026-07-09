@@ -66,7 +66,7 @@ export function ApproveAndPayModal({ sales, onClose, onSubmit }: Props) {
                   <span>Comisión de ventas:</span>
                   <span>{formatCordobas(totalComision)}</span>
                 </div>
-                <div className={`flex items-center justify-between text-xs font-medium ${saldo > 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                <div className={`flex items-center justify-between text-xs font-medium ${saldo > 0 ? "text-accent-2" : "text-danger"}`}>
                   <span>Saldo {saldo > 0 ? "a favor" : "en contra"} (ajustes):</span>
                   <span>{saldo > 0 ? "+" : "−"}{formatCordobas(Math.abs(saldo))}</span>
                 </div>
@@ -75,10 +75,10 @@ export function ApproveAndPayModal({ sales, onClose, onSubmit }: Props) {
             )}
             <div className="flex items-center justify-between text-sm font-semibold">
               <span>Total a Pagar:</span>
-              <span className="text-lg text-emerald-400">{formatCordobas(saldo !== 0 ? totalAPagar : totalComision)}</span>
+              <span className="text-lg text-accent-2">{formatCordobas(saldo !== 0 ? totalAPagar : totalComision)}</span>
             </div>
             {saldo < 0 && totalAPagar === 0 && (
-              <p className="pt-1 text-[11px] text-rose-400">
+              <p className="pt-1 text-[11px] text-danger">
                 El saldo en contra supera la comisión: se descontará lo posible y el resto queda pendiente para el próximo pago.
               </p>
             )}

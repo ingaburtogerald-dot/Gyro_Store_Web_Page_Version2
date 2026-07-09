@@ -255,10 +255,14 @@ router.patch('/purchases/:id/arrival', requireAdmin, asyncHandler(async (req, re
       updatedAt: FieldValue.serverTimestamp(),
     });
   } else {
-    await prodQuery.docs[0].ref.update({
+    const updateData = {
       stock: FieldValue.increment(p.quantity),
       updatedAt: FieldValue.serverTimestamp(),
-    });
+    };
+    if (suggestedPrice != null) {
+      updateData.price = Number(suggestedPrice);
+    }
+    await prodQuery.docs[0].ref.update(updateData);
   }
 
   const arrivalUpdate = {

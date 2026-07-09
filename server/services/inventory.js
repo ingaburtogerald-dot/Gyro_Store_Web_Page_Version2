@@ -43,9 +43,11 @@ function computeInventoryRow(p) {
     shippingUnitUsd: shippingUnit,
     priceUnitFinalUsd: priceUnitFinal,
     costRealCordobas: priceUnitFinal * RATE,
+    costoFijoCordobas: (priceUnitFinal * RATE) / 0.75,
     preTotalUsd: priceUnit * available,
     totalFinalUsd: priceUnitFinal * available,
     suggestedPrice: p.suggestedPrice || suggestedPriceCordobas(priceUnitFinal),
+    gananciaUnitCordobas: (p.suggestedPrice || suggestedPriceCordobas(priceUnitFinal)) - ((priceUnitFinal * RATE) / 0.75),
   };
 }
 
@@ -74,19 +76,20 @@ function computeKpis(purchases) {
   return kpis;
 }
 
-// Precio de venta sugerido (C$) al recibir en bodega, basado en margen progresivo
-// J2 / (1 - margin) redondeado a la decena más cercana.
+// Precio de venta sugerido (C$) al recibir en bodega, basado en margen progresivo sobre costo fijo
 function suggestedPriceCordobas(priceUnitFinal) {
   const costReal = priceUnitFinal * RATE;
-  let margin = 0.35;
-  if (costReal < 100) margin = 0.75;
-  else if (costReal <= 300) margin = 0.55;
-  else if (costReal <= 500) margin = 0.50;
-  else if (costReal <= 800) margin = 0.45;
-  else if (costReal <= 1200) margin = 0.40;
+  const costoFijo = costReal / 0.75;
+  
+  let margin = 0.25;
+  if (costoFijo < 100) margin = 0.65;
+  else if (costoFijo <= 300) margin = 0.45;
+  else if (costoFijo <= 500) margin = 0.40;
+  else if (costoFijo <= 800) margin = 0.35;
+  else if (costoFijo <= 1200) margin = 0.30;
 
-  const suggested = costReal / (1 - margin);
-  return Math.round(suggested / 10) * 10;
+  const suggested = costoFijo / (1 - margin);
+  return parseFloat(suggested.toFixed(2));
 }
 
 // Calcula las columnas de la vista "Inventario Migrado" para un ítem histórico.

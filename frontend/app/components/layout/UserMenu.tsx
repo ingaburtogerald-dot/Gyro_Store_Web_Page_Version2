@@ -235,7 +235,7 @@ function MenuItem({
       className={cn(
         "flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors",
         danger
-          ? "text-muted hover:bg-red-500/10 hover:text-red-400"
+          ? "text-muted hover:bg-danger/10 hover:text-danger"
           : "text-text hover:bg-surface-2 hover:text-accent",
       )}
     >

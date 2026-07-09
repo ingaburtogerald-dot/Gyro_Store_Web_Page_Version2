@@ -149,11 +149,11 @@ export default function Login() {
               className={cn(
                 "flex items-center gap-2 rounded-xl border bg-surface px-3 transition-colors",
                 emailValid
-                  ? "border-emerald-500/60 focus-within:border-emerald-500"
+                  ? "border-accent/60 focus-within:border-accent"
                   : "border-border focus-within:border-accent",
               )}
             >
-              <Mail className={cn("h-4 w-4 transition-colors", emailValid ? "text-emerald-500" : "text-muted")} />
+              <Mail className={cn("h-4 w-4 transition-colors", emailValid ? "text-accent" : "text-muted")} />
               <input
                 id="email"
                 type="email"
@@ -163,10 +163,10 @@ export default function Login() {
                 {...register("email")}
               />
               {emailValid && (
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 animate-in fade-in zoom-in duration-200" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-accent animate-in fade-in zoom-in duration-200" />
               )}
             </div>
-            {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
+            {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
           </div>
 
           <div>
@@ -195,10 +195,10 @@ export default function Login() {
               </button>
             </div>
             {errors.password && (
-              <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>
+              <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
             )}
             {capsOn && (
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-amber-400 animate-in fade-in duration-200">
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-warning animate-in fade-in duration-200">
                 <AlertTriangle className="h-3.5 w-3.5" /> Bloq Mayús está activado
               </p>
             )}

@@ -93,7 +93,7 @@ function SortableCard({ item, onEdit, onDelete }: { item: CatalogProduct; onEdit
       </div>
       <div className="absolute right-2 top-2 z-10 flex gap-1">
         <button onClick={onEdit} className="rounded-lg bg-black/50 p-1.5 text-white hover:text-accent-2" aria-label="Editar"><Pencil className="h-4 w-4" /></button>
-        <button onClick={onDelete} className="rounded-lg bg-black/50 p-1.5 text-white hover:text-red-400" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></button>
+        <button onClick={onDelete} className="rounded-lg bg-black/50 p-1.5 text-white hover:text-danger" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></button>
       </div>
 
       <div className="aspect-square bg-surface-2 shrink-0">
@@ -110,7 +110,9 @@ function SortableCard({ item, onEdit, onDelete }: { item: CatalogProduct; onEdit
         </div>
         <div className="mt-auto">
           <p className="font-heading font-bold">{formatCordobas(item.price)}</p>
-          <p className="text-xs text-muted">stock {item.stock}</p>
+          <p className="text-xs text-muted">
+            {item.variantCount ?? 1} variante{(item.variantCount ?? 1) !== 1 ? 's' : ''}
+          </p>
         </div>
       </div>
     </div>

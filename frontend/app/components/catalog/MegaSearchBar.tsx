@@ -1,10 +1,11 @@
-// Buscador dominante del storefront — reemplaza a CatalogSearchBar.
-// Misma fuente de verdad (ui.search en Redux); cambia la piel y la invitación:
+// Buscador dominante del storefront — ahora vive DENTRO del header (Amazon-style).
+// Misma fuente de verdad (ui.search en Redux); reusa su piel y su invitación:
 //  - Glass midnight con foco cyan (borde + halo suave, sin glow neón).
 //  - Placeholder "vivo": rota sugerencias reales ("Audífonos KZ"…) solo cuando
 //    el input está vacío, sin foco y sin prefers-reduced-motion.
 //  - Atajo "/" para enfocar desde el teclado (chip visible solo en desktop).
-// Sticky bajo el header (64px) igual que la barra anterior.
+// Es un input reusable: el contenedor (header) controla el ancho/posición. El
+// prop `size` ajusta la altura para la fila del header (md) vs. el hero móvil (lg).
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Search, X } from "lucide-react";
@@ -20,13 +21,21 @@ const SUGERENCIAS = [
   "Accesorios para PC",
 ];
 
-export function MegaSearchBar() {
+export function MegaSearchBar({
+  size = "md",
+  className,
+}: {
+  /** "md" = fila del header (compacto); "lg" = versión dominante (móvil). */
+  size?: "md" | "lg";
+  className?: string;
+}) {
   const dispatch = useAppDispatch();
   const search = useAppSelector((s) => s.ui.search);
   const inputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
   const [hint, setHint] = useState(0);
   const reduce = useReducedMotion();
+  const tall = size === "lg";
 
   // El placeholder animado solo vive cuando el input está "en reposo".
   const idle = !focused && search === "";
@@ -50,78 +59,55 @@ export function MegaSearchBar() {
   }, []);
 
   return (
-    <div className="sticky top-[64px] z-30 -mx-4 bg-bg/80 px-4 py-3 backdrop-blur-xl">
-      <div
+    <div
+      className={cn(
+        "ease-expo relative flex w-full items-stretch rounded-md overflow-hidden transition duration-300",
+        focused
+          ? "ring-4 ring-accent/40 border-accent"
+          : "ring-0 border-transparent",
+        className,
+      )}
+    >
+      <input
+        ref={inputRef}
+        type="search"
+        inputMode="search"
+        value={search}
+        onChange={(e) => dispatch(setSearch(e.target.value))}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder=""
+        aria-label="Buscar productos"
         className={cn(
-          "ease-expo relative rounded-2xl border bg-white/[0.05] backdrop-blur-md transition duration-300",
-          focused
-            ? "border-accent/60 shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-accent)_14%,transparent)]"
-            : "border-border hover:border-accent/30",
+          "w-full bg-white pl-4 pr-10 text-base font-medium text-gray-900 outline-none",
+          tall ? "h-12" : "h-10",
         )}
+      />
+
+
+
+      {search && (
+        <button
+          type="button"
+          onClick={() => {
+            dispatch(setSearch(""));
+            inputRef.current?.focus();
+          }}
+          aria-label="Limpiar búsqueda"
+          className="absolute right-[52px] top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-800"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+
+      {/* Amazon-style search button */}
+      <button
+        type="button"
+        aria-label="Buscar"
+        className="flex shrink-0 items-center justify-center bg-accent px-4 text-bg transition-colors hover:bg-accent-2"
       >
-        <Search
-          className={cn(
-            "pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transition-colors duration-300",
-            focused ? "text-accent" : "text-muted",
-          )}
-        />
-        {/* text-base (16px) evita el zoom automático de iOS al enfocar */}
-        <input
-          ref={inputRef}
-          type="search"
-          inputMode="search"
-          value={search}
-          onChange={(e) => dispatch(setSearch(e.target.value))}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          placeholder=""
-          aria-label="Buscar productos"
-          className="h-14 w-full rounded-2xl bg-transparent pl-12 pr-12 text-base font-medium text-text outline-none sm:pr-16"
-        />
-
-        {/* Placeholder vivo: "Buscar" + sugerencia que rota (solo decorativo) */}
-        {idle && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 left-12 right-12 flex items-center gap-1.5 overflow-hidden sm:right-16"
-          >
-            <span className="shrink-0 text-base font-light text-muted">Buscar</span>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={hint}
-                initial={reduce ? false : { opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduce ? undefined : { opacity: 0, y: -10 }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="truncate text-base font-semibold text-text/75"
-              >
-                {SUGERENCIAS[hint]}
-              </motion.span>
-            </AnimatePresence>
-          </div>
-        )}
-
-        {search ? (
-          <button
-            type="button"
-            onClick={() => {
-              dispatch(setSearch(""));
-              inputRef.current?.focus();
-            }}
-            aria-label="Limpiar búsqueda"
-            className="absolute right-2.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        ) : (
-          <kbd
-            aria-hidden
-            className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 rounded-md border border-border bg-surface-2 px-2 py-1 font-sans text-[11px] font-semibold text-muted sm:block"
-          >
-            /
-          </kbd>
-        )}
-      </div>
+        <Search className="h-5 w-5" />
+      </button>
     </div>
   );
 }

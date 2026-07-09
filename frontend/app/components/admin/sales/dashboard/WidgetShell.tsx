@@ -31,8 +31,8 @@ interface WidgetShellProps {
 const TONE: Record<NonNullable<WidgetShellProps["tone"]>, string> = {
   neutral: "text-muted",
   emerald: "text-accent-2",
-  amber: "text-amber-400",
-  indigo: "text-indigo-400",
+  amber: "text-warning",
+  indigo: "text-tone-indigo",
 };
 
 export function WidgetShell({ title, icon: Icon, action, tone = "neutral", className, children }: WidgetShellProps) {

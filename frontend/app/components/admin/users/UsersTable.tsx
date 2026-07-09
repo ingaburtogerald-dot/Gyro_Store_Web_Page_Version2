@@ -110,20 +110,20 @@ export function UsersTable({ onEdit }: { onEdit: (u: ManagedUser) => void }) {
           const val = c.getValue() as string;
           if (val === "google") {
             return (
-              <span className="rounded-pill px-2 py-0.5 text-xs bg-rose-500/15 text-rose-400 border border-rose-500/20 font-medium">
+              <span className="rounded-pill px-2 py-0.5 text-xs bg-danger/15 text-danger border border-danger/20 font-medium">
                 Google
               </span>
             );
           }
           if (val === "microsoft") {
             return (
-              <span className="rounded-pill px-2 py-0.5 text-xs bg-sky-500/15 text-sky-400 border border-sky-500/20 font-medium">
+              <span className="rounded-pill px-2 py-0.5 text-xs bg-info/15 text-info border border-info/20 font-medium">
                 Microsoft
               </span>
             );
           }
           return (
-            <span className="rounded-pill px-2 py-0.5 text-xs bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 font-medium">
+            <span className="rounded-pill px-2 py-0.5 text-xs bg-tone-indigo/15 text-tone-indigo border border-tone-indigo/20 font-medium">
               Local
             </span>
           );
@@ -175,7 +175,7 @@ export function UsersTable({ onEdit }: { onEdit: (u: ManagedUser) => void }) {
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setDeleteFor(null)}>Cancelar</Button>
-          <Button onClick={handleDelete} loading={deleting} className="bg-red-500/90">Eliminar</Button>
+          <Button onClick={handleDelete} loading={deleting} className="bg-danger/90">Eliminar</Button>
         </div>
       </Modal>
 
@@ -185,7 +185,7 @@ export function UsersTable({ onEdit }: { onEdit: (u: ManagedUser) => void }) {
           <p className="text-sm text-muted">
             ¿Generar una nueva contraseña temporal para el usuario <strong className="text-text">{confirmTempFor?.displayName} ({confirmTempFor?.email})</strong>?
           </p>
-          <p className="text-xs text-rose-400">
+          <p className="text-xs text-danger">
             * Esto invalidará su contraseña actual de inmediato y le solicitará de forma obligatoria establecer una nueva la próxima vez que intente iniciar sesión.
           </p>
           <div className="flex justify-end gap-2 pt-2">
@@ -214,7 +214,7 @@ export function UsersTable({ onEdit }: { onEdit: (u: ManagedUser) => void }) {
                 className="p-2 rounded-lg bg-surface-2 border border-border hover:bg-surface-3 transition-colors text-muted hover:text-text"
                 title="Copiar contraseña"
               >
-                {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-4 w-4 text-accent-2" /> : <Copy className="h-4 w-4" />}
               </button>
             </div>
           </div>

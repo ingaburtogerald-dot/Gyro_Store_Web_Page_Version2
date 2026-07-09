@@ -3,7 +3,16 @@
 import { motion } from "framer-motion";
 import { cn } from "~/lib/utils";
 
-export const COLORS = ["#10b981", "#38bdf8", "#f59e0b", "#a855f7", "#f43f5e", "#64748b"];
+// Paleta categórica de gráficos vía tokens (misma que los KPIs) → theme-aware,
+// sin hex sueltos. accent / tono-sky / warning / tono-purple / tono-rose / muted.
+export const COLORS = [
+  "var(--color-accent)",
+  "var(--color-tone-sky)",
+  "var(--color-warning)",
+  "var(--color-tone-purple)",
+  "var(--color-tone-rose)",
+  "var(--color-muted)",
+];
 
 // Entrada escalonada de las tarjetas (fade in up con spring).
 export const gridVariants = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };

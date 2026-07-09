@@ -78,10 +78,10 @@ function AvailableRow({ p, maxDiscount }: { p: any; maxDiscount: number }) {
           className={cn(
             "rounded-full px-2 py-0.5 text-xs font-semibold",
             stock === 0
-              ? "bg-red-500/15 text-red-400"
+              ? "bg-danger/15 text-danger"
               : stock <= 3
-                ? "bg-amber-500/15 text-amber-400"
-                : "bg-emerald-500/15 text-emerald-400",
+                ? "bg-warning/15 text-warning"
+                : "bg-accent/15 text-accent-2",
           )}
         >
           {stock === 0 ? "Agotado" : stock <= 3 ? `¡Últimas ${stock}!` : `${stock} uds`}

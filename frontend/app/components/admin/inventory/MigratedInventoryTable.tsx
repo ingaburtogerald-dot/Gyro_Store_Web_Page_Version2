@@ -52,7 +52,7 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
         header: "",
         enableSorting: false,
         cell: () => (
-          <span className="rounded-pill bg-amber-500/15 px-2 py-1 text-xs font-medium text-amber-300">
+          <span className="rounded-pill bg-warning/15 px-2 py-1 text-xs font-medium text-warning">
             Migrado
           </span>
         ),
@@ -65,33 +65,29 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
         accessorKey: "quantity",
         header: "Compradas",
         meta: { align: "right" },
-        cell: (c) => <span className="nums font-semibold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        cell: (c) => <span className="nums font-semibold text-accent-2 bg-accent/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
       {
         accessorKey: "quantitySold",
         header: "Salidas",
         meta: { align: "right" },
-        cell: (c) => <span className="nums font-semibold text-rose-400 bg-rose-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        cell: (c) => <span className="nums font-semibold text-danger bg-danger/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
-      {
-        accessorKey: "quantityReserved",
-        header: "Reservas",
-        meta: { align: "right" },
-        cell: (c) => <span className="nums font-semibold text-amber-400 bg-amber-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
-      },
+
       {
         accessorKey: "stock",
         header: "Stock",
         meta: { align: "right" },
-        cell: (c) => <span className="nums font-bold text-sky-400 bg-sky-400/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
+        cell: (c) => <span className="nums font-bold text-info bg-info/15 px-2 py-0.5 rounded-full">{c.getValue()}</span>
       },
       // USD a 2 decimales visibles; precisión completa en el tooltip.
       { accessorKey: "priceBaseUsd", header: "P. Base", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
-      { accessorKey: "shippingUnitUsd", header: "Envío Unit.", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      // Envío unitario: 4 decimales visibles (precisión clave para el control de inventario).
+      { accessorKey: "shippingUnitUsd", header: "Envío Unit.", meta: { align: "right" }, cell: (c) => formatUsd(c.getValue(), 4, 4) },
       { accessorKey: "priceUnitFinalUsd", header: "P. Unit. Final", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
       { id: "preTotalUsd", header: "Pre-Total", meta: { align: "right" }, cell: ({ row }) => formatUsd((row.original.priceBaseUsd || 0) * (row.original.quantity || 0)) },
       { id: "totalUsd", header: "Total", meta: { align: "right" }, cell: ({ row }) => <span className="font-semibold">{formatUsd((row.original.priceUnitFinalUsd || 0) * (row.original.quantity || 0))}</span> },
-      { accessorKey: "costRealUnitCordobas", header: "Coste Real Unit.", meta: { align: "right" }, cell: (c) => formatCordobas(c.getValue()) },
+      { accessorKey: "costRealUnitCordobas", header: "Coste", meta: { align: "right" }, cell: (c) => formatCordobas(c.getValue()) },
       { accessorKey: "suggestedPrice", header: "P. Sugerido", meta: { align: "right" }, cell: (c) => formatCordobas(c.getValue()) },
     ],
     [],
@@ -133,7 +129,7 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
                 <Button
                   variant="ghost"
                   onClick={() => setDeleteFor(selectedItem)}
-                  className="h-8 bg-surface-2 text-xs text-red-400 hover:bg-red-500/15 hover:text-red-400"
+                  className="h-8 bg-surface-2 text-xs text-danger hover:bg-danger/15 hover:text-danger"
                 >
                   <Trash2 className="mr-2 h-3.5 w-3.5" /> Eliminar
                 </Button>
@@ -156,7 +152,7 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
                   value={filterTab}
                   onChange={(id) => { setFilterTab(id as "in_stock" | "out_of_stock"); setSelectedItem(null); }}
                   layoutId="migrated-subtabs"
-                  indicatorClassName={filterTab === "out_of_stock" ? "bg-red-500/90" : "bg-gradient-accent"}
+                  indicatorClassName={filterTab === "out_of_stock" ? "bg-danger/90" : "bg-gradient-accent"}
                 />
                 {onOpenForm && (
                   <Button onClick={onOpenForm} className="flex items-center gap-1.5 whitespace-nowrap">
@@ -197,7 +193,7 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
           <Button variant="ghost" onClick={() => setDeleteFor(null)}>
             Cancelar
           </Button>
-          <Button onClick={handleDelete} loading={deleting} className="bg-red-500/90">
+          <Button onClick={handleDelete} loading={deleting} className="bg-danger/90">
             Eliminar
           </Button>
         </div>

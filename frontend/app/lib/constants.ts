@@ -35,9 +35,9 @@ export const ROLE_BADGE: Record<Role, string> = {
   global_admin: "bg-accent/20 text-accent-2",
   admin: "bg-accent/15 text-accent-2",
   seller: "bg-whatsapp/15 text-whatsapp",
-  cashier: "bg-amber-500/15 text-amber-300",
-  logistics_admin: "bg-sky-500/15 text-sky-300",
-  logistics_customer: "bg-slate-500/15 text-slate-300",
+  cashier: "bg-warning/15 text-warning",
+  logistics_admin: "bg-info/15 text-info",
+  logistics_customer: "bg-muted/15 text-muted",
 };
 
 // Roles que habilitan el Centro de Administración

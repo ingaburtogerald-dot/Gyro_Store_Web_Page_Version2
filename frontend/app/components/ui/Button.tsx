@@ -14,7 +14,7 @@ const VARIANTS: Record<Variant, string> = {
   // Hover oscurece (patrón Vercel): el botón se "hunde" al pasar el mouse.
   submit: "bg-accent text-white hover:bg-accent-hover shadow-md shadow-accent/20",
   // Destructivo — eliminar, rechazar
-  destructive: "bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white",
+  destructive: "bg-danger/10 text-danger hover:bg-danger hover:text-white",
   // WhatsApp — solo para botones que abren un chat de WhatsApp real
   whatsapp: "bg-whatsapp text-[#04201a] font-semibold",
   ghost: "bg-transparent text-muted hover:text-text hover:bg-surface-2",

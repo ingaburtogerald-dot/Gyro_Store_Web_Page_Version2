@@ -54,12 +54,12 @@ export function AdminSaleCard({ sale }: { sale: any }) {
       <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3">
         <Metric label="Precio venta" value={formatCordobas(sale.saleTotal)} className="font-semibold text-text" />
         <Metric label="Costo real" value={formatCordobas(costReal)} className="text-muted" />
-        <Metric label="Inv. recuperada" value={formatCordobas(invRecuperada)} className="text-emerald-400" />
+        <Metric label="Inv. recuperada" value={formatCordobas(invRecuperada)} className="text-accent-2" />
         <Metric label="Utilidad neta" value={formatCordobas(utilNeta)} className="text-text" />
         <Metric
           label="Comisión"
           value={`${formatCordobas(comision)}${sale.comisionPercent !== undefined ? ` (${sale.comisionPercent}%)` : ""}`}
-          className="text-emerald-400"
+          className="text-accent-2"
         />
       </div>
 

@@ -24,16 +24,16 @@ export function isDue(f: Followup): boolean {
 }
 
 export const DUE_META: Record<DueState, { label: string; dot: string; text: string }> = {
-  overdue: { label: "Vencido", dot: "bg-red-500", text: "text-red-400" },
-  today: { label: "Hoy", dot: "bg-amber-400", text: "text-amber-300" },
-  upcoming: { label: "Próximo", dot: "bg-sky-400", text: "text-sky-300" },
+  overdue: { label: "Vencido", dot: "bg-danger", text: "text-danger" },
+  today: { label: "Hoy", dot: "bg-warning", text: "text-warning" },
+  upcoming: { label: "Próximo", dot: "bg-info", text: "text-info" },
   closed: { label: "—", dot: "bg-muted/40", text: "text-muted" },
 };
 
 export const TYPE_META: Record<Followup["type"], { label: string; cls: string }> = {
-  callback: { label: "📞 Llamar", cls: "bg-indigo-500/15 text-indigo-300" },
-  restock: { label: "📦 Avisar stock", cls: "bg-emerald-500/15 text-emerald-300" },
-  other: { label: "📝 Otro", cls: "bg-slate-500/15 text-slate-300" },
+  callback: { label: "📞 Llamar", cls: "bg-tone-indigo/15 text-tone-indigo" },
+  restock: { label: "📦 Avisar stock", cls: "bg-accent/15 text-accent-2" },
+  other: { label: "📝 Otro", cls: "bg-muted/15 text-muted" },
 };
 
 // Tono del StatusBadge canónico por estado del seguimiento.

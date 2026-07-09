@@ -95,7 +95,7 @@ export function CartDrawer() {
                         <button
                           onClick={() => dispatch(removeItem(key))}
                           aria-label="Eliminar"
-                          className="self-start text-muted hover:text-red-400"
+                          className="self-start text-muted hover:text-danger"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>

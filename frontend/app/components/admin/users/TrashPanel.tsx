@@ -43,7 +43,7 @@ export function TrashPanel() {
             <Button size="sm" variant="outline" onClick={() => handleRestore(u.id)} loading={restoring}>
               <RotateCcw className="h-4 w-4" /> Restaurar
             </Button>
-            <Button size="sm" onClick={() => handlePurge(u.id)} loading={purging} className="bg-red-500/90">
+            <Button size="sm" onClick={() => handlePurge(u.id)} loading={purging} className="bg-danger/90">
               <Trash2 className="h-4 w-4" /> Eliminar
             </Button>
           </div>

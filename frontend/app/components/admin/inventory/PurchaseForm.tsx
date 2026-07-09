@@ -64,7 +64,7 @@ export function PurchaseForm({ onDone }: { onDone?: () => void } = {}) {
   if (showSuccessPrompt) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12 text-center animate-in fade-in zoom-in-95 duration-300">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
           <CheckCircle2 className="h-8 w-8" />
         </div>
         <div>
@@ -131,7 +131,7 @@ export function PurchaseForm({ onDone }: { onDone?: () => void } = {}) {
                     }
                   }}
                 />
-                {codeError && <span className="mt-1 block text-xs text-amber-400">⚠ {codeError}</span>}
+                {codeError && <span className="mt-1 block text-xs text-warning">⚠ {codeError}</span>}
               </>
             );
           })()}
@@ -171,7 +171,7 @@ export function PurchaseForm({ onDone }: { onDone?: () => void } = {}) {
         </Field>
 
         {/* Tarjeta de totales estilo ticket */}
-        <div className="col-span-3 flex flex-col gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+        <div className="col-span-3 flex flex-col gap-2 rounded-xl border border-accent/20 bg-accent/5 p-4">
           <div className="flex justify-between text-sm">
             <span className="text-muted">Subtotal (Base × Cantidad)</span>
             <span className="font-medium text-text">{formatUsd(subtotal)}</span>
@@ -180,10 +180,10 @@ export function PurchaseForm({ onDone }: { onDone?: () => void } = {}) {
             <span className="text-muted">Total de Impuestos (Imp × Cantidad)</span>
             <span className="font-medium text-text">+{formatUsd(totalTax, 4)}</span>
           </div>
-          <div className="my-1 border-t border-emerald-500/10" />
+          <div className="my-1 border-t border-accent/10" />
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-500/70">Total Final</span>
-            <span className="font-heading text-xl font-bold text-emerald-400">{formatUsd(totalFinal)}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-accent/70">Total Final</span>
+            <span className="font-heading text-xl font-bold text-accent-2">{formatUsd(totalFinal)}</span>
           </div>
         </div>
       </div>

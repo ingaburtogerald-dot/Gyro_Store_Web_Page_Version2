@@ -19,8 +19,8 @@ const CF_LABELS: Record<string, string> = {
 
 // Colores compartidos entre los segmentos de la barra y los puntos del desglose.
 const SEG = {
-  costo: "bg-slate-400/60",
-  fijos: "bg-amber-500/70",
+  costo: "bg-muted/60",
+  fijos: "bg-warning/70",
   comision: "bg-whatsapp",
   ganancia: "bg-accent",
 } as const;
@@ -37,7 +37,7 @@ export function QuoteSummary({ result, loading, errorMsg }: { result: QuoteResul
       </div>
 
       {errorMsg ? (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs font-medium text-red-400">
+        <div className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs font-medium text-danger">
           {errorMsg}
         </div>
       ) : !result ? (
@@ -48,12 +48,12 @@ export function QuoteSummary({ result, loading, errorMsg }: { result: QuoteResul
       ) : (
         <>
           {/* Ticket: importe total (animado) + barra de proporción integrada */}
-          <div className="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+          <div className="mb-4 rounded-xl border border-accent/20 bg-accent/5 p-4">
             <span className="text-xs text-muted/70">Importe total</span>
             <CountUp
               value={result.saleTotal}
               format={formatCordobas}
-              className="nums block font-heading text-3xl font-bold text-emerald-400"
+              className="nums block font-heading text-3xl font-bold text-accent-2"
             />
             {isAdmin && result.saleTotal > 0 && (() => {
               const total = result.saleTotal;
@@ -195,7 +195,7 @@ function ItemFinancialBreakdown({ item }: { item: SaleItem }) {
                   small
                 />
               ))}
-              <Row dot={SEG.fijos} label={`Costos fijos (${cfPct}% de UB)`} value={unitCF > 0 ? `−${formatCordobas(unitCF)}` : "—"} muted small />
+              <Row dot={SEG.fijos} label={`Costos fijos agregados`} value={unitCF > 0 ? `−${formatCordobas(unitCF)}` : "—"} muted small />
               <Row label="Utilidad neta (UB − CF)" value={formatCordobas(unitUN)} sub small />
               <Row dot={SEG.comision} label={`Comisión vendedor (${comPct}%)`} value={formatCordobas(unitCom)} small />
               <Row dot={SEG.ganancia} label="Ganancia tienda" value={formatCordobas(unitGan)} strong small />

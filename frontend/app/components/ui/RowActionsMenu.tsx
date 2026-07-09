@@ -104,7 +104,7 @@ export function RowActionsMenu({ actions, className }: { actions: MaybeAction[];
                     a.disabled
                       ? "cursor-not-allowed opacity-40"
                       : a.danger
-                        ? "text-red-400 hover:bg-red-500/10"
+                        ? "text-danger hover:bg-danger/10"
                         : "text-muted hover:bg-surface-2 hover:text-text",
                   );
                   return (

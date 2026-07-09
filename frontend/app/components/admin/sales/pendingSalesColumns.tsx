@@ -25,7 +25,7 @@ export const pendingSalesColumns: ColumnDef<Sale>[] = [
       <div>
         <div className="font-semibold text-text">{row.original.sellerName}</div>
         {row.original.insufficientStockError && (
-          <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-rose-400">
+          <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-danger">
             <AlertTriangle className="h-3 w-3" />
             <span>Stock insuficiente</span>
           </div>
@@ -137,7 +137,7 @@ export const pendingSalesColumns: ColumnDef<Sale>[] = [
         enableSorting: false,
         meta: { align: "right" },
         cell: ({ row }) => (
-          <span className="nums font-semibold text-emerald-400">
+          <span className="nums font-semibold text-accent-2">
             {row.original.comisionVendedor !== undefined ? formatCordobas(row.original.comisionVendedor) : "—"}
             {row.original.comisionPercent !== undefined && (
               <span className="ml-0.5 text-[11px] font-normal text-muted">({row.original.comisionPercent}%)</span>

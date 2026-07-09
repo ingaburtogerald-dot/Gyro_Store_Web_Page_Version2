@@ -60,7 +60,7 @@ export function PendingApprovalsWidget() {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 320, damping: 18 }}
-              className="nums font-heading text-4xl font-bold text-amber-400"
+              className="nums font-heading text-4xl font-bold text-warning"
             >
               {count}
             </motion.span>
@@ -71,7 +71,7 @@ export function PendingApprovalsWidget() {
           </p>
           <button
             onClick={goToApprovals}
-            className="group mt-auto flex items-center justify-center gap-1.5 rounded-xl bg-amber-400/10 px-3 py-2.5 text-sm font-semibold text-amber-400 transition-colors hover:bg-amber-400/20"
+            className="group mt-auto flex items-center justify-center gap-1.5 rounded-xl bg-warning/10 px-3 py-2.5 text-sm font-semibold text-warning transition-colors hover:bg-warning/20"
           >
             Revisar aprobaciones
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

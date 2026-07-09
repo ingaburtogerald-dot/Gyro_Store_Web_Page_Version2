@@ -166,7 +166,7 @@ export function PricingConfigModal({ open, onClose, initialTab = "pricing" }: Pr
                   />
                   <button
                     onClick={() => removeDiscountRow(i)}
-                    className="rounded-lg p-2 text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="rounded-lg p-2 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
                     title="Eliminar regla"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -223,9 +223,9 @@ export function PricingConfigModal({ open, onClose, initialTab = "pricing" }: Pr
             </div>
 
             {/* Ticket de total */}
-            <div className="flex flex-col gap-1 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+            <div className="flex flex-col gap-1 rounded-xl border border-accent/20 bg-accent/5 p-4">
               <span className="text-xs text-muted/70">Total retenido sobre costo</span>
-              <span className="font-heading text-3xl font-bold text-emerald-400">{totalCostosFijos}%</span>
+              <span className="font-heading text-3xl font-bold text-accent-2">{totalCostosFijos}%</span>
             </div>
 
             <div className="flex justify-end gap-2 border-t border-border pt-4">

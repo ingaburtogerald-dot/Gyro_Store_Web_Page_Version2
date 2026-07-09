@@ -234,7 +234,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                           <Icon className={cn("relative z-10 h-[18px] w-[18px]", isActive && "text-accent-2")} />
                           <span className="relative z-10 flex-1 truncate">{label}</span>
                           {badge > 0 && (
-                            <span className="relative z-10 rounded-pill bg-amber-500/15 px-1.5 text-[11px] font-semibold leading-4 text-amber-400">
+                            <span className="relative z-10 rounded-pill bg-warning/15 px-1.5 text-[11px] font-semibold leading-4 text-warning">
                               {badge}
                             </span>
                           )}

@@ -57,7 +57,7 @@ export function FilterSelect({
   const Dot = () => (
     <span
       title={dotTitle}
-      className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.7)]"
+      className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning shadow-[0_0_6px_rgba(245,158,11,0.7)]"
     />
   );
 
@@ -70,7 +70,10 @@ export function FilterSelect({
           "flex items-center gap-1 text-left transition-all duration-200",
           variant === "ghost"
             ? "bg-transparent border-none p-0 text-sm font-semibold text-text hover:text-accent-2"
-            : cn("input gap-2", open && "border-accent/30"),
+            : cn(
+                "flex w-full items-center justify-between gap-2 rounded-pill border border-border bg-surface-2 px-4 py-2 text-sm text-text transition-all duration-200 hover:bg-surface-2/80 focus:outline-none focus:ring-2 focus:ring-accent/20",
+                open && "border-accent/50 ring-2 ring-accent/20"
+              ),
         )}
       >
         <span className="flex flex-1 items-center gap-2 truncate text-sm">

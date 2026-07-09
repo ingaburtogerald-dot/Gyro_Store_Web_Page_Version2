@@ -208,7 +208,7 @@ function ReminderCell({ contact, owner }: { contact: Contact; owner?: string }) 
         />
       </div>
       {contact.nextActivityAt && (
-        <button onClick={() => commit(null)} title="Quitar recordatorio" className="rounded p-1 text-muted hover:text-red-400">
+        <button onClick={() => commit(null)} title="Quitar recordatorio" className="rounded p-1 text-muted hover:text-danger">
           <X className="h-3.5 w-3.5" />
         </button>
       )}

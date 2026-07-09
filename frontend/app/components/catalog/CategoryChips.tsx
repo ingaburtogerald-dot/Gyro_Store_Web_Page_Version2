@@ -1,8 +1,10 @@
-// Chips de categorías con scroll horizontal (mobile-first).
-// Extraído de la ruta _index para reutilizarlo y mantener la vista limpia.
-// La barra de scroll se oculta; los chips usan snap para "engancharse" al deslizar.
+// Sub-navegación de categorías: barra flotante de chips con scroll horizontal.
+// Visible en todas las pantallas (en desktop reemplaza a las categorías del
+// sidebar, que quedó solo con refinamientos). La barra "flota" con borde suave
+// y sombra; la barra de scroll se oculta y los chips usan snap al deslizar.
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { Menu } from "lucide-react";
 import type { Category } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { setCategory } from "~/store/slices/uiSlice";
@@ -26,29 +28,37 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
   ];
 
   return (
-    <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      className={cn(
+        "flex w-full overflow-x-auto items-center py-1 gap-1",
+        "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+      )}
+      role="tablist"
+      aria-label="Categorías"
+    >
       {chips.map(([id, label]) => {
         const active = activeCategory === id;
         return (
           <button
             key={id ?? "all"}
             ref={active ? activeRef : null}
+            role="tab"
+            aria-selected={active}
             onClick={() => dispatch(setCategory(id))}
             className={cn(
-              "relative shrink-0 snap-start whitespace-nowrap rounded-pill px-4 py-2 text-sm transition-colors duration-300",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-              active ? "text-bg" : "text-muted hover:text-text",
+              "relative shrink-0 whitespace-nowrap px-3 py-1.5 text-sm font-medium transition-all duration-200 border border-transparent outline-none",
+              "hover:border-border hover:rounded-sm focus-visible:border-accent",
+              active ? "text-accent-2 font-bold" : "text-text hover:text-white",
             )}
           >
-            {/* Píldora invertida que se desliza entre categorías (editorial, alto contraste) */}
-            {active && (
-              <motion.span
-                layoutId="category-pill"
-                className="absolute inset-0 rounded-pill bg-text"
-                transition={{ type: "spring", stiffness: 420, damping: 34 }}
-              />
+            {id === null ? (
+              <span className="relative z-10 flex items-center gap-1.5">
+                <Menu className="h-4 w-4" />
+                {label}
+              </span>
+            ) : (
+              <span className="relative z-10">{label}</span>
             )}
-            <span className="relative z-10">{label}</span>
           </button>
         );
       })}

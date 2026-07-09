@@ -59,7 +59,7 @@ export function ContactDrawer({ contact, onClose }: { contact: Contact; onClose:
           <button onClick={() => setEditing(true)} title="Editar" className="rounded-lg p-1.5 text-muted hover:text-accent">
             <Pencil className="h-4 w-4" />
           </button>
-          <button onClick={() => setConfirmDel(true)} title="Eliminar" className="rounded-lg p-1.5 text-muted hover:bg-red-500/10 hover:text-red-400">
+          <button onClick={() => setConfirmDel(true)} title="Eliminar" className="rounded-lg p-1.5 text-muted hover:bg-danger/10 hover:text-danger">
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
@@ -90,7 +90,7 @@ export function ContactDrawer({ contact, onClose }: { contact: Contact; onClose:
         <div className="flex items-center justify-between rounded-card border border-border bg-surface-2/40 px-3 py-2">
           <span className="text-sm">
             Estado:{" "}
-            <strong className={contact.status === "closed" ? "text-emerald-300" : "text-amber-300"}>
+            <strong className={contact.status === "closed" ? "text-accent-2" : "text-warning"}>
               {contact.status === "closed" ? "Cerrado" : "Activo"}
             </strong>
           </span>

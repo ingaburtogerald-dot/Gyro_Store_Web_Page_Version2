@@ -12,10 +12,12 @@ export function formatCordobas(amount: number): string {
 }
 
 // Formatea un monto en dólares: 12.5 → "$12.50"
-export function formatUsd(amount: number, maxDecimals: number = 2): string {
-  return `$${amount.toLocaleString("en-US", { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: Math.max(2, maxDecimals) 
+// minDecimals permite forzar decimales fijos (ej. envío unitario: 4 → "$0.4100").
+export function formatUsd(amount: number, maxDecimals: number = 2, minDecimals: number = 2): string {
+  const max = Math.max(2, maxDecimals);
+  return `$${amount.toLocaleString("en-US", {
+    minimumFractionDigits: Math.min(Math.max(2, minDecimals), max),
+    maximumFractionDigits: max
   })}`;
 }
 

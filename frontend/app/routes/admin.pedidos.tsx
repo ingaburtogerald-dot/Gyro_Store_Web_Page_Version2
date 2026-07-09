@@ -38,7 +38,7 @@ function OrderRow({ order }: { order: PublicOrder }) {
           disabled={loading}
           className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
             order.contacted
-              ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
+              ? "bg-accent/15 text-accent-2 hover:bg-accent/25"
               : "bg-surface-2 text-muted hover:bg-surface-3 hover:text-text"
           }`}
         >
@@ -107,7 +107,7 @@ export default function Pedidos() {
             </p>
           </div>
           {pendingCount > 0 && (
-            <div className="flex items-center gap-2 rounded-full bg-amber-500/15 px-3 py-1.5 text-sm font-medium text-amber-400">
+            <div className="flex items-center gap-2 rounded-full bg-warning/15 px-3 py-1.5 text-sm font-medium text-warning">
               <MessageCircle className="h-4 w-4" />
               {pendingCount} sin contactar
             </div>

@@ -8,10 +8,11 @@ import type { Sale, SaleItem } from "~/store/api/salesApi";
 
 // Labels legibles para las categorías de costos fijos del backend.
 const CF_LABELS: Record<string, string> = {
+  prestamos: "Préstamos",
+  garantias: "Garantías",
   publicidad: "Publicidad",
   servicios: "Servicios",
-  utiles: "Útiles",
-  garantias: "Garantías",
+  insumos: "Insumos",
 };
 
 export function SaleFinancialsDetail({
@@ -110,19 +111,19 @@ export function SaleFinancialsDetail({
                   key={k}
                   label={`${CF_LABELS[k] || k} Total`}
                   value={totals.cfDesglose[k] > 0 ? `-${formatCordobas(totals.cfDesglose[k])}` : "—"}
-                  className="text-rose-400"
+                  className="text-danger"
                 />
               ))}
               <Metric
                 label="Costos Fijos Total"
                 value={totals.costosFijos > 0 ? `-${formatCordobas(totals.costosFijos)}` : "—"}
-                className="text-rose-400"
+                className="text-danger"
               />
               <Metric label="Utilidad Neta Total" value={formatCordobas(totals.utilidadNeta)} />
               <Metric
                 label="Comisión Vendedor Total"
                 value={formatCordobas(totals.comisionVendedor)}
-                className="font-semibold text-emerald-400"
+                className="font-semibold text-accent-2"
               />
               <Metric
                 label="Ganancia Tienda Total"
@@ -132,7 +133,7 @@ export function SaleFinancialsDetail({
               <Metric
                 label="Inversión Recuperada Total"
                 value={formatCordobas(totals.inversionRecuperada)}
-                className="text-emerald-400"
+                className="text-accent-2"
               />
             </div>
           </div>
@@ -236,13 +237,13 @@ function ItemBreakdown({
                   key={k}
                   label={CF_LABELS[k] || k}
                   value={unitCFDesglose?.[k] ? `-${formatCordobas(unitCFDesglose[k])}` : "—"}
-                  className="text-rose-400"
+                  className="text-danger"
                 />
               ))}
               <Metric
-                label={`Costos Fijos (${item.costosFijosPct ?? 0}% de UB)`}
+                label={`Costos Fijos (${item.costosFijosPct ?? 0}%)`}
                 value={unitCF > 0 ? `-${formatCordobas(unitCF)}` : "—"}
-                className="text-rose-400"
+                className="text-danger"
               />
               <Metric
                 label="Utilidad Neta (UB − CF)"
@@ -252,7 +253,7 @@ function ItemBreakdown({
               <Metric
                 label={`Comisión Vendedor (${item.comisionPercent ?? 0}% de UN)`}
                 value={formatCordobas(unitCom)}
-                className="text-emerald-400"
+                className="text-accent-2"
               />
               <Metric
                 label="Ganancia Tienda (UN − Comisión)"
@@ -277,19 +278,19 @@ function ItemBreakdown({
                     key={k}
                     label={`${CF_LABELS[k] || k} Total`}
                     value={item.costosFijosDesglose?.[k] ? `-${formatCordobas(item.costosFijosDesglose[k])}` : "—"}
-                    className="text-rose-400"
+                    className="text-danger"
                   />
                 ))}
                 <Metric
                   label="Costos Fijos Total"
                   value={totalCF > 0 ? `-${formatCordobas(totalCF)}` : "—"}
-                  className="text-rose-400"
+                  className="text-danger"
                 />
                 <Metric label="Utilidad Neta Total" value={formatCordobas(totalUN)} />
                 <Metric
                   label="Comisión Vendedor Total"
                   value={formatCordobas(totalCom)}
-                  className="font-semibold text-emerald-400"
+                  className="font-semibold text-accent-2"
                 />
                 <Metric
                   label="Ganancia Tienda Total"
@@ -299,7 +300,7 @@ function ItemBreakdown({
                 <Metric
                   label="Inversión Recuperada"
                   value={formatCordobas(totalInv)}
-                  className="text-emerald-400"
+                  className="text-accent-2"
                 />
               </div>
             </div>
@@ -311,7 +312,7 @@ function ItemBreakdown({
               <Metric
                 label="Inversión Recuperada"
                 value={formatCordobas(totalInv)}
-                className="text-emerald-400"
+                className="text-accent-2"
               />
             </div>
           )}

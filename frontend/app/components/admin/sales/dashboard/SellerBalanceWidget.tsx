@@ -44,7 +44,7 @@ export function SellerBalanceWidget() {
               <p
                 className={cn(
                   "nums font-semibold",
-                  saldo > 0 ? "text-emerald-400" : saldo < 0 ? "text-red-400" : "text-text",
+                  saldo > 0 ? "text-accent-2" : saldo < 0 ? "text-danger" : "text-text",
                 )}
               >
                 {formatCordobas(Math.abs(saldo))}

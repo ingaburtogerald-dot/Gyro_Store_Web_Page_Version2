@@ -25,7 +25,7 @@ export function MigratedAvailable() {
         cell: (c) => (
           <span className="flex items-center gap-2 font-medium text-text">
             {c.getValue()}
-            <span className="rounded-pill bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+            <span className="rounded-pill bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning">
               Migrado
             </span>
           </span>
@@ -36,7 +36,7 @@ export function MigratedAvailable() {
         header: "Cantidad disponible",
         meta: { align: "right" },
         cell: (c) => (
-          <span className="nums rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+          <span className="nums rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent-2">
             {c.getValue()} uds
           </span>
         ),
