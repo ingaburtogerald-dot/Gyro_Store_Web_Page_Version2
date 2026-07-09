@@ -1,8 +1,10 @@
-import { useMemo, useState, useEffect } from "react";
-import { Receipt, Mail, MessageSquare, Search, Calendar, Check, ChevronDown, AlertCircle, Banknote, Landmark } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "@remix-run/react";
+import { Receipt, Mail, MessageSquare, Search, Calendar, Check, ChevronDown, AlertCircle, Banknote, Landmark, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { DatePicker } from "~/components/ui/DatePicker";
+import { Modal } from "~/components/ui/Modal";
 import { cn } from "~/lib/utils";
 import {
   useGetPaymentsHistoryQuery,
@@ -10,9 +12,11 @@ import {
   useGetBalancesQuery,
   useUpdatePaymentDateMutation,
   type PaymentBatch,
+  type Sale,
 } from "~/store/api/salesApi";
 import { formatCordobas } from "~/lib/utils";
 import { SellerBalances } from "./SellerBalances";
+import { SaleEditor } from "./SaleEditor";
 
 type GroupBy = "day" | "seller";
 
@@ -35,6 +39,7 @@ function dayLabel(iso: string | null) {
 function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
   const [expanded, setExpanded] = useState(false);
   const [newDate, setNewDate] = useState(p.createdAt?.split("T")[0] || "");
+  const [editFor, setEditFor] = useState<Sale | null>(null);
   const [updatePaymentDate, { isLoading: isUpdatingDate }] = useUpdatePaymentDateMutation();
 
   const isSettlement = !!p.isSettlement || (p.saleIds.length === 0 && !!p.saldoAplicado);
@@ -74,7 +79,7 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
           <div className="flex items-center gap-2">
             <span className="truncate font-semibold text-text">{p.sellerName}</span>
             {isSettlement && (
-              <span className="rounded-pill bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">Ajuste</span>
+              <span className="rounded-pill bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">Ajuste</span>
             )}
           </div>
           <span className="text-[11px] text-muted">
@@ -126,7 +131,7 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
                           <button
                             onClick={handleSaveDate}
                             disabled={isUpdatingDate}
-                            className="flex items-center justify-center gap-1.5 rounded-md bg-emerald-500 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-600"
+                            className="flex items-center justify-center gap-1.5 rounded-md bg-accent py-1.5 text-xs font-bold text-white transition-colors hover:bg-accent-hover"
                           >
                             <Check className="h-3.5 w-3.5" /> Guardar fecha
                           </button>
@@ -154,12 +159,12 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
                   {!!p.saldoAplicado && (
                     <div className={cn(
                       "flex items-center justify-between rounded-lg border p-3 text-sm",
-                      p.saldoAplicado > 0 ? "border-emerald-500/30 bg-emerald-500/10" : "border-rose-500/30 bg-rose-500/10"
+                      p.saldoAplicado > 0 ? "border-accent/30 bg-accent/10" : "border-danger/30 bg-danger/10"
                     )}>
                       <div>
                         <span className="font-semibold text-text">Comisión bruta:</span> {formatCordobas(p.grossComision ?? 0)}
                       </div>
-                      <div className={cn("font-bold", p.saldoAplicado > 0 ? "text-emerald-400" : "text-rose-400")}>
+                      <div className={cn("font-bold", p.saldoAplicado > 0 ? "text-accent-2" : "text-danger")}>
                         Saldo {p.saldoAplicado > 0 ? "a favor" : "en contra"}: {p.saldoAplicado > 0 ? "+" : "−"}{formatCordobas(Math.abs(p.saldoAplicado))}
                       </div>
                     </div>
@@ -167,7 +172,7 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
 
                   {/* Lista de ventas incluidas */}
                   {p.saleIds.length === 0 ? (
-                    <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+                    <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
                       <AlertCircle className="h-4 w-4" /> Este es un <strong>ajuste de saldo</strong>, no incluye ventas.
                     </div>
                   ) : (
@@ -196,7 +201,7 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
                                     {sale.items?.map((i: any) => `${i.quantity}x ${i.name}`).join(", ") || "Venta Migrada"}
                                   </p>
                                   {sale.saleOrigin === "migrated" && (
-                                    <span className="mt-1 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">Migrada</span>
+                                    <span className="mt-1 inline-block rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">Migrada</span>
                                   )}
                                 </div>
                                 <div className="flex gap-4 sm:flex-col sm:items-end sm:gap-0">
@@ -208,6 +213,16 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
                                     <span className="mr-1 inline text-[10px] text-muted sm:hidden">Comisión:</span>
                                     <span className="text-sm font-bold text-whatsapp">{formatCordobas(sale.comisionVendedor ?? 0)}</span>
                                   </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditFor(sale);
+                                    }}
+                                    className="rounded-lg p-1.5 text-muted hover:bg-accent/10 hover:text-accent-2"
+                                    title="Editar venta"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </button>
                                 </div>
                               </div>
                             );
@@ -229,8 +244,8 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
                       </a>
                     </div>
                   ) : (
-                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-rose-500/30 bg-rose-500/5 p-6 text-center">
-                      <p className="mb-1 text-sm font-bold text-rose-400">Sin comprobante</p>
+                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-danger/30 bg-danger/5 p-6 text-center">
+                      <p className="mb-1 text-sm font-bold text-danger">Sin comprobante</p>
                       <p className="text-xs italic text-muted">"{p.noReceiptComment || "Sin justificación"}"</p>
                     </div>
                   )}
@@ -241,24 +256,40 @@ function PaymentAccordionRow({ p }: { p: PaymentBatch }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Modal
+        open={!!editFor}
+        onClose={() => setEditFor(null)}
+        title="Editar Venta"
+        maxWidth="max-w-7xl"
+        preventOutsideClose={true}
+      >
+        <div className="max-h-[80vh] overflow-y-auto pr-1">
+          <SaleEditor sale={editFor} onDone={() => setEditFor(null)} />
+        </div>
+      </Modal>
     </div>
   );
 }
 
-export function PaymentHistory({ selectedSeller }: { selectedSeller: string }) {
+export function PaymentHistory({ selectedSeller, selectedDate }: { selectedSeller: string; selectedDate: string }) {
   const { data: payments = [], isLoading } = useGetPaymentsHistoryQuery();
   const { data: balances = {} } = useGetBalancesQuery();
   const [groupBy, setGroupBy] = useState<GroupBy>("day");
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const search = searchParams.get("search") || "";
 
   const filteredPayments = useMemo(() => {
     const q = search.trim().toLowerCase();
     return payments.filter((p) => {
+      if (selectedDate && selectedDate !== "all") {
+        if (!p.createdAt || !p.createdAt.startsWith(selectedDate)) return false;
+      }
       if (selectedSeller !== "all" && p.sellerEmail !== selectedSeller) return false;
       if (q && !p.sellerName.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [payments, selectedSeller, search]);
+  }, [payments, selectedSeller, selectedDate, search]);
 
   const filteredBalances = useMemo(() => {
     return Object.values(balances).filter((b) => selectedSeller === "all" ? true : b.sellerEmail === selectedSeller);
@@ -307,17 +338,8 @@ export function PaymentHistory({ selectedSeller }: { selectedSeller: string }) {
         </div>
       </div>
 
-      {/* Buscador + agrupación */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
-            className="input w-full bg-surface-2/30 pl-9 hover:bg-surface-2 focus:ring-1 focus:ring-accent"
-            placeholder="Buscar por vendedor…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+      {/* Agrupación */}
+      <div className="flex justify-end">
         <select
           className="input bg-surface-2/30 font-medium hover:bg-surface-2 focus:ring-1 focus:ring-accent sm:w-56"
           value={groupBy}

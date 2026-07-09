@@ -220,6 +220,52 @@ export interface BusinessConfig {
   wholesaleDiscounts: Discount[];
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Optimistic update: quita ventas de TODAS las listas cacheadas al instante, para
+// que la fila desaparezca sin esperar el round-trip + refetch. Devuelve los patches
+// para poder revertir si la mutación falla en el servidor.
+// Usa selectInvalidatedBy para alcanzar cada variante de argumentos que esté viva
+// (pendientes/historial, por vendedor, por fecha, del admin y del vendedor).
+// ─────────────────────────────────────────────────────────────────────────────
+function optimisticRemoveSales(
+  ids: string[],
+  dispatch: any,
+  getState: any,
+): { undo: () => void }[] {
+  const idSet = new Set(ids);
+  const patches: { undo: () => void }[] = [];
+  const entries = salesApi.util.selectInvalidatedBy(getState(), [{ type: "Order" }]);
+  for (const { endpointName, originalArgs } of entries) {
+    if (endpointName === "getSalesPaginated") {
+      patches.push(
+        dispatch(
+          salesApi.util.updateQueryData("getSalesPaginated", originalArgs as any, (draft) => {
+            for (let i = draft.data.length - 1; i >= 0; i--) {
+              if (!idSet.has(draft.data[i].id)) continue;
+              if (draft.data[i].status === "pending_approval" && draft.summary) {
+                draft.summary.enRevision = Math.max(0, draft.summary.enRevision - 1);
+              }
+              draft.data.splice(i, 1);
+              if (typeof draft.total === "number") draft.total = Math.max(0, draft.total - 1);
+            }
+          }),
+        ),
+      );
+    } else if (endpointName === "getSales") {
+      patches.push(
+        dispatch(
+          salesApi.util.updateQueryData("getSales", originalArgs as any, (draft) => {
+            for (let i = draft.length - 1; i >= 0; i--) {
+              if (idSet.has(draft[i].id)) draft.splice(i, 1);
+            }
+          }),
+        ),
+      );
+    }
+  }
+  return patches;
+}
+
 export const salesApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getSellableProducts: build.query<SellableProduct[], void>({
@@ -269,7 +315,7 @@ export const salesApi = baseApi.injectEndpoints({
         url: "/sales/timeseries",
         params: arg ?? undefined,
       }),
-      providesTags: ["Order"],
+      providesTags: ["OrderAgg"],
     }),
     getPerformance: build.query<{ data: SellerPerformance[]; companyTotalSales: number }, { year?: number; month?: number; allTime?: boolean } | void>({
       query: (arg) => {
@@ -281,38 +327,38 @@ export const salesApi = baseApi.injectEndpoints({
         }
         return "/sales/performance";
       },
-      providesTags: ["Order"],
+      providesTags: ["OrderAgg"],
     }),
     getSellerSummary: build.query<SellerSummary, void>({
       query: () => "/sales/my-summary",
-      providesTags: ["Order"],
+      providesTags: ["OrderAgg"],
     }),
     getMyBalance: build.query<MyBalance, void>({
       query: () => "/sales/my-balance",
-      providesTags: ["Order"],
+      providesTags: ["OrderAgg"],
     }),
     getMyPayments: build.query<MySellerPayment[], void>({
       query: () => "/sales/my-payments",
-      providesTags: ["Order"],
+      providesTags: ["OrderAgg"],
     }),
     getWeeklySummary: build.query<WeeklyPaymentGroup[], void>({
       query: () => "/sales/weekly-summary",
-      providesTags: ["Order"],
+      providesTags: ["OrderAgg"],
     }),
     getPaymentsHistory: build.query<PaymentBatch[], void>({
       query: () => "/sales/payments",
-      providesTags: ["Order"],
+      providesTags: ["OrderAgg"],
     }),
     getBalances: build.query<Record<string, SellerBalance>, void>({
       query: () => "/sales/balances",
-      providesTags: ["Order"],
+      providesTags: ["OrderAgg"],
     }),
     settleBalance: build.mutation<
       { ok: boolean; paymentId: string; balance: number; receiptUrl: string | null; whatsappUrl?: string; notifiedVia: string },
       FormData
     >({
       query: (body) => ({ url: "/sales/settle-balance", method: "POST", body }),
-      invalidatesTags: ["Order"],
+      invalidatesTags: ["Order", "OrderAgg"],
     }),
     updatePaymentDate: build.mutation<{ ok: boolean }, { id: string; date: string }>({
       query: ({ id, date }) => ({
@@ -320,7 +366,7 @@ export const salesApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: { date },
       }),
-      invalidatesTags: ["Order"],
+      invalidatesTags: ["OrderAgg"],
     }),
     getPricingConfig: build.query<{ wholesaleDiscounts: Discount[] }, void>({
       query: () => "/config/pricing",
@@ -340,31 +386,72 @@ export const salesApi = baseApi.injectEndpoints({
     }),
     approveAndPayBulk: build.mutation<{ ok: boolean; receiptUrl: string; whatsappUrl?: string; notifiedVia: string }, FormData>({
       query: (body) => ({ url: "/sales/approve-and-pay", method: "POST", body }),
-      invalidatesTags: ["Order", "Product", "Migrated"],
+      invalidatesTags: ["Order", "OrderAgg", "Product", "Migrated"],
+      async onQueryStarted(form, { dispatch, getState, queryFulfilled }) {
+        let ids: string[] = [];
+        try {
+          ids = JSON.parse((form.get("saleIds") as string) || "[]");
+        } catch {
+          ids = [];
+        }
+        const patches = optimisticRemoveSales(ids, dispatch, getState);
+        try {
+          await queryFulfilled;
+        } catch {
+          patches.forEach((p) => p.undo());
+        }
+      },
     }),
     approveSale: build.mutation<{ ok: boolean }, string>({
       query: (id) => ({ url: `/sales/${id}/approve`, method: "POST" }),
-      invalidatesTags: ["Order", "Product", "Migrated"],
+      invalidatesTags: ["Order", "OrderAgg", "Product", "Migrated"],
+      async onQueryStarted(id, { dispatch, getState, queryFulfilled }) {
+        const patches = optimisticRemoveSales([id], dispatch, getState);
+        try {
+          await queryFulfilled;
+        } catch {
+          patches.forEach((p) => p.undo());
+        }
+      },
     }),
     updateSale: build.mutation<Sale, { id: string; body: FormData | any }>({
       query: ({ id, body }) => ({ url: `/sales/${id}`, method: "PUT", body }),
-      invalidatesTags: ["Order", "Product", "Migrated"],
+      invalidatesTags: ["Order", "OrderAgg", "Product", "Migrated"],
     }),
     deleteSale: build.mutation<{ ok: boolean }, { id: string; reason: string }>({
       query: ({ id, reason }) => ({ url: `/sales/${id}`, method: "DELETE", body: { reason } }),
-      invalidatesTags: ["Order", "Product", "Migrated"],
+      invalidatesTags: ["Order", "OrderAgg", "Product", "Migrated"],
+      async onQueryStarted({ id }, { dispatch, getState, queryFulfilled }) {
+        const patches = optimisticRemoveSales([id], dispatch, getState);
+        try {
+          await queryFulfilled;
+        } catch {
+          patches.forEach((p) => p.undo());
+        }
+      },
     }),
     rejectSale: build.mutation<{ ok: boolean }, { id: string; reason: string }>({
       query: ({ id, reason }) => ({ url: `/sales/${id}/reject`, method: "POST", body: { reason } }),
+      // Rechazar solo aplica a ventas PENDIENTES (no cuentan en los agregados de
+      // aprobadas/pagadas), así que NO invalidamos "OrderAgg": evita el refetch
+      // innecesario de timeseries/performance/balances.
       invalidatesTags: ["Order", "Product", "Migrated"],
+      async onQueryStarted({ id }, { dispatch, getState, queryFulfilled }) {
+        const patches = optimisticRemoveSales([id], dispatch, getState);
+        try {
+          await queryFulfilled;
+        } catch {
+          patches.forEach((p) => p.undo());
+        }
+      },
     }),
     paySale: build.mutation<{ ok: boolean }, { id: string; body: FormData }>({
       query: ({ id, body }) => ({ url: `/sales/${id}/pay`, method: "POST", body }),
-      invalidatesTags: ["Order"],
+      invalidatesTags: ["Order", "OrderAgg"],
     }),
     payWeek: build.mutation<{ ok: boolean }, FormData>({
       query: (body) => ({ url: "/sales/pay-week", method: "POST", body }),
-      invalidatesTags: ["Order"],
+      invalidatesTags: ["Order", "OrderAgg"],
     }),
     updatePricingConfig: build.mutation<{ ok: boolean }, { wholesaleDiscounts: Discount[] }>({
       query: (body) => ({ url: "/config/pricing", method: "PUT", body }),
@@ -372,7 +459,7 @@ export const salesApi = baseApi.injectEndpoints({
     }),
     updateCostosFijos: build.mutation<{ ok: boolean }, CostosFijos>({
       query: (body) => ({ url: "/config/costos-fijos", method: "PUT", body }),
-      invalidatesTags: ["Order"],
+      invalidatesTags: ["Order", "OrderAgg"],
     }),
     getFullConfig: build.query<BusinessConfig, void>({
       query: () => "/config/full",

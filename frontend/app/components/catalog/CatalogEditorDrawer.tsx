@@ -57,7 +57,7 @@ export function CatalogEditorDrawer({
   // Paso actual del wizard (1: Info · 2: Plantilla · 3: Mapeo · 4: Media).
   const [step, setStep] = useState(1);
 
-  const { data: templates = [] } = useGetTemplatesQuery({ category }, { skip: !open || !category });
+  const { data: templates = [] } = useGetTemplatesQuery(undefined, { skip: !open });
   const { data: template } = useGetTemplateQuery(templateId, { skip: !templateId });
 
   // Colores encendidos del eje de color de la plantilla.
@@ -128,9 +128,15 @@ export function CatalogEditorDrawer({
 
   function changeCategory(value: string) {
     setCategory(value);
-    setTemplateId(""); // las plantillas dependen de la categoría
-    setAvailability({});
-    setVariantMappings({});
+  }
+
+  function changeTemplate(value: string) {
+    setTemplateId(value);
+    const t = templates.find((x) => x.id === value);
+    if (t) {
+      if (t.description) setDescription(t.description);
+      if (t.category) setCategory(t.category);
+    }
   }
 
   function toggleOption(axisKey: string, opt: string) {
@@ -165,10 +171,10 @@ export function CatalogEditorDrawer({
   function validateStep(s: number): boolean {
     if (s === 1) {
       if (!name.trim()) { toast.error("El nombre es obligatorio."); return false; }
+      if (!templateId) { toast.error("Selecciona una plantilla."); return false; }
       if (!category) { toast.error("Selecciona una categoría."); return false; }
     }
     if (s === 2) {
-      if (!templateId) { toast.error("Selecciona una plantilla."); return false; }
       if ((Number(basePrice) || 0) <= 0) { toast.error("Ingresa un precio base válido."); return false; }
     }
     return true; // paso 3 (mapeo) es opcional: lo no mapeado se muestra "Agotado"
@@ -287,6 +293,18 @@ export function CatalogEditorDrawer({
                 {step === 1 && (
                   <div className="mx-auto max-w-xl space-y-4">
                     <Field label="Nombre"><input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus /></Field>
+                    <Field label="Plantilla">
+                      {templates.length === 0 ? (
+                        <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted">
+                          Cargando plantillas...
+                        </p>
+                      ) : (
+                        <select className="input" value={templateId} onChange={(e) => changeTemplate(e.target.value)}>
+                          <option value="">Selecciona una plantilla…</option>
+                          {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                      )}
+                    </Field>
                     <Field label="Descripción">
                       <textarea className="input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Escribe aquí la descripción detallada del producto…" />
                     </Field>
@@ -299,28 +317,9 @@ export function CatalogEditorDrawer({
                   </div>
                 )}
 
-                {/* ── Paso 2: Plantilla, precio y disponibilidad ── */}
+                {/* ── Paso 2: Precio y disponibilidad ── */}
                 {step === 2 && (
                   <div className="mx-auto max-w-xl space-y-4">
-                    <Field label="Plantilla">
-                      {templates.length === 0 ? (
-                        <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted">
-                          No hay plantillas para la categoría «{config?.categories.find((c) => c.id === category)?.name || category}» todavía.
-                        </p>
-                      ) : (
-                        <select className="input" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
-                          <option value="">Selecciona una plantilla…</option>
-                          {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                      )}
-                    </Field>
-
-                    {templates.length > 0 && !templateId && (
-                      <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted">
-                        Elige una plantilla para definir las características del producto.
-                      </p>
-                    )}
-
                     {templateId && template && (
                       <>
                         <Field label="Precio base (C$)">
@@ -463,7 +462,7 @@ export function CatalogEditorDrawer({
 
 // Indicador visual de los 4 pasos del wizard, con línea de progreso y check en
 // los completados. Se puede tocar un paso anterior para volver (no saltar adelante).
-const WIZARD_STEPS = ["Info básica", "Plantilla", "Mapeo", "Media"];
+const WIZARD_STEPS = ["Info básica", "Opciones", "Mapeo", "Media"];
 function StepIndicator({ step, onStepClick }: { step: number; onStepClick: (n: number) => void }) {
   return (
     <div className="flex items-center">

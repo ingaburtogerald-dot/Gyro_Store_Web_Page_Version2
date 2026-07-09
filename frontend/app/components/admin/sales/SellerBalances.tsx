@@ -16,10 +16,10 @@ export function SellerBalances({ balances }: { balances: SellerBalance[] }) {
   if (!balances.length) return null;
 
   return (
-    <div className="rounded-card border border-amber-500/30 bg-amber-500/5 p-4">
+    <div className="rounded-card border border-warning/30 bg-warning/5 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Wallet className="h-4 w-4 text-amber-400" />
-        <h3 className="text-sm font-bold text-amber-300">Saldos pendientes por ajustes de ventas</h3>
+        <Wallet className="h-4 w-4 text-warning" />
+        <h3 className="text-sm font-bold text-warning">Saldos pendientes por ajustes de ventas</h3>
       </div>
       <p className="mb-3 text-xs text-muted">
         Estas ventas pagadas fueron editadas después del pago. La diferencia se aplicará automáticamente en el
@@ -32,7 +32,7 @@ export function SellerBalances({ balances }: { balances: SellerBalance[] }) {
             <div key={b.sellerEmail} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-text">{b.sellerName}</p>
-                <p className={cn("flex items-center gap-1 text-sm font-bold", favor ? "text-emerald-400" : "text-rose-400")}>
+                <p className={cn("flex items-center gap-1 text-sm font-bold", favor ? "text-accent-2" : "text-danger")}>
                   {favor ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
                   {favor ? "A favor" : "En contra"}: {formatCordobas(Math.abs(b.balance))}
                 </p>
@@ -85,12 +85,12 @@ function SettleBalanceModal({ balance, onClose }: { balance: SellerBalance; onCl
   return (
     <Modal open onClose={onClose} title="Saldar saldo pendiente">
       <form onSubmit={submit} className="space-y-4">
-        <div className={cn("rounded-xl border p-4 text-sm", favor ? "border-emerald-500/30 bg-emerald-500/10" : "border-rose-500/30 bg-rose-500/10")}>
+        <div className={cn("rounded-xl border p-4 text-sm", favor ? "border-accent/30 bg-accent/10" : "border-danger/30 bg-danger/10")}>
           <p className="text-muted">Vendedor: <strong className="text-text">{balance.sellerName}</strong></p>
           <p className="mt-1 font-semibold">
             {favor
-              ? <>La tienda le debe <span className="text-emerald-400">{formatCordobas(balance.balance)}</span>. Al saldar, se registra el pago de ese monto.</>
-              : <>El vendedor debe <span className="text-rose-400">{formatCordobas(Math.abs(balance.balance))}</span>. Al saldar, se registra que devolvió ese monto.</>}
+              ? <>La tienda le debe <span className="text-accent-2">{formatCordobas(balance.balance)}</span>. Al saldar, se registra el pago de ese monto.</>
+              : <>El vendedor debe <span className="text-danger">{formatCordobas(Math.abs(balance.balance))}</span>. Al saldar, se registra que devolvió ese monto.</>}
           </p>
         </div>
 
@@ -119,7 +119,7 @@ function SettleBalanceModal({ balance, onClose }: { balance: SellerBalance; onCl
 
         {!file && (
           <div className="animate-fade-in">
-            <label className="mb-1.5 block text-xs font-semibold text-rose-400">Motivo por no subir comprobante (obligatorio)</label>
+            <label className="mb-1.5 block text-xs font-semibold text-danger">Motivo por no subir comprobante (obligatorio)</label>
             <textarea
               className="input w-full"
               rows={2}
@@ -133,7 +133,7 @@ function SettleBalanceModal({ balance, onClose }: { balance: SellerBalance; onCl
 
         <div className="flex justify-end gap-2 border-t border-border pt-4">
           <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={isLoading} className="bg-emerald-500/90 hover:bg-emerald-500">Saldar</Button>
+          <Button type="submit" loading={isLoading} className="bg-accent/90 hover:bg-accent">Saldar</Button>
         </div>
       </form>
     </Modal>

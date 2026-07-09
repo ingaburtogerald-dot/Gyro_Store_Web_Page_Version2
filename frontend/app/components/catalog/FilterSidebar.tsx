@@ -1,10 +1,9 @@
-// Sidebar de filtros del storefront (solo escritorio ≥ lg).
-// En móvil el flujo sigue siendo FilterFab + FilterSheet; ambos editan el MISMO
-// estado (uiSlice), así que los filtros sobreviven al cambiar de viewport.
-// Incluye categorías con conteo real (los chips horizontales quedan para móvil).
-import { useMemo } from "react";
+// Sidebar de REFINAMIENTOS del storefront (solo escritorio ≥ lg): orden, precio
+// y toggles. Las categorías viven en la barra flotante de chips (CategoryChips),
+// visible en todas las pantallas. En móvil el flujo sigue siendo FilterFab +
+// FilterSheet; todos editan el MISMO estado (uiSlice), así que los filtros
+// sobreviven al cambiar de viewport.
 import { ArrowDownUp, Tag, PackageCheck, RotateCcw } from "lucide-react";
-import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import {
   type CatalogSort,
@@ -25,13 +24,7 @@ const SORTS: Array<{ value: CatalogSort; label: string }> = [
   { value: "price-desc", label: "Precio: mayor a menor" },
 ];
 
-export function FilterSidebar({
-  categories,
-  products,
-}: {
-  categories: Category[];
-  products: CatalogProduct[];
-}) {
+export function FilterSidebar() {
   const dispatch = useAppDispatch();
   const activeCategory = useAppSelector((s) => s.ui.activeCategory);
   const sort = useAppSelector((s) => s.ui.sort);
@@ -41,47 +34,14 @@ export function FilterSidebar({
   const onlyInStock = useAppSelector((s) => s.ui.onlyInStock);
   const activeCount = useAppSelector(selectActiveFilterCount);
 
-  // Conteo por categoría sobre el catálogo completo (no el filtrado): el número
-  // le dice al cliente cuánto hay ANTES de entrar, no después.
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const p of products) map.set(p.category, (map.get(p.category) ?? 0) + 1);
-    return map;
-  }, [products]);
-
   const toNum = (v: string) => (v.trim() === "" ? null : Math.max(0, Number(v) || 0));
   const hasChanges = activeCount > 0 || activeCategory !== null;
 
   return (
     <aside
-      aria-label="Filtros del catálogo"
+      aria-label="Refinar catálogo"
       className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] w-64 shrink-0 flex-col gap-4 self-start overflow-y-auto pb-6 pr-1 lg:flex"
     >
-      {/* Categorías */}
-      <section className="rounded-2xl border border-border bg-white/[0.03] p-4 backdrop-blur-md">
-        <h3 className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-muted">
-          Categorías
-        </h3>
-        <ul className="space-y-0.5">
-          <CategoryRow
-            label="Todas"
-            count={products.length}
-            active={activeCategory === null}
-            onClick={() => dispatch(setCategory(null))}
-          />
-          {categories.map((c) => (
-            <CategoryRow
-              key={c.id}
-              icon={c.icon}
-              label={c.name}
-              count={counts.get(c.id) ?? 0}
-              active={activeCategory === c.id}
-              onClick={() => dispatch(setCategory(c.id))}
-            />
-          ))}
-        </ul>
-      </section>
-
       {/* Orden + precio + toggles */}
       <section className="space-y-5 rounded-2xl border border-border bg-white/[0.03] p-4 backdrop-blur-md">
         <div>
@@ -172,42 +132,6 @@ export function FilterSidebar({
         </button>
       )}
     </aside>
-  );
-}
-
-function CategoryRow({
-  icon,
-  label,
-  count,
-  active,
-  onClick,
-}: {
-  icon?: string;
-  label: string;
-  count: number;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={onClick}
-        aria-pressed={active}
-        className={cn(
-          "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
-          active
-            ? "bg-accent/12 font-semibold text-accent-2"
-            : "font-light text-muted hover:bg-surface-2 hover:text-text",
-        )}
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          {icon && <span aria-hidden>{icon}</span>}
-          <span className="truncate">{label}</span>
-        </span>
-        <span className="shrink-0 text-xs tabular-nums opacity-70">{count}</span>
-      </button>
-    </li>
   );
 }
 

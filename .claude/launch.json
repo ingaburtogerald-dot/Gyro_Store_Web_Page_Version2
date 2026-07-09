@@ -15,6 +15,14 @@
       "cwd": "frontend",
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "storefront-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "frontend",
+      "port": 5190,
+      "autoPort": true
     }
   ]
 }

@@ -15,10 +15,10 @@ function TypeBadge({ record }: { record: LossRecord }) {
   const isExpense = record.kind === "expense";
   const label = isExpense ? "Gasto" : LOSS_CATEGORY_LABEL[record.category as LossCategory] ?? "Pérdida";
   const color = isExpense
-    ? "bg-amber-500/15 text-amber-400"
+    ? "bg-warning/15 text-warning"
     : record.category === "regalias"
-      ? "bg-violet-500/15 text-violet-400"
-      : "bg-rose-500/15 text-rose-400";
+      ? "bg-badge/15 text-badge"
+      : "bg-danger/15 text-danger";
   return (
     <span className={cn("inline-block rounded-pill px-2 py-0.5 text-[11px] font-semibold", color)}>
       {label}

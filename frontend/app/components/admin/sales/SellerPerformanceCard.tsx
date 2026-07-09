@@ -39,13 +39,13 @@ export function SellerPerformanceCard({
               {isSellerView ? "Tú" : initials(performance.sellerName)}
             </span>
             {!isSellerView && rank === 1 && (
-              <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-500 text-xs shadow-md">🥇</span>
+              <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-warning text-xs shadow-md">🥇</span>
             )}
             {!isSellerView && rank === 2 && (
-              <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-300 text-xs shadow-md">🥈</span>
+              <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs shadow-md">🥈</span>
             )}
             {!isSellerView && rank === 3 && (
-              <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-600 text-xs shadow-md">🥉</span>
+              <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-warning text-xs shadow-md">🥉</span>
             )}
           </div>
           <div>

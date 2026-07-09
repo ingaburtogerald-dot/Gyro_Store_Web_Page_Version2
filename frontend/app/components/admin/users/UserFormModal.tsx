@@ -110,7 +110,7 @@ export function UserFormModal({
                 className="p-2 rounded-lg bg-surface-2 border border-border hover:bg-surface-3 transition-colors text-muted hover:text-text"
                 title="Copiar contraseña"
               >
-                {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-4 w-4 text-accent-2" /> : <Copy className="h-4 w-4" />}
               </button>
             </div>
           </div>

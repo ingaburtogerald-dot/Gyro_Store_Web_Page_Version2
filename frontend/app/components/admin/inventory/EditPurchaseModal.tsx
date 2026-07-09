@@ -117,7 +117,7 @@ export function EditPurchaseModal({ purchase, onClose }: { purchase: Purchase | 
           </Field>
 
           {/* Tarjeta de totales estilo ticket */}
-          <div className="col-span-3 flex flex-col gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+          <div className="col-span-3 flex flex-col gap-2 rounded-xl border border-accent/20 bg-accent/5 p-4">
             <div className="flex justify-between text-sm">
               <span className="text-muted">Subtotal (Base × Cantidad)</span>
               <span className="font-medium text-text">{formatUsd(subtotal)}</span>
@@ -126,10 +126,10 @@ export function EditPurchaseModal({ purchase, onClose }: { purchase: Purchase | 
               <span className="text-muted">Total de Impuestos (Imp × Cantidad)</span>
               <span className="font-medium text-text">+{formatUsd(totalTax, 4)}</span>
             </div>
-            <div className="my-1 border-t border-emerald-500/10" />
+            <div className="my-1 border-t border-accent/10" />
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-500/70">Total Final</span>
-              <span className="font-heading text-xl font-bold text-emerald-400">{formatUsd(totalFinal)}</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-accent/70">Total Final</span>
+              <span className="font-heading text-xl font-bold text-accent-2">{formatUsd(totalFinal)}</span>
             </div>
           </div>
         </div>

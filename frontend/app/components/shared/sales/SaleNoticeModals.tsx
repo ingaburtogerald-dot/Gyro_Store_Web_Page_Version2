@@ -10,17 +10,17 @@ export function MixedSellerModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal open onClose={onClose} title="Atención" maxWidth="max-w-md">
       <div className="space-y-6 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/10 text-rose-500">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-danger/10 text-danger">
           <AlertTriangle className="h-8 w-8" />
         </div>
         <div>
           <p className="text-lg font-bold text-text">Estás mezclando ventas</p>
           <p className="mt-2 text-sm text-muted">
             Has seleccionado ventas de dos o más vendedores distintos. Para aprobar y registrar el pago,{" "}
-            <strong className="text-rose-400">selecciona ventas de un solo vendedor a la vez.</strong>
+            <strong className="text-danger">selecciona ventas de un solo vendedor a la vez.</strong>
           </p>
         </div>
-        <Button onClick={onClose} className="w-full bg-rose-500 text-white hover:bg-rose-600">Entendido</Button>
+        <Button onClick={onClose} className="w-full bg-danger text-white hover:bg-danger">Entendido</Button>
       </div>
     </Modal>
   );
@@ -31,7 +31,7 @@ export function PaySuccessModal({ data, onClose }: { data: ApprovePaySuccess; on
   return (
     <Modal open onClose={onClose} title="Pago Registrado Exitosamente" maxWidth="max-w-2xl">
       <div className="space-y-6 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/20 text-accent">
           <Check className="h-8 w-8" />
         </div>
 
@@ -78,8 +78,8 @@ export function PaySuccessModal({ data, onClose }: { data: ApprovePaySuccess; on
               </div>
             </>
           ) : (
-            <div className="rounded-xl border border-dashed border-rose-500/30 bg-rose-500/5 p-4 text-center">
-              <p className="text-sm font-medium text-rose-400">Pago registrado sin comprobante</p>
+            <div className="rounded-xl border border-dashed border-danger/30 bg-danger/5 p-4 text-center">
+              <p className="text-sm font-medium text-danger">Pago registrado sin comprobante</p>
             </div>
           )}
         </div>

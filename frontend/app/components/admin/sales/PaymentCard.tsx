@@ -37,7 +37,7 @@ export function PaymentCard({ payment: p }: { payment: MySellerPayment }) {
           <div className="flex items-center gap-2">
             <span className="font-semibold text-text">Mi Pago</span>
             {isSettlement && (
-              <span className="rounded-pill bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">Ajuste</span>
+              <span className="rounded-pill bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">Ajuste</span>
             )}
           </div>
           <span className="text-[11px] text-muted">
@@ -107,12 +107,12 @@ export function PaymentCard({ payment: p }: { payment: MySellerPayment }) {
                   {!!p.saldoAplicado && (
                     <div className={cn(
                       "flex items-center justify-between rounded-lg border p-3 text-sm",
-                      p.saldoAplicado > 0 ? "border-emerald-500/30 bg-emerald-500/10" : "border-rose-500/30 bg-rose-500/10"
+                      p.saldoAplicado > 0 ? "border-accent/30 bg-accent/10" : "border-danger/30 bg-danger/10"
                     )}>
                       <div>
                         <span className="font-semibold text-text">Nota de ajuste de saldo incluido en este pago.</span>
                       </div>
-                      <div className={cn("font-bold", p.saldoAplicado > 0 ? "text-emerald-400" : "text-rose-400")}>
+                      <div className={cn("font-bold", p.saldoAplicado > 0 ? "text-accent-2" : "text-danger")}>
                         Saldo {p.saldoAplicado > 0 ? "a favor" : "en contra"}: {p.saldoAplicado > 0 ? "+" : "−"}{formatCordobas(Math.abs(p.saldoAplicado))}
                       </div>
                     </div>
@@ -120,7 +120,7 @@ export function PaymentCard({ payment: p }: { payment: MySellerPayment }) {
 
                   {/* Lista de ventas incluidas */}
                   {p.ventasCount === 0 ? (
-                    <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+                    <div className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
                       <AlertCircle className="h-4 w-4" /> Este es un <strong>ajuste de saldo</strong>, no incluye ventas.
                     </div>
                   ) : (
@@ -149,7 +149,7 @@ export function PaymentCard({ payment: p }: { payment: MySellerPayment }) {
                                     {sale.items?.map((i: any) => `${i.quantity}x ${i.name}`).join(", ") || "Venta Migrada"}
                                   </p>
                                   {sale.saleOrigin === "migrated" && (
-                                    <span className="mt-1 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">Migrada</span>
+                                    <span className="mt-1 inline-block rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">Migrada</span>
                                   )}
                                 </div>
                                 <div className="flex gap-4 sm:flex-col sm:items-end sm:gap-0">
@@ -182,8 +182,8 @@ export function PaymentCard({ payment: p }: { payment: MySellerPayment }) {
                       </a>
                     </div>
                   ) : (
-                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-rose-500/30 bg-rose-500/5 p-6 text-center">
-                      <p className="mb-1 text-sm font-bold text-rose-400">Sin comprobante</p>
+                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-danger/30 bg-danger/5 p-6 text-center">
+                      <p className="mb-1 text-sm font-bold text-danger">Sin comprobante</p>
                       <p className="text-xs italic text-muted">"{p.noReceiptComment || "Sin justificación"}"</p>
                     </div>
                   )}

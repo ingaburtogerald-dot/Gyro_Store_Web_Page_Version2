@@ -143,7 +143,7 @@ export function FollowupsPanel() {
                   <Check className="h-4 w-4" />
                 </button>
               ) : (
-                <button onClick={() => markStatus(f, "pending")} title="Reabrir" className="rounded-lg p-1.5 text-muted hover:text-amber-300 hover:bg-amber-500/10">
+                <button onClick={() => markStatus(f, "pending")} title="Reabrir" className="rounded-lg p-1.5 text-muted hover:text-warning hover:bg-warning/10">
                   <RotateCcw className="h-4 w-4" />
                 </button>
               )}
@@ -161,7 +161,7 @@ export function FollowupsPanel() {
               <button onClick={() => setEditFor(f)} title="Editar" className="rounded-lg p-1.5 text-muted hover:text-accent">
                 <Pencil className="h-4 w-4" />
               </button>
-              <button onClick={() => setDeleteFor(f)} title="Eliminar" className="rounded-lg p-1.5 text-muted hover:text-red-400 hover:bg-red-500/10">
+              <button onClick={() => setDeleteFor(f)} title="Eliminar" className="rounded-lg p-1.5 text-muted hover:text-danger hover:bg-danger/10">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -229,7 +229,7 @@ export function FollowupsPanel() {
           </p>
           <div className="mt-5 flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setDeleteFor(null)}>Cancelar</Button>
-            <Button size="sm" onClick={handleDelete} loading={deleting} className="bg-red-500/90 hover:bg-red-500">Eliminar</Button>
+            <Button size="sm" onClick={handleDelete} loading={deleting} className="bg-danger/90 hover:bg-danger">Eliminar</Button>
           </div>
         </Modal>
       )}

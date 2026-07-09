@@ -71,7 +71,7 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
   }, [purchases]);
 
   const filteredPurchases = useMemo(() => {
-    return purchases.filter((p) => {
+    const res = purchases.filter((p) => {
       if (filterDate !== "all" && p.purchaseDate !== filterDate) return false;
       if (filterLot !== "all" && p.lot !== filterLot) return false;
       if (filterCode !== "all" && p.code !== filterCode) return false;
@@ -79,6 +79,10 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
       if (filterStatus !== "all" && p.status !== filterStatus) return false;
       return true;
     });
+    
+    return res.sort((a, b) => 
+      String(a.code || "").localeCompare(String(b.code || ""), undefined, { numeric: true })
+    );
   }, [purchases, filterDate, filterLot, filterCode, filterProduct, filterStatus]);
 
   async function handleDelete() {
@@ -161,7 +165,7 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
           if (p.status === "received") {
             return (
               <div className="flex items-center justify-end gap-1.5">
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-xs font-semibold text-emerald-400">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-accent/15 px-2.5 py-1.5 text-xs font-semibold text-accent-2">
                   <Warehouse className="h-3.5 w-3.5" />
                   Ingresado a bodega
                 </span>
@@ -227,7 +231,7 @@ export function PurchasesTable({ period = "all", onOpenForm }: { period?: string
           <Button variant="ghost" onClick={() => setDeleteFor(null)}>
             Cancelar
           </Button>
-          <Button onClick={handleDelete} loading={deleting} className="bg-red-500/90">
+          <Button onClick={handleDelete} loading={deleting} className="bg-danger/90">
             Eliminar
           </Button>
         </div>
@@ -240,7 +244,7 @@ function SummaryPill({ label, value, accent }: { label: string; value: string; a
   return (
     <div className="flex flex-col items-center px-3 py-0.5 min-w-[72px]">
       <span className="text-[10px] uppercase tracking-wide text-muted">{label}</span>
-      <span className={`text-sm font-bold ${accent ? "text-emerald-400" : "text-text"}`}>{value}</span>
+      <span className={`text-sm font-bold ${accent ? "text-accent-2" : "text-text"}`}>{value}</span>
     </div>
   );
 }

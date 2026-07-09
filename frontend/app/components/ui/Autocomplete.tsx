@@ -38,7 +38,7 @@ export function Autocomplete({
   return (
     <div className="relative" ref={wrapperRef}>
       <input
-        className={cn("input", invalid && "border-red-500 focus:border-red-500", className)}
+        className={cn("input", invalid && "border-danger focus:border-danger", className)}
         value={value || ""}
         onChange={(e) => {
           onChange(e.target.value);

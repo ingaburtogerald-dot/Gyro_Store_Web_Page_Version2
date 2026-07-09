@@ -103,7 +103,7 @@ export function ActivityTimeline({ contactId }: { contactId: string }) {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-text">{m.label}</span>
                   {a.dueAt && !a.done && (
-                    <span className="rounded-pill bg-amber-500/15 px-1.5 text-[10px] font-medium text-amber-300">
+                    <span className="rounded-pill bg-warning/15 px-1.5 text-[10px] font-medium text-warning">
                       programado {fmtDate(a.dueAt)}
                     </span>
                   )}

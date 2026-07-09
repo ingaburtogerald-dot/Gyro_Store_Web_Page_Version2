@@ -42,6 +42,18 @@
   --color-badge: #8b5cf6;
   --color-badge-2: #c4b5fd;
 
+  /* Paleta CATEGÓRICA — tonos distinguibles para KPIs y gráficos (no son estados).
+     Los estados semánticos (danger/warning/info/success) van arriba; estos cubren
+     los hues extra que necesitan las grillas de KPIs sin recurrir a colores crudos
+     de Tailwind. Genera text-tone-indigo, bg-tone-rose/15, border-tone-purple/30… */
+  --color-tone-indigo: #818cf8;
+  --color-tone-sky: #38bdf8;
+  --color-tone-amber: #fbbf24;
+  --color-tone-emerald: var(--color-accent-2);
+  --color-tone-rose: #fb7185;
+  --color-tone-purple: #c084fc;
+  --color-tone-red: #f87171;
+
   /* Tipografía */
   --font-sans: "Inter", system-ui, sans-serif;
   --font-heading: "Sora", system-ui, sans-serif;

@@ -90,9 +90,9 @@ export function InstallmentSaleModal({
     <Modal open={open} onClose={onClose} title="Vender en cuotas">
       <div className="space-y-4">
         {/* Ticket de monto total */}
-        <div className="flex flex-col gap-1 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+        <div className="flex flex-col gap-1 rounded-xl border border-accent/20 bg-accent/5 p-4">
           <span className="text-xs text-muted/70">Monto total de la venta</span>
-          <span className="font-heading text-3xl font-bold text-emerald-400">{formatCordobas(totalAmount)}</span>
+          <span className="font-heading text-3xl font-bold text-accent-2">{formatCordobas(totalAmount)}</span>
           <div className="mt-2 flex items-center justify-between text-xs text-muted">
             <span>{items.length} producto{items.length !== 1 ? "s" : ""}</span>
             {seller?.name && <span>Vendedor: <strong className="text-text">{seller.name}</strong></span>}

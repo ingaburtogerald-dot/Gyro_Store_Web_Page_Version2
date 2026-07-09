@@ -102,7 +102,7 @@ export function DatePicker({ value, onChange, placeholder = "Selecciona una fech
         ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
         disabled={disabled}
-        className={cn("input flex items-center justify-between text-left", invalid && "!border-red-400", disabled && "opacity-50 cursor-not-allowed")}
+        className={cn("input flex items-center justify-between text-left", invalid && "!border-danger", disabled && "opacity-50 cursor-not-allowed")}
       >
         <span className={cn(!selected && "text-muted")}>{selected ? formatDisplay(value) : placeholder}</span>
         <CalendarIcon className="ml-2 h-4 w-4 shrink-0 text-muted" />

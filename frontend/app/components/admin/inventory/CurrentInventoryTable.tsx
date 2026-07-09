@@ -54,53 +54,50 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
         accessorKey: "quantitySold",
         header: "Vendido",
         meta: { align: "right" },
-        cell: (c) => <span className={c.getValue() > 0 ? "text-amber-400 font-medium" : "text-muted"}>{c.getValue()}</span>
+        cell: (c) => <span className={c.getValue() > 0 ? "text-warning font-medium" : "text-muted"}>{c.getValue()}</span>
       },
-      {
-        accessorKey: "quantityReserved",
-        header: "Reservado",
-        meta: { align: "right" },
-        cell: (c) => (
-          <span className={c.getValue() > 0 ? "text-yellow-400 font-medium" : "text-muted"}>
-            {c.getValue() ?? 0}
-          </span>
-        ),
-      },
+
       {
         accessorKey: "available",
         header: "Stock",
         meta: { align: "right" },
-        cell: (c) => <span className={c.getValue() === 0 ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>{c.getValue()}</span>
+        cell: (c) => <span className={c.getValue() === 0 ? "text-danger font-bold" : "text-accent-2 font-bold"}>{c.getValue()}</span>
       },
       // USD a 2 decimales visibles; la precisión completa (4) queda en el tooltip.
       { accessorKey: "priceUnitUsd", header: "P. Unit. (USD)", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
-      { accessorKey: "shippingUnitUsd", header: "Envío U. (USD)", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
+      // Envío unitario: 4 decimales visibles (precisión clave para el control de inventario).
+      { accessorKey: "shippingUnitUsd", header: "Envío U. (USD)", meta: { align: "right" }, cell: (c) => formatUsd(c.getValue(), 4, 4) },
       { accessorKey: "priceUnitFinalUsd", header: "P. Final (USD)", meta: { align: "right" }, cell: (c) => <span title={formatUsd(c.getValue(), 4)}>{formatUsd(c.getValue())}</span> },
       {
         accessorKey: "costRealCordobas",
-        header: "Costo Real (C$)",
+        header: "Coste",
         meta: { align: "right" },
         cell: (c) => <span className="text-accent-2">{formatCordobas(c.getValue())}</span>,
       },
       {
+        accessorKey: "costoFijoCordobas",
+        header: "Coste c/ Fijos",
+        meta: { align: "right" },
+        cell: (c) => <span className="text-warning font-medium">{formatCordobas(c.getValue() || 0)}</span>,
+      },
+      {
         id: "precioSugerido",
-        header: "Precio Sugerido",
+        header: "Precio sugerido",
         meta: { align: "right" },
         cell: ({ row }) => {
           const ps = row.original.suggestedPrice;
           if (!ps) return <span className="text-muted text-xs">—</span>;
-          return <span className="text-emerald-400 font-semibold">{formatCordobas(ps)}</span>;
+          return <span className="text-accent-2 font-semibold">{formatCordobas(ps)}</span>;
         },
       },
       {
         id: "gananciaEsperada",
-        header: "Ganancia Esperada",
+        header: "Ganancia unit.",
         meta: { align: "right" },
         cell: ({ row }) => {
-          const costReal = row.original.costRealCordobas || 0;
-          const ps = row.original.suggestedPrice;
-          if (!ps || !costReal) return <span className="text-muted text-xs">—</span>;
-          return <span className="text-accent font-semibold">{formatCordobas(ps - costReal)}</span>;
+          const ganancia = row.original.gananciaUnitCordobas;
+          if (ganancia == null) return <span className="text-muted text-xs">—</span>;
+          return <span className="text-accent font-semibold">{formatCordobas(ganancia)}</span>;
         },
       },
       {
@@ -114,7 +111,7 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
             <div className="flex items-center justify-end gap-1.5">
               <button
                 onClick={() => setRevertFor(rowData)}
-                className="inline-flex items-center gap-1 rounded-lg bg-surface-2 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+                className="inline-flex items-center gap-1 rounded-lg bg-surface-2 px-2.5 py-1 text-xs font-medium text-danger hover:bg-danger/10 transition-colors"
               >
                 Descartar llegada
               </button>
@@ -150,16 +147,16 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
             <strong className="text-text font-semibold">{revertFor?.productName}</strong> (Lote:{" "}
             <span className="text-accent-2 font-mono font-bold">{revertFor?.lot}</span>)?
           </p>
-          <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3.5 text-xs text-red-400 leading-normal">
-            <strong className="block mb-1 text-red-300 font-semibold">⚠️ Advertencia de Inventario:</strong>
-            Se restarán <strong className="text-red-300 font-bold">{revertFor?.available} unidades</strong> del stock actual en bodega. El lote completo volverá al estado original de <strong className="text-red-300 font-semibold">"En tránsito"</strong> en el Registro de Compras.
+          <div className="rounded-lg border border-danger/20 bg-danger/5 p-3.5 text-xs text-danger leading-normal">
+            <strong className="block mb-1 text-danger font-semibold">⚠️ Advertencia de Inventario:</strong>
+            Se restarán <strong className="text-danger font-bold">{revertFor?.available} unidades</strong> del stock actual en bodega. El lote completo volverá al estado original de <strong className="text-danger font-semibold">"En tránsito"</strong> en el Registro de Compras.
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setRevertFor(null)}>
             Cancelar
           </Button>
-          <Button onClick={handleRevert} loading={reverting} className="bg-red-500/90 hover:bg-red-600 text-white">
+          <Button onClick={handleRevert} loading={reverting} className="bg-danger/90 hover:bg-danger text-white">
             Confirmar y Descartar
           </Button>
         </div>

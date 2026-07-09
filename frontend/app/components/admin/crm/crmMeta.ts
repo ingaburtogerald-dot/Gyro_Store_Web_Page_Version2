@@ -13,11 +13,11 @@ export function waLink(phone: string, text: string): string {
 // Origen: cómo llegó el cliente (uno solo). Orden = orden en el <select>.
 export const SOURCE_ORDER: ContactSource[] = ["facebook_ads", "social_chat", "whatsapp", "marketplace", "other"];
 export const SOURCE_META: Record<ContactSource, { label: string; emoji: string; cls: string }> = {
-  facebook_ads: { label: "Publicidad de Facebook", emoji: "📢", cls: "bg-blue-500/15 text-blue-300" },
-  social_chat:  { label: "Chat de redes sociales",  emoji: "💬", cls: "bg-fuchsia-500/15 text-fuchsia-300" },
+  facebook_ads: { label: "Publicidad de Facebook", emoji: "📢", cls: "bg-info/15 text-info" },
+  social_chat:  { label: "Chat de redes sociales",  emoji: "💬", cls: "bg-badge/15 text-badge-2" },
   whatsapp:     { label: "WhatsApp",                emoji: "🟢", cls: "bg-whatsapp/15 text-whatsapp" },
-  marketplace:  { label: "Marketplace",             emoji: "🛒", cls: "bg-amber-500/15 text-amber-300" },
-  other:        { label: "Otro",                    emoji: "•",  cls: "bg-slate-500/15 text-slate-300" },
+  marketplace:  { label: "Marketplace",             emoji: "🛒", cls: "bg-warning/15 text-warning" },
+  other:        { label: "Otro",                    emoji: "•",  cls: "bg-muted/15 text-muted" },
 };
 // Fallback tolerante para valores heredados de la migración (ej. "migrated_followup").
 export const sourceMeta = (s: string) => SOURCE_META[s as ContactSource] ?? SOURCE_META.other;
@@ -25,12 +25,12 @@ export const sourceMeta = (s: string) => SOURCE_META[s as ContactSource] ?? SOUR
 // Etiquetas: segmentación del cliente (varias). Orden = orden en el selector.
 export const TAG_ORDER: ContactTag[] = ["retail", "reseller", "wholesale", "vip"];
 export const TAG_META: Record<ContactTag, { label: string; cls: string }> = {
-  retail:    { label: "Cliente al detalle", cls: "bg-sky-500/15 text-sky-300" },
-  reseller:  { label: "Revendedor",         cls: "bg-indigo-500/15 text-indigo-300" },
-  wholesale: { label: "Mayorista",          cls: "bg-emerald-500/15 text-emerald-300" },
-  vip:       { label: "Cliente VIP",        cls: "bg-amber-500/15 text-amber-300" },
+  retail:    { label: "Cliente al detalle", cls: "bg-info/15 text-info" },
+  reseller:  { label: "Revendedor",         cls: "bg-tone-indigo/15 text-tone-indigo" },
+  wholesale: { label: "Mayorista",          cls: "bg-accent/15 text-accent-2" },
+  vip:       { label: "Cliente VIP",        cls: "bg-warning/15 text-warning" },
 };
-export const tagMeta = (t: string) => TAG_META[t as ContactTag] ?? { label: t, cls: "bg-slate-500/15 text-slate-300" };
+export const tagMeta = (t: string) => TAG_META[t as ContactTag] ?? { label: t, cls: "bg-muted/15 text-muted" };
 
 export const ACTIVITY_META: Record<ActivityType, { label: string; icon: LucideIcon }> = {
   call:     { label: "Llamada",  icon: Phone },
@@ -57,11 +57,11 @@ export function dueState(c: Contact): Urgency {
 }
 
 export const DUE_META: Record<Urgency, { label: string; dot: string; text: string; ring: string }> = {
-  overdue:  { label: "Vencido", dot: "bg-red-500",    text: "text-red-400",    ring: "border-red-500/40" },
-  today:    { label: "Hoy",     dot: "bg-amber-400",  text: "text-amber-300",  ring: "border-amber-500/40" },
-  upcoming: { label: "Próximo", dot: "bg-sky-400",    text: "text-sky-300",    ring: "border-sky-500/40" },
-  none:     { label: "Sin tarea", dot: "bg-slate-500", text: "text-muted",     ring: "border-border" },
-  closed:   { label: "Cerrado", dot: "bg-emerald-500", text: "text-emerald-300", ring: "border-emerald-500/40" },
+  overdue:  { label: "Vencido", dot: "bg-danger",    text: "text-danger",    ring: "border-danger/40" },
+  today:    { label: "Hoy",     dot: "bg-warning",  text: "text-warning",  ring: "border-warning/40" },
+  upcoming: { label: "Próximo", dot: "bg-info",    text: "text-info",    ring: "border-info/40" },
+  none:     { label: "Sin tarea", dot: "bg-muted", text: "text-muted",     ring: "border-border" },
+  closed:   { label: "Cerrado", dot: "bg-accent", text: "text-accent-2", ring: "border-accent/40" },
 };
 
 // ¿Tiene un recordatorio vencido o para hoy? (campana + badge del menú)

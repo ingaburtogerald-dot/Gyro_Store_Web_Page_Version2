@@ -6,13 +6,11 @@ import { PublicFooter } from "~/components/layout/PublicFooter";
 import { Hero } from "~/components/catalog/Hero";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
-import { MegaSearchBar } from "~/components/catalog/MegaSearchBar";
+import { BrandStrip } from "~/components/catalog/BrandStrip";
 import { CategoryChips } from "~/components/catalog/CategoryChips";
 import { FilterSidebar } from "~/components/catalog/FilterSidebar";
 import { FilterFab } from "~/components/catalog/FilterFab";
 import { FilterSheet } from "~/components/catalog/FilterSheet";
-import { CartFab } from "~/components/cart/CartFab";
-import { CartDrawer } from "~/components/cart/CartDrawer";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectEditMode, selectIsAdmin, setEditMode } from "~/store/slices/authSlice";
@@ -74,6 +72,10 @@ export default function Index() {
   const editing = isAdmin && editMode;
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const searchQuery = useAppSelector((state) => state.ui.search);
+  const activeCategory = useAppSelector((state) => state.ui.activeCategory);
+  const hasFilters = Boolean(searchQuery.trim() || activeCategory);
+
   // Deep-link desde el menú del admin: /?edit=1 activa el modo edición UNA vez y
   // limpia el query param. Es Redux (no la URL) la fuente de verdad del modo edición,
   // porque el botón del header también lo alterna; por eso sincronizamos el deep-link
@@ -92,27 +94,29 @@ export default function Index() {
     // data-skin="store": activa la piel "Midnight Neon" (tokens con scope en
     // tailwind.css) solo en el storefront; el admin conserva Obsidian/Esmeralda.
     <div data-skin="store" className="flex min-h-dvh flex-col bg-bg font-sans text-text">
-      <PublicHeader />
-      <Hero productCount={products.length} />
+      <PublicHeader 
+        bottomBar={
+          !editing ? (
+            <div className="w-full bg-surface-2/80 border-b border-border/50 backdrop-blur-md">
+              <div className="mx-auto flex w-full max-w-7xl items-center px-4">
+                <CategoryChips categories={categories} />
+              </div>
+            </div>
+          ) : null
+        }
+      />
+
+      {!hasFilters && <Hero productCount={products.length} />}
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4">
-        {/* Búsqueda + chips de categorías (se ocultan en modo edición del catálogo).
-            Los chips solo viven en móvil: en escritorio las categorías están en el
-            sidebar de filtros. */}
-        {!editing && (
-          <>
-            <MegaSearchBar />
-            <div className="lg:hidden">
-              <CategoryChips categories={categories} />
-            </div>
-          </>
-        )}
-
+        {!editing && <BrandStrip />}
+        {/* Sub-nav de categorías se movió arriba del Hero */}
+        
         {editing ? (
           <SortableCatalogGrid />
         ) : (
           <div className="flex items-start gap-8 pt-3 lg:pt-5">
-            <FilterSidebar categories={categories} products={products} />
+            <FilterSidebar />
             <div className="min-w-0 flex-1">
               <ProductGrid products={products} categories={categories} />
             </div>
@@ -121,8 +125,6 @@ export default function Index() {
       </main>
 
       <PublicFooter />
-      <CartFab />
-      <CartDrawer />
 
       {/* Filtros móviles: FAB + bottom sheet (ocultos en modo edición) */}
       {!editing && (

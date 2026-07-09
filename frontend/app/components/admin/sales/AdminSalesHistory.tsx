@@ -171,7 +171,7 @@ export function AdminSalesHistory({
         cell: (c) => {
           const pct = c.row.original.comisionPercent;
           return (
-            <span className="nums font-semibold text-emerald-400">
+            <span className="nums font-semibold text-accent-2">
               {formatCordobas(c.getValue())}
               {pct !== undefined && <span className="ml-0.5 text-[11px] font-normal text-muted">({pct}%)</span>}
             </span>
@@ -286,7 +286,7 @@ export function AdminSalesHistory({
               </div>
               <div className="flex flex-col border-l border-border/60 pl-4">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Comisión</span>
-                <span className="text-sm font-semibold tabular-nums text-emerald-400">{formatCordobas(totals.comision)}</span>
+                <span className="text-sm font-semibold tabular-nums text-accent-2">{formatCordobas(totals.comision)}</span>
               </div>
               <div className="flex flex-col border-l border-border/60 pl-4">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Ganancia</span>
@@ -356,7 +356,7 @@ export function AdminSalesHistory({
                 const sales = finalSales.filter(p => selectedSales.has(p.id));
                 setDeleteFor(sales);
               }}
-              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+              className="border-danger/30 text-danger hover:bg-danger/10"
             >
               <Trash2 className="mr-1.5 h-4 w-4" />
               Eliminar
@@ -421,7 +421,7 @@ export function AdminSalesHistory({
                 onClick={handleDelete}
                 loading={deleting}
                 disabled={!deleteReason.trim()}
-                className="bg-red-500/90 hover:bg-red-500"
+                className="bg-danger/90 hover:bg-danger"
               >
                 Eliminar
               </Button>

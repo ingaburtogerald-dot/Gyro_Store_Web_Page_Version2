@@ -38,9 +38,11 @@ export interface InventoryRow {
   shippingUnitUsd?: number;
   priceUnitFinalUsd?: number;
   costRealCordobas?: number;
+  costoFijoCordobas?: number;
   preTotalUsd?: number;
   totalFinalUsd?: number;
   suggestedPrice?: number | null;
+  gananciaUnitCordobas?: number;
 }
 
 export interface InventoryKpis {

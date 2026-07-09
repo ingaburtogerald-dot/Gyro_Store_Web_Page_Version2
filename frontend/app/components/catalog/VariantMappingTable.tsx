@@ -164,10 +164,10 @@ export function VariantMappingTable({ axes, availability, variantMappings, onCha
         <span className={cn(
           "shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide",
           mappedCount === combinations.length
-            ? "bg-emerald-500/15 text-emerald-400"
+            ? "bg-accent/15 text-accent-2"
             : mappedCount > 0
-              ? "bg-yellow-500/15 text-yellow-400"
-              : "bg-zinc-700/50 text-zinc-400",
+              ? "bg-warning/15 text-warning"
+              : "bg-surface-2 text-muted",
         )}>
           {mappedCount}/{combinations.length} mapeadas
         </span>
@@ -196,10 +196,10 @@ export function VariantMappingTable({ axes, availability, variantMappings, onCha
         </button>
       </div>
       <p className="text-[11px] leading-relaxed text-muted">
-        {pool.length} artículo{pool.length === 1 ? "" : "s"} de bodega coinciden. Podés asignar <span className="font-semibold text-text">varios códigos</span> a una misma combinación (ej: tandas distintas de la misma variante); el stock se suma. Las que queden sin asignar se mostrarán como <span className="font-semibold text-yellow-400/80">Agotado</span>.
+        {pool.length} artículo{pool.length === 1 ? "" : "s"} de bodega coinciden. Podés asignar <span className="font-semibold text-text">varios códigos</span> a una misma combinación (ej: tandas distintas de la misma variante); el stock se suma. Las que queden sin asignar se mostrarán como <span className="font-semibold text-warning/80">Agotado</span>.
       </p>
 
-      <div className="max-h-[360px] space-y-1.5 overflow-y-auto pr-0.5 scrollbar-thin">
+      <div className="space-y-1.5 pr-0.5 pb-32">
         {combinations.map((combo) => (
           <VariantRow
             key={combo}
@@ -315,8 +315,8 @@ function VariantRow({
       ref={containerRef}
       className={cn(
         "group/row relative rounded-lg border bg-surface-2/40 p-2.5 transition-all duration-200",
-        "hover:bg-zinc-800/50 focus-within:bg-zinc-800/60",
-        hasSkus ? "border-emerald-500/20" : "border-border/50",
+        "hover:bg-surface-2/60 focus-within:bg-surface-2/80",
+        hasSkus ? "border-accent/20" : "border-border/50",
       )}
     >
       <div className="flex items-start gap-3">
@@ -325,7 +325,7 @@ function VariantRow({
           <span
             className={cn(
               "h-2 w-2 shrink-0 rounded-full transition-colors",
-              hasSkus ? "bg-emerald-500 shadow-sm shadow-emerald-500/50" : "bg-yellow-500 shadow-sm shadow-yellow-500/50",
+              hasSkus ? "bg-accent shadow-sm shadow-accent/50" : "bg-warning shadow-sm shadow-warning/50",
             )}
             title={hasSkus ? `${skus.length} código(s) · stock ${totalStock}` : "Sin asignar (agotado)"}
           />
@@ -333,7 +333,7 @@ function VariantRow({
             {comboParts.map((part, i) => (
               <span
                 key={i}
-                className="inline-flex shrink-0 items-center rounded-md bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-zinc-300"
+                className="inline-flex shrink-0 items-center rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-text"
               >
                 {part}
               </span>
@@ -345,17 +345,17 @@ function VariantRow({
         <div className="relative w-full sm:w-64 shrink-0 space-y-1.5">
           {/* Chips de códigos ya asignados */}
           {assignedProducts.map((p) => (
-            <div key={p.code} className="flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-2.5 py-1.5">
-              <Package className="h-3 w-3 shrink-0 text-emerald-400" />
-              <span className="flex-1 truncate text-[11px] text-text">
-                <span className="font-bold text-emerald-400">[{p.code}]</span>{" "}
+            <div key={p.code} className="flex items-center gap-1.5 rounded-lg border border-accent/25 bg-accent/5 px-2.5 py-1.5">
+              <Package className="h-3 w-3 shrink-0 text-accent-2" />
+              <span className="flex-1 text-[11px] text-text leading-tight">
+                <span className="font-bold text-accent-2">[{p.code}]</span>{" "}
                 {p.name}
                 <span className="ml-1 text-muted">({p.stock})</span>
               </span>
               <button
                 type="button"
                 onClick={() => onRemove(p.code)}
-                className="rounded p-0.5 text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                className="rounded p-0.5 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
                 aria-label={`Quitar ${p.code}`}
               >
                 <X className="h-3 w-3" />
@@ -365,7 +365,7 @@ function VariantRow({
 
           {/* Stock total cuando hay más de un código */}
           {skus.length > 1 && (
-            <p className="px-1 text-right text-[10px] font-semibold text-emerald-400/80">
+            <p className="px-1 text-right text-[10px] font-semibold text-accent-2/80">
               Stock total: {totalStock} uds
             </p>
           )}
@@ -411,14 +411,14 @@ function VariantRow({
                       className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] transition-colors hover:bg-accent/10"
                     >
                       <Package className="h-3 w-3 shrink-0 text-muted/60" />
-                      <span className="flex-1 truncate">
+                      <span className="flex-1 leading-tight">
                         <span className="font-bold text-accent">[{product.code}]</span>{" "}
                         <span className="text-text">{product.name}</span>
                       </span>
                       <span
                         className={cn(
                           "shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold",
-                          product.stock > 0 ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400",
+                          product.stock > 0 ? "bg-accent/15 text-accent-2" : "bg-danger/15 text-danger",
                         )}
                       >
                         {product.stock > 0 ? `${product.stock} uds` : "Agotado"}

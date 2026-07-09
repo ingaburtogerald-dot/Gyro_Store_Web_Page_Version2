@@ -2,6 +2,7 @@
 // En modo "Mes" muestra la grilla de meses; en modo "Día" muestra el calendario diario.
 // Retorna: "" | "YYYY-MM" | "YYYY-MM-DD". El padre no necesita conocer el modo activo.
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { DayPicker } from "react-day-picker";
 import { es } from "react-day-picker/locale";
 import { AnimatePresence, motion } from "framer-motion";
@@ -60,9 +61,11 @@ export function UnifiedDatePicker({
   align = "left",
 }: UnifiedDatePickerProps) {
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const [mode, setMode] = useState<"month" | "day">("month");
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const now = new Date();
 
   const label = displayLabel(value);
@@ -83,21 +86,42 @@ export function UnifiedDatePicker({
     }
   }, [value]);
 
+  const CAL_W = 260;
+  const CAL_H = 380;
+
+  function computeCoords() {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    let top = r.bottom + 8;
+    if (top + CAL_H > window.innerHeight && r.top - CAL_H - 8 > 0) top = r.top - CAL_H - 8;
+    let left = align === "right" ? r.right - CAL_W : r.left;
+    if (left + CAL_W > window.innerWidth - 8) left = Math.max(8, window.innerWidth - CAL_W - 8);
+    setCoords({ top, left });
+  }
+
   useEffect(() => {
     if (!open) return;
+    computeCoords();
     function onDoc(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (ref.current?.contains(t) || popoverRef.current?.contains(t)) return;
+      setOpen(false);
     }
     function onEsc(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onEsc);
+    window.addEventListener("scroll", computeCoords, true);
+    window.addEventListener("resize", computeCoords);
     return () => {
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onEsc);
+      window.removeEventListener("scroll", computeCoords, true);
+      window.removeEventListener("resize", computeCoords);
     };
-  }, [open]);
+  }, [open, align]);
 
   function clear(e: React.MouseEvent) {
     e.stopPropagation();
@@ -113,14 +137,15 @@ export function UnifiedDatePicker({
   const selectedMonth = parseYm(value);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
         type="button"
+        ref={ref}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "input flex items-center gap-2 text-left transition-all duration-200",
-          hasValue && "border-accent/50 bg-accent/5",
-          open && !hasValue && "border-accent/30",
+          "flex w-full items-center gap-2 rounded-pill border border-border bg-surface-2 px-4 py-2 text-left text-sm text-text transition-all duration-200 hover:bg-surface-2/80 focus:outline-none focus:ring-2 focus:ring-accent/20",
+          hasValue && "border-accent/50 bg-accent/5 text-accent-2",
+          open && !hasValue && "border-accent/50 ring-2 ring-accent/20",
         )}
       >
         <CalendarIcon
@@ -141,19 +166,19 @@ export function UnifiedDatePicker({
         )}
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
-            className={cn(
-              "absolute z-50 mt-2 overflow-hidden rounded-card border border-border bg-surface shadow-2xl",
-              align === "right" ? "right-0" : "left-0"
-            )}
-            style={{ minWidth: 252 }}
-          >
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {open && coords && (
+              <motion.div
+                ref={popoverRef}
+                initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+                className="z-[100] overflow-hidden rounded-card border border-border bg-surface shadow-2xl"
+                style={{ position: "fixed", top: coords.top, left: coords.left, minWidth: 252 }}
+              >
             {/* Toggle Mes / Día */}
             <div className="border-b border-border/60 p-3 pb-0">
               <div className="mb-3 flex items-center gap-1 rounded-pill border border-border bg-bg p-1">
@@ -265,8 +290,10 @@ export function UnifiedDatePicker({
               </div>
             )}
           </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </div>
   );
 }

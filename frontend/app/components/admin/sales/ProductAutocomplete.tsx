@@ -61,7 +61,7 @@ export function ProductAutocomplete({
       <div
         className={cn(
           "input flex items-center justify-between cursor-text overflow-hidden min-h-[42px]",
-          invalid && "border-red-500 focus:border-red-500",
+          invalid && "border-danger focus:border-danger",
           open && "ring-2 ring-accent border-accent"
         )}
         onClick={() => setOpen(true)}
@@ -116,9 +116,9 @@ export function ProductAutocomplete({
                       <span className="font-semibold truncate">{pr.name}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs opacity-80">
-                      <span className={cn(pr.stock <= 0 && "text-red-400 font-bold")}>Stock: {pr.stock}</span>
+                      <span className={cn(pr.stock <= 0 && "text-danger font-bold")}>Stock: {pr.stock}</span>
                       {pr.origin === "migrated" && (
-                        <span className="rounded-pill bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                        <span className="rounded-pill bg-warning/15 px-1.5 py-0.5 text-[10px] font-bold text-warning">
                           Migrado
                         </span>
                       )}

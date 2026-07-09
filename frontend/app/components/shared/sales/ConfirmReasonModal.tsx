@@ -60,7 +60,7 @@ export function ConfirmReasonModal({ kind, sales, onClose, onConfirm, loading }:
             loading={loading}
             disabled={!reason.trim()}
             onClick={() => onConfirm(reason.trim())}
-            className={isDelete ? "bg-red-500/90 hover:bg-red-500" : "border-red-500/40 text-red-400 hover:bg-red-500/10"}
+            className={isDelete ? "bg-danger/90 hover:bg-danger" : "border-danger/40 text-danger hover:bg-danger/10"}
           >
             {isDelete ? "Eliminar" : "Rechazar Venta"}
           </Button>

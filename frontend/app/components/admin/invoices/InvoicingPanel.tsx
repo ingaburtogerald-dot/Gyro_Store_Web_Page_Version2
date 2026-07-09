@@ -203,13 +203,13 @@ export function InvoicingPanel() {
         <div className="space-y-4">
           {/* Ícono de advertencia con glow */}
           <div className="flex justify-center">
-            <div className="rounded-full bg-red-500/10 p-4">
-              <AlertTriangle className="h-8 w-8 text-rose-400" />
+            <div className="rounded-full bg-danger/10 p-4">
+              <AlertTriangle className="h-8 w-8 text-danger" />
             </div>
           </div>
 
           {/* Aviso */}
-          <div className="rounded-xl border border-rose-500/20 bg-rose-500/8 px-4 py-3 text-sm leading-relaxed text-rose-300/90">
+          <div className="rounded-xl border border-danger/20 bg-danger/8 px-4 py-3 text-sm leading-relaxed text-danger/90">
             Al anular, las reservas de stock del ticket se liberan y el ticket ya no podrá usarse
             para registrar una venta. Queda registrado en la auditoría.
           </div>
@@ -220,7 +220,7 @@ export function InvoicingPanel() {
               Motivo de anulación *
             </span>
             <textarea
-              className="input min-h-24 w-full transition-colors focus:border-rose-400"
+              className="input min-h-24 w-full transition-colors focus:border-danger"
               value={voidReason}
               onChange={(e) => setVoidReason(e.target.value)}
               placeholder="Ej.: el cliente rechazó la entrega, error de digitación…"
@@ -244,13 +244,13 @@ export function InvoicingPanel() {
         <div className="space-y-4">
           {/* Ícono de advertencia */}
           <div className="flex justify-center">
-            <div className="rounded-full bg-red-500/10 p-4">
-              <Trash2 className="h-8 w-8 text-rose-400" />
+            <div className="rounded-full bg-danger/10 p-4">
+              <Trash2 className="h-8 w-8 text-danger" />
             </div>
           </div>
 
           {/* Aviso */}
-          <div className="rounded-xl border border-rose-500/20 bg-rose-500/8 px-4 py-3 text-sm leading-relaxed text-rose-300/90">
+          <div className="rounded-xl border border-danger/20 bg-danger/8 px-4 py-3 text-sm leading-relaxed text-danger/90">
             <p className="font-semibold">Esta acción es irreversible.</p>
             <p className="mt-1">
               El ticket será eliminado permanentemente de la base de datos.

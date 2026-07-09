@@ -69,11 +69,11 @@ function PaymentModal({ installment, onClose }: { installment: Installment | nul
             </div>
             <div className="flex justify-between">
               <span className="text-muted">Pagado</span>
-              <span className="text-emerald-400 font-semibold">{formatCordobas(installment.amountPaid)}</span>
+              <span className="text-accent-2 font-semibold">{formatCordobas(installment.amountPaid)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted">Pendiente</span>
-              <span className="text-amber-400 font-bold">{formatCordobas(installment.amountPending)}</span>
+              <span className="text-warning font-bold">{formatCordobas(installment.amountPending)}</span>
             </div>
             <ProgressBar paid={installment.amountPaid} total={installment.totalAmount} />
           </div>
@@ -82,12 +82,12 @@ function PaymentModal({ installment, onClose }: { installment: Installment | nul
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Monto recibido (C$) *</span>
               <input type="number" step="1" min={1} className="input" {...register("amount")} />
-              {errors.amount && <span className="mt-1 block text-xs text-red-400">{errors.amount.message}</span>}
+              {errors.amount && <span className="mt-1 block text-xs text-danger">{errors.amount.message}</span>}
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Fecha de pago *</span>
               <DateField control={control} name="paymentDate" invalid={!!errors.paymentDate} />
-              {errors.paymentDate && <span className="mt-1 block text-xs text-red-400">{errors.paymentDate.message}</span>}
+              {errors.paymentDate && <span className="mt-1 block text-xs text-danger">{errors.paymentDate.message}</span>}
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Próximo pago</span>
@@ -130,8 +130,8 @@ function InstallmentCard({ inst }: { inst: Installment }) {
               <p className="font-semibold text-text">{inst.customerName}</p>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                 inst.status === "completed"
-                  ? "bg-emerald-500/15 text-emerald-400"
-                  : "bg-amber-500/15 text-amber-400"
+                  ? "bg-accent/15 text-accent-2"
+                  : "bg-warning/15 text-warning"
               }`}>
                 {inst.status === "completed" ? "Pagado" : "Activo"}
               </span>
@@ -154,7 +154,7 @@ function InstallmentCard({ inst }: { inst: Installment }) {
         </div>
 
         {inst.nextPaymentDate && inst.status === "active" && (
-          <p className="text-xs text-amber-400">
+          <p className="text-xs text-warning">
             Próximo pago: {new Date(inst.nextPaymentDate + "T00:00:00").toLocaleDateString("es-NI")}
           </p>
         )}
@@ -220,7 +220,7 @@ export default function Cuotas() {
             </p>
           </div>
           {activeCount > 0 && (
-            <div className="flex items-center gap-2 rounded-full bg-amber-500/15 px-3 py-1.5 text-sm font-medium text-amber-400">
+            <div className="flex items-center gap-2 rounded-full bg-warning/15 px-3 py-1.5 text-sm font-medium text-warning">
               <CreditCard className="h-4 w-4" />
               {activeCount} activas
             </div>

@@ -331,7 +331,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                       <span
                         className={cn(
                           "hidden shrink-0 items-center gap-1 rounded-pill px-2 py-0.5 text-xs font-medium sm:flex nums",
-                          lineOverStock ? "bg-red-500/10 text-red-400" : "bg-accent/10 text-accent-2",
+                          lineOverStock ? "bg-danger/10 text-danger" : "bg-accent/10 text-accent-2",
                         )}
                       >
                         <Package className="h-3 w-3" /> {p.stock} en stock
@@ -340,7 +340,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                     <button
                       onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
                       disabled={lines.length === 1}
-                      className="shrink-0 rounded-lg p-2 text-muted transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-30"
+                      className="shrink-0 rounded-lg p-2 text-muted transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-30"
                       aria-label="Quitar línea"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -391,14 +391,13 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                                     −{discountPercent}% mayoreo
                                   </span>
                                 )}
-                                {/* Chip sólido: hace obvio que un clic aplica el precio */}
                                 <button
                                   type="button"
                                   onClick={() => update(i, { salePrice: Math.round(suggestedPrice) })}
-                                  className="flex items-center gap-1 rounded-pill bg-accent/15 px-2 py-0.5 font-semibold text-accent-2 ring-1 ring-accent/30 transition-all hover:bg-accent hover:text-white active:scale-95 nums"
+                                  className="flex items-center gap-1 rounded-pill bg-warning/15 px-2 py-0.5 font-semibold text-warning ring-1 ring-warning/30 transition-all hover:bg-warning hover:text-white active:scale-95 nums"
                                   title="Aplicar el precio sugerido a esta línea"
                                 >
-                                  <Sparkles className="h-3 w-3" /> Usar sugerido {formatCordobas(suggestedPrice)}
+                                  <Sparkles className="h-3 w-3" /> Sugerido {formatCordobas(suggestedPrice)}
                                 </button>
                               </div>
                             );
@@ -422,7 +421,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                   </div>
 
                   {p && typeof line.quantity === "number" && line.quantity > p.stock && (
-                    <p className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-400">
+                    <p className="flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
                       Solo hay {p.stock} uds disponibles.
                     </p>
@@ -431,8 +430,8 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                   {/* Badge informativo (no control): el modo de cálculo de migrados es fijo (M2);
                       M1 solo existe como fallback de registros antiguos en el servidor. */}
                   {p?.origin === "migrated" && (
-                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
-                      <span className="flex items-center gap-1 rounded-pill bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-300">
+                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2">
+                      <span className="flex items-center gap-1 rounded-pill bg-warning/15 px-2.5 py-1 text-xs font-medium text-warning">
                         <Tag className="h-3 w-3" /> Migrado
                       </span>
                       <span className="text-xs text-muted">
@@ -469,7 +468,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
                   </div>
                   <button
                     onClick={() => setReceipt(null)}
-                    className="shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
                     aria-label="Quitar foto del recibo"
                   >
                     <X className="h-4 w-4" />
@@ -506,7 +505,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
             return (
               <div className={cn(
                 "rounded-lg border p-3 text-sm animate-in fade-in",
-                favor ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-rose-500/30 bg-rose-500/10 text-rose-300",
+                favor ? "border-accent/30 bg-accent/10 text-accent-2" : "border-danger/30 bg-danger/10 text-danger",
               )}>
                 <p className="font-semibold">
                   {favor ? "Saldo a favor del vendedor" : "Saldo en contra del vendedor"}: {formatCordobas(Math.abs(delta))}
@@ -555,7 +554,7 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
               </p>
             )}
             {disabledReason && (
-              <p className="flex items-center gap-1.5 text-xs text-amber-400 animate-in fade-in">
+              <p className="flex items-center gap-1.5 text-xs text-warning animate-in fade-in">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {disabledReason}
               </p>
             )}
@@ -583,8 +582,8 @@ export function SaleEditor({ sale, onDone }: { sale?: Sale | null; onDone?: () =
         title="¡Venta registrada con éxito!"
       >
         <div className="space-y-4 text-center pb-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20">
-            <Check className="h-8 w-8 text-emerald-500" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/20">
+            <Check className="h-8 w-8 text-accent" />
           </div>
           <p className="text-muted">Tu venta ha sido reportada y está pendiente de aprobación.</p>
           <h3 className="text-lg font-bold text-text mt-4">¿Deseas registrar otra venta?</h3>

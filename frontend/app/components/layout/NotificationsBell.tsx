@@ -25,20 +25,20 @@ const SALE_META: Record<
 > = {
   paid: { text: "text-whatsapp", Icon: Banknote, one: "Te pagaron tu comisión", many: (n) => `Te pagaron ${n} ventas` },
   approved: { text: "text-accent-2", Icon: CheckCircle2, one: "Tu venta fue aprobada", many: (n) => `${n} ventas aprobadas` },
-  rejected: { text: "text-red-400", Icon: XCircle, one: "Tu venta fue rechazada", many: (n) => `${n} ventas rechazadas` },
+  rejected: { text: "text-danger", Icon: XCircle, one: "Tu venta fue rechazada", many: (n) => `${n} ventas rechazadas` },
 };
 const SALE_ORDER = ["paid", "approved", "rejected"] as const;
 const SEEN_KEY = "seenSaleNotifs";
 
 // Paleta de avatares (tinte + texto brillante) para reconocer al vendedor de un vistazo.
 const AVATAR_COLORS = [
-  "bg-indigo-500/15 text-indigo-300",
-  "bg-sky-500/15 text-sky-300",
-  "bg-emerald-500/15 text-emerald-300",
-  "bg-amber-500/15 text-amber-300",
-  "bg-rose-500/15 text-rose-300",
-  "bg-violet-500/15 text-violet-300",
-  "bg-teal-500/15 text-teal-300",
+  "bg-tone-indigo/15 text-tone-indigo",
+  "bg-info/15 text-info",
+  "bg-accent/15 text-accent-2",
+  "bg-warning/15 text-warning",
+  "bg-danger/15 text-danger",
+  "bg-badge/15 text-badge-2",
+  "bg-tone-purple/15 text-tone-purple",
 ];
 function initials(name: string): string {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
@@ -201,7 +201,7 @@ export function NotificationsBell() {
       >
         <Bell className="h-[18px] w-[18px]" />
         {badge > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-bg">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-bg">
             {badge}
           </span>
         )}
@@ -284,11 +284,11 @@ export function NotificationsBell() {
                             avatar={
                               <Avatar
                                 label={<Icon className="h-4 w-4" />}
-                                className={cn("bg-surface-2", pending ? "text-amber-400" : "text-accent-2")}
+                                className={cn("bg-surface-2", pending ? "text-warning" : "text-accent-2")}
                               />
                             }
                             title={pending ? "Entrega en China por validar" : "Nuevo paquete registrado"}
-                            titleClass={pending ? "text-amber-400" : "text-accent-2"}
+                            titleClass={pending ? "text-warning" : "text-accent-2"}
                             subtitle={`${l.customerName} · ${l.trackingNumber}`}
                           />
                         );

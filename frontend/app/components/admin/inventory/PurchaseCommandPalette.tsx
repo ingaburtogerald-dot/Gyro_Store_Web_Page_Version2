@@ -4,8 +4,8 @@ import { Search } from "lucide-react";
 import { type Purchase } from "~/store/api/inventoryApi";
 
 const STATUS_LABEL: Record<Purchase["status"], { label: string; cls: string }> = {
-  china: { label: "En tránsito", cls: "bg-sky-500/15 text-sky-300" },
-  received: { label: "Recibido", cls: "bg-emerald-500/15 text-emerald-400" },
+  china: { label: "En tránsito", cls: "bg-info/15 text-info" },
+  received: { label: "Recibido", cls: "bg-accent/15 text-accent-2" },
 };
 
 interface Props {

@@ -110,8 +110,8 @@ export function SalesPerformanceWidget() {
   // Colores del tema — la comisión del vendedor usa violeta para
   // que contraste con las barras verdes de ventas.
   const COL_VENTAS = "var(--color-accent)";
-  const COL_GANANCIA = "#a78bfa"; // purple-400 — contraste claro sobre barras verdes
-  const COL_COMISION = "#c084fc"; // purple-300 — contrasta con barras verdes (antes era whatsapp green)
+  const COL_GANANCIA = "var(--color-badge)"; // violeta — contraste claro sobre barras verdes
+  const COL_COMISION = "var(--color-tone-purple)"; // púrpura claro — contrasta con barras verdes
 
   return (
     <WidgetShell title={title} icon={TrendingUp} tone="emerald">
@@ -128,9 +128,9 @@ export function SalesPerformanceWidget() {
               <defs>
                 {/* Gradiente vertical para las barras de ventas — 3 stops para profundidad */}
                 <linearGradient id="gradBarVentas" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                  <stop offset="0%" stopColor="var(--color-accent-2)" stopOpacity={1} />
                   <stop offset="50%" stopColor={COL_VENTAS} stopOpacity={0.85} />
-                  <stop offset="100%" stopColor="#047857" stopOpacity={0.6} />
+                  <stop offset="100%" stopColor="var(--color-grad-from)" stopOpacity={0.6} />
                 </linearGradient>
                 {/* Gradiente para barras de comisión (vista vendedor) */}
                 <linearGradient id="gradBarComision" x1="0" y1="0" x2="0" y2="1">

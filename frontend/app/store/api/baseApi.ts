@@ -23,6 +23,10 @@ export const baseApi = createApi({
     "Purchase",
     "Migrated",
     "Order",
+    // Agregados derivados de ventas (timeseries, performance, balances, pagos…).
+    // Separado de "Order" para que editar/rechazar una fila NO dispare el refetch
+    // de todos los widgets de resumen — solo lo que realmente cambió.
+    "OrderAgg",
     "PublicOrder",
     "Invoice",
     "User",

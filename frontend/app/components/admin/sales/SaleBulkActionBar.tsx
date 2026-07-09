@@ -39,13 +39,13 @@ export function SaleBulkActionBar({ sales, paying, onEdit, onReject, onDelete, o
             <Pencil className="mr-1.5 h-4 w-4" /> Editar
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={onReject} className="border-rose-500/30 text-rose-400 hover:bg-rose-500/10">
+        <Button variant="outline" size="sm" onClick={onReject} className="border-danger/30 text-danger hover:bg-danger/10">
           <X className="mr-1.5 h-4 w-4" /> Rechazar
         </Button>
-        <Button variant="outline" size="sm" onClick={onDelete} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+        <Button variant="outline" size="sm" onClick={onDelete} className="border-danger/30 text-danger hover:bg-danger/10">
           <Trash2 className="mr-1.5 h-4 w-4" /> Eliminar
         </Button>
-        <Button size="sm" onClick={onApprove} disabled={paying || hasInsufficientStock(sales)} className="bg-emerald-500/90 hover:bg-emerald-500">
+        <Button size="sm" onClick={onApprove} disabled={paying || hasInsufficientStock(sales)} className="bg-accent/90 hover:bg-accent">
           <Check className="mr-1.5 h-4 w-4" /> Aprobar
         </Button>
         <Button variant="ghost" size="sm" onClick={onCancel}>Cancelar</Button>

@@ -252,7 +252,7 @@ export default function Configuracion() {
             </div>
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted">
-                Total costos fijos: <strong className={`${totalCF > 40 ? "text-red-400" : "text-accent-2"}`}>{totalCF}%</strong>
+                Total costos fijos: <strong className={`${totalCF > 40 ? "text-danger" : "text-accent-2"}`}>{totalCF}%</strong>
               </p>
               <Button type="submit" loading={savingCF} disabled={!isCFChanged} className="flex items-center gap-2">
                 <Save className="h-4 w-4" /> Guardar costos

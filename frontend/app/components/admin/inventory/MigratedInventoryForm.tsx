@@ -93,7 +93,7 @@ export function MigratedInventoryForm({ item, onDone }: { item?: MigratedItem | 
   if (showSuccessPrompt) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12 text-center animate-in fade-in zoom-in-95 duration-300">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
           <CheckCircle2 className="h-8 w-8" />
         </div>
         <div>
@@ -131,10 +131,10 @@ export function MigratedInventoryForm({ item, onDone }: { item?: MigratedItem | 
     <form
       onSubmit={handleSubmit(onSubmit)}
       autoComplete="off"
-      className="grid gap-3 rounded-card border border-amber-500/30 bg-amber-500/5 p-4 sm:grid-cols-2 lg:grid-cols-3"
+      className="grid gap-3 rounded-card border border-warning/30 bg-warning/5 p-4 sm:grid-cols-2 lg:grid-cols-3"
     >
       <div className="sm:col-span-2 lg:col-span-3 flex items-center gap-2">
-        <span className="rounded-pill bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-300">
+        <span className="rounded-pill bg-warning/15 px-2.5 py-1 text-xs font-medium text-warning">
           🏷️ Migrado
         </span>
         <p className="text-xs text-muted">

@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Coins, Clock, ShoppingBag, Landmark, Plus, PiggyBank, SlidersHorizontal } from "lucide-react";
+import { CheckCircle2, Coins, Clock, ShoppingBag, Landmark, Plus, PiggyBank, SlidersHorizontal, Search, X } from "lucide-react";
 import { PendingSalesContainer } from "./PendingSalesContainer";
 import { PaymentHistory } from "./PaymentHistory";
 import { SalesPerformance } from "./SalesPerformance";
+import { SalesReportTable } from "./SalesReportTable";
 import { SaleEditor } from "./SaleEditor";
 import { AvailableInventory } from "./AvailableInventory";
 import { MigratedAvailable } from "./MigratedAvailable";
@@ -31,7 +32,7 @@ type SubId =
   | "overview"
   | "available" | "migrated" | "incoming"
   | "pending" | "approved" | "mine"
-  | "payments" | "performance";
+  | "payments" | "sales_report" | "performance";
 
 type Section = { id: SectionId; label: string; subs: { id: SubId; label: string }[] };
 
@@ -61,6 +62,7 @@ const ADMIN_SECTIONS: Section[] = [
     id: "reporteria",
     label: "Reportería de ventas y pagos",
     subs: [
+      { id: "sales_report", label: "Reportería de ventas" },
       { id: "payments", label: "Historial de pagos" },
       { id: "performance", label: "Performance" },
     ],
@@ -82,7 +84,10 @@ const SELLER_SECTIONS: Section[] = [
   {
     id: "reporteria",
     label: "Reportería de ventas y pagos",
-    subs: [{ id: "payments", label: "Mis pagos" }],
+    subs: [
+      { id: "sales_report", label: "Mis ventas" },
+      { id: "payments", label: "Mis pagos" },
+    ],
   },
 ];
 
@@ -204,8 +209,8 @@ export function AdminSales() {
     },
   [reporteriaData]);
 
-  // El vendedor filtra por período solo en Ventas (Mis pagos no depende de fecha).
-  const showSellerDateBar = !isAdmin && inVentas;
+  // El vendedor filtra por período en Ventas y Reportería (Mis pagos ahora depende de fecha).
+  const showSellerDateBar = !isAdmin && (inVentas || inReporteria);
 
   return (
     <div className="space-y-6">
@@ -223,7 +228,7 @@ export function AdminSales() {
 
       {/* ── Tabs de sección + sub-tab ── */}
       <div className="space-y-3">
-        <div className="sticky top-16 z-50 -mx-4 bg-bg/80 px-4 py-2 backdrop-blur md:-mx-6 md:px-6">
+        <div className="-mx-4 px-4 md:-mx-6 md:px-6">
           <AnimatedTabs items={SECTION_ITEMS} value={section} onChange={changeSection} layoutId="sales-section" />
         </div>
         {currentSubs.length > 1 && (
@@ -241,31 +246,7 @@ export function AdminSales() {
       {/* ── Filtros + KPIs de admin (solo Ventas / Reportería) ── */}
       {isAdmin && (inVentas || inReporteria) && (
         <div className="space-y-5">
-          {/* Barra utilitaria: los filtros son secundarios (inline, sin caja glass
-              ni títulos). No compiten con los KPIs; solo se apoyan sobre una
-              línea divisoria fina. */}
-          <div className="relative z-40 flex flex-wrap items-center gap-3 border-b border-border/60 pb-4">
-            <span className="mr-auto inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
-              <SlidersHorizontal className="h-4 w-4" />
-              Filtros
-            </span>
-            <div className="w-full sm:w-48">
-              <UnifiedDatePicker
-                value={selectedDate}
-                onChange={(val) => updateParams({ date: val, page: null })}
-              />
-            </div>
-            <div className="w-full sm:w-52">
-              <FilterSelect
-                value={selectedSeller}
-                onChange={(val) => updateParams({ seller: val, page: null })}
-                options={sellerOptions}
-                placeholder="Todos los vendedores"
-                dotTitle="Tiene ventas pendientes de aprobación"
-              />
-            </div>
-          </div>
-
+          {/* ── KPIs (ahora arriba de los filtros) ── */}
           {inVentas && sub === "pending" && (
             <SalesKpis status="pending" sales={pendingList} ticketCount={pendingTab?.total ?? pendingList.length} />
           )}
@@ -301,6 +282,50 @@ export function AdminSales() {
               ]}
             />
           )}
+
+          {/* ── Filtros (ahora debajo de los KPIs, justo antes de la tabla) ── */}
+          <div className="relative z-40 flex flex-wrap items-center gap-3 border-b border-border/60 pb-4">
+            <span className="mr-auto inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted hidden sm:inline-flex">
+              <SlidersHorizontal className="h-4 w-4" />
+              Filtros
+            </span>
+            
+            {/* ── Búsqueda Global ── */}
+            <div className="flex w-full items-center gap-2 rounded-pill border border-border bg-surface-2 px-3 py-1.5 transition-colors focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/20 sm:w-64">
+              <Search className="h-4 w-4 shrink-0 text-muted" />
+              <input
+                value={searchParams.get("search") || ""}
+                onChange={(e) => updateParams({ search: e.target.value || null, page: null })}
+                placeholder="Buscar producto..."
+                className="w-full bg-transparent text-sm text-text outline-none placeholder:text-muted"
+              />
+              {searchParams.get("search") && (
+                <button 
+                  onClick={() => updateParams({ search: null, page: null })} 
+                  aria-label="Limpiar" 
+                  className="shrink-0 text-muted hover:text-text"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="w-full sm:w-48">
+              <UnifiedDatePicker
+                value={selectedDate}
+                onChange={(val) => updateParams({ date: val, page: null })}
+              />
+            </div>
+            <div className="w-full sm:w-52">
+              <FilterSelect
+                value={selectedSeller}
+                onChange={(val) => updateParams({ seller: val, page: null })}
+                options={sellerOptions}
+                placeholder="Todos los vendedores"
+                dotTitle="Tiene ventas pendientes de aprobación"
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -356,7 +381,8 @@ export function AdminSales() {
         )}
 
         {/* Reportería */}
-        {sub === "payments" && (isAdmin ? <PaymentHistory selectedSeller={selectedSeller} /> : <SellerPayments />)}
+        {sub === "payments" && (isAdmin ? <PaymentHistory selectedSeller={selectedSeller} selectedDate={selectedDate} /> : <SellerPayments selectedDate={selectedDate} />)}
+        {sub === "sales_report" && <SalesReportTable selectedSeller={isAdmin ? selectedSeller : "mine"} selectedDate={selectedDate} />}
         {sub === "performance" && isAdmin && <SalesPerformance selectedMonth={selectedDate} />}
       </motion.div>
 

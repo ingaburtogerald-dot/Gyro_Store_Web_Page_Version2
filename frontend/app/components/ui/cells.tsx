@@ -9,8 +9,8 @@ const MONEY_TONE: Record<MoneyTone, string> = {
   default: "text-text",
   muted: "text-muted",
   strong: "font-semibold text-text",
-  pos: "font-semibold text-emerald-400",
-  neg: "font-semibold text-rose-400",
+  pos: "font-semibold text-accent-2",
+  neg: "font-semibold text-danger",
 };
 
 /** Monto en córdobas. `negative` antepone el signo − (deducciones). */

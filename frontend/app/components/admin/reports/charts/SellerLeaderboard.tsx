@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Trophy } from "lucide-react";
 import { cn, formatCordobas } from "~/lib/utils";
 
-const MEDAL = ["text-amber-400", "text-slate-300", "text-orange-400"]; // oro, plata, bronce
+const MEDAL = ["text-warning", "text-muted", "text-warning"]; // oro, plata, bronce
 
 export function SellerLeaderboard({ data }: { data: { sellerName: string; totalVendido: number; comisiones?: number }[] }) {
   const rows = [...data].sort((a, b) => b.totalVendido - a.totalVendido);

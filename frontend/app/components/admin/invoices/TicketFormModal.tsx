@@ -50,7 +50,7 @@ interface Line {
 /** Píldora "Migrado" */
 function MigratedTag() {
   return (
-    <span className="shrink-0 rounded-pill bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+    <span className="shrink-0 rounded-pill bg-warning/15 px-1.5 py-0.5 text-[10px] font-bold text-warning">
       Migrado
     </span>
   );
@@ -183,7 +183,7 @@ function ProductSearchModal({
                     <p className="truncate font-medium text-text">{p.name}</p>
                     <p className="text-[11px] text-muted">
                       Código: {p.code}
-                      {p.origin === "migrated" && <span className="ml-1.5 text-amber-400">• Migrado</span>}
+                      {p.origin === "migrated" && <span className="ml-1.5 text-warning">• Migrado</span>}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
@@ -369,9 +369,9 @@ export function TicketFormModal({
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-300"
+              className="flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning/8 px-4 py-3 text-sm text-warning"
             >
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <span>Al guardar se reajustan las reservas de stock. Recuerda reimprimir el ticket.</span>
             </motion.div>
           )}
@@ -396,7 +396,7 @@ export function TicketFormModal({
                   className="overflow-hidden"
                 >
                   <div className="flex items-center justify-end mb-2">
-                     <button type="button" onClick={() => setShowCustomer(false)} className="text-xs text-rose-400 hover:text-rose-500">Omitir información del cliente</button>
+                     <button type="button" onClick={() => setShowCustomer(false)} className="text-xs text-danger hover:text-danger">Omitir información del cliente</button>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3 mb-4">
                     <Field label="Nombre">
@@ -529,7 +529,7 @@ export function TicketFormModal({
                               placeholder="Precio"
                               className={cn(
                                 "input w-24 text-center tabular-nums",
-                                priceEmpty && "border-rose-500/50 text-rose-400 placeholder:text-rose-400/50",
+                                priceEmpty && "border-danger/50 text-danger placeholder:text-danger/50",
                               )}
                             />
 
@@ -542,7 +542,7 @@ export function TicketFormModal({
                             <button
                               type="button"
                               onClick={() => removeLine(i)}
-                              className="rounded-lg p-1 text-muted opacity-50 transition-all hover:bg-rose-500/10 hover:text-rose-400 hover:opacity-100 group-hover:opacity-80"
+                              className="rounded-lg p-1 text-muted opacity-50 transition-all hover:bg-danger/10 hover:text-danger hover:opacity-100 group-hover:opacity-80"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -635,7 +635,7 @@ export function TicketFormModal({
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-muted">Delivery (C$)</span>
-                      <button type="button" onClick={() => { setHasDelivery(false); set("deliveryFee", ""); }} className="text-xs text-rose-400 hover:text-rose-500">Quitar</button>
+                      <button type="button" onClick={() => { setHasDelivery(false); set("deliveryFee", ""); }} className="text-xs text-danger hover:text-danger">Quitar</button>
                     </div>
                     <div className="relative">
                       <Truck className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted/50" />
