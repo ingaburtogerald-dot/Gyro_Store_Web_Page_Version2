@@ -438,12 +438,14 @@
   --color-surface-hover: #1c2740;
   --color-border: rgba(148, 184, 255, 0.09);
 
-  /* Acento único — cyan eléctrico calibrado (precios, focos, CTAs) */
-  --color-accent: #22d3ee;
-  --color-accent-2: #7df0fb;
-  --color-accent-hover: #06b6d4;
-  --color-grad-from: #0e7490;
-  --color-grad-to: #0891b2;
+  /* Acento único — esmeralda / verde tech calibrado (precios, focos, CTAs).
+     accent es medio-claro → los CTAs planos llevan texto oscuro (text-bg) con
+     contraste AA holgado; accent-2 es el highlight brillante para glows/hover. */
+  --color-accent: #10b981;
+  --color-accent-2: #5eead4;
+  --color-accent-hover: #059669;
+  --color-grad-from: #047857;
+  --color-grad-to: #059669;
 
   /* Texto — blanco azulado + muted legible sobre near-black (≥6:1) */
   --color-text: #eaf1ff;
@@ -469,11 +471,11 @@
      con los overrides del skin. */
   font-family: var(--font-sans);
   background-color: var(--color-bg);
-  /* Ambiente: un foco cyan frío arriba + una brasa cálida muy tenue abajo, para
+  /* Ambiente: un foco esmeralda arriba + un halo verde-teal muy tenue abajo, para
      que el fondo no sea plano ni compita con el producto. */
   background-image:
-    radial-gradient(1100px 560px at 82% -8%, rgba(34, 211, 238, 0.08), transparent 62%),
-    radial-gradient(820px 520px at -12% 108%, rgba(56, 189, 248, 0.05), transparent 60%);
+    radial-gradient(1100px 560px at 82% -8%, rgba(16, 185, 129, 0.09), transparent 62%),
+    radial-gradient(820px 520px at -12% 108%, rgba(94, 234, 212, 0.05), transparent 60%);
   background-attachment: fixed;
 }
 
@@ -484,13 +486,14 @@
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 0;
+  /* z-index negativo → el grano se pinta DETRÁS del contenido sin necesidad de
+     tocar el position/z-index de los hijos (así no rompemos overlays ni FABs con
+     position: fixed, como el bottom sheet de filtros). */
+  z-index: -1;
   pointer-events: none;
   opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-/* El contenido del store vive por encima del grano. */
-[data-skin="store"] > * { position: relative; z-index: 1; }
 
 /* Material de tarjeta premium: superficie con degradado sutil (luz cenital),
    hairline superior encendido y sombra profunda. Un solo lugar → todas las
@@ -515,7 +518,31 @@
   backdrop-filter: blur(8px);
 }
 
-/* Glows cyan contenidos para el storefront (también sirven en emerald) */
+/* Marquee horizontal infinito (tira de marcas). El contenido se duplica en el DOM;
+   animamos -50% para que el loop sea perfecto y sin saltos. Pausa al hover. */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@utility animate-marquee {
+  animation: marquee-x var(--marquee-duration, 38s) linear infinite;
+}
+.group\/marquee:hover .animate-marquee {
+  animation-play-state: paused;
+}
+/* Máscara de desvanecido en ambos bordes del marquee. */
+@utility marquee-mask {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+
+  /* Glows de acento contenidos para el storefront (heredan --color-accent) */
 @utility shadow-accent-cta {
   box-shadow: 0 12px 30px -10px color-mix(in srgb, var(--color-accent) 55%, transparent);
 }
@@ -528,7 +555,8 @@
   .skeleton::after,
   .animate-aurora,
   .animate-glow,
-  .animate-twinkle {
+  .animate-twinkle,
+  .animate-marquee {
     animation: none !important;
   }
   * { scroll-behavior: auto !important; }
