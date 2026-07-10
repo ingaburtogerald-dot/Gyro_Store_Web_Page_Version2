@@ -486,13 +486,14 @@
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 0;
+  /* z-index negativo → el grano se pinta DETRÁS del contenido sin necesidad de
+     tocar el position/z-index de los hijos (así no rompemos overlays ni FABs con
+     position: fixed, como el bottom sheet de filtros). */
+  z-index: -1;
   pointer-events: none;
   opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-/* El contenido del store vive por encima del grano. */
-[data-skin="store"] > * { position: relative; z-index: 1; }
 
 /* Material de tarjeta premium: superficie con degradado sutil (luz cenital),
    hairline superior encendido y sombra profunda. Un solo lugar → todas las

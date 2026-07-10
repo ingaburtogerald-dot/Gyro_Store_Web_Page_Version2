@@ -4,11 +4,9 @@
 // El filtrado vive en el uiSlice y lo aplica ProductGrid; aquí solo se edita el estado.
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, ArrowDownUp, Tag, PackageCheck } from "lucide-react";
+import { X, Tag, PackageCheck } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import {
-  type CatalogSort,
-  setSort,
   setPriceMin,
   setPriceMax,
   setOnlyOnSale,
@@ -18,16 +16,9 @@ import {
 } from "~/store/slices/uiSlice";
 import { cn } from "~/lib/utils";
 
-const SORTS: Array<{ value: CatalogSort; label: string }> = [
-  { value: "relevant", label: "Relevancia" },
-  { value: "price-asc", label: "Precio: menor a mayor" },
-  { value: "price-desc", label: "Precio: mayor a menor" },
-];
-
 export function FilterSheet() {
   const dispatch = useAppDispatch();
   const open = useAppSelector((s) => s.ui.filterSheetOpen);
-  const sort = useAppSelector((s) => s.ui.sort);
   const priceMin = useAppSelector((s) => s.ui.priceMin);
   const priceMax = useAppSelector((s) => s.ui.priceMax);
   const onlyOnSale = useAppSelector((s) => s.ui.onlyOnSale);
@@ -45,9 +36,6 @@ export function FilterSheet() {
       window.removeEventListener("keydown", onKey);
     };
   }, [open, dispatch]);
-
-  // Convierte el input numérico a number|null (vacío = sin límite).
-  const toNum = (v: string) => (v.trim() === "" ? null : Math.max(0, Number(v) || 0));
 
   return (
     <AnimatePresence>
@@ -92,59 +80,30 @@ export function FilterSheet() {
             </div>
 
             <div className="max-h-[70vh] space-y-6 overflow-y-auto px-5 py-2">
-              {/* Orden */}
-              <section>
-                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted">
-                  <ArrowDownUp className="h-4 w-4" /> Ordenar por
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {SORTS.map((o) => (
-                    <button
-                      key={o.value}
-                      onClick={() => dispatch(setSort(o.value))}
-                      className={cn(
-                        "rounded-pill border px-4 py-2 text-sm transition-colors",
-                        sort === o.value
-                          ? "border-accent/30 bg-accent/12 text-accent-2"
-                          : "border-border bg-surface-2 text-muted hover:text-text",
-                      )}
-                    >
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
               {/* Rango de precio */}
               <section>
-                <h3 className="mb-2 text-sm font-semibold text-muted">Rango de precio (C$)</h3>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
+                  Rango de precio
+                </h3>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    value={priceMin ?? ""}
-                    onChange={(e) => dispatch(setPriceMin(toNum(e.target.value)))}
+                  <PriceField
+                    value={priceMin}
+                    onChange={(v) => dispatch(setPriceMin(v))}
                     placeholder="Mín"
-                    aria-label="Precio mínimo"
-                    className="h-12 w-full rounded-xl border border-border bg-surface-2 px-3 text-base text-text placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    label="Precio mínimo"
                   />
-                  <span className="text-muted">—</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    value={priceMax ?? ""}
-                    onChange={(e) => dispatch(setPriceMax(toNum(e.target.value)))}
+                  <span className="text-muted" aria-hidden>—</span>
+                  <PriceField
+                    value={priceMax}
+                    onChange={(v) => dispatch(setPriceMax(v))}
                     placeholder="Máx"
-                    aria-label="Precio máximo"
-                    className="h-12 w-full rounded-xl border border-border bg-surface-2 px-3 text-base text-text placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    label="Precio máximo"
                   />
                 </div>
               </section>
 
               {/* Toggles */}
-              <section className="space-y-1">
+              <section className="space-y-1 border-t border-border pt-4">
                 <ToggleRow
                   icon={<Tag className="h-4 w-4" />}
                   label="Solo en oferta"
@@ -182,6 +141,38 @@ export function FilterSheet() {
   );
 }
 
+/** Input de precio con prefijo "C$" (móvil: altura táctil 48px). */
+function PriceField({
+  value,
+  onChange,
+  placeholder,
+  label,
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+  placeholder: string;
+  label: string;
+}) {
+  const toNum = (v: string) => (v.trim() === "" ? null : Math.max(0, Number(v) || 0));
+  return (
+    <div className="relative flex-1">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted">
+        C$
+      </span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        value={value ?? ""}
+        onChange={(e) => onChange(toNum(e.target.value))}
+        placeholder={placeholder}
+        aria-label={label}
+        className="h-12 w-full rounded-xl border border-border bg-surface-2 pl-10 pr-3 text-base text-text placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+      />
+    </div>
+  );
+}
+
 function ToggleRow({
   icon,
   label,
@@ -202,18 +193,20 @@ function ToggleRow({
       className="flex min-h-[48px] w-full items-center justify-between rounded-xl px-1 text-left"
     >
       <span className="flex items-center gap-2 text-sm font-medium text-text">
-        <span className="text-muted">{icon}</span>
+        <span className={cn("transition-colors", checked ? "text-accent-2" : "text-muted")}>
+          {icon}
+        </span>
         {label}
       </span>
       <span
         className={cn(
           "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-          checked ? "bg-accent" : "bg-surface-2",
+          checked ? "bg-accent" : "bg-surface-2 ring-1 ring-inset ring-border",
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform",
+            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
             checked ? "translate-x-[22px]" : "translate-x-0.5",
           )}
         />
