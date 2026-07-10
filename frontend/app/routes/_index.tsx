@@ -11,6 +11,7 @@ import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
 import { BrandStrip } from "~/components/catalog/BrandStrip";
 import { CategoryChips } from "~/components/catalog/CategoryChips";
 import { FilterSidebar } from "~/components/catalog/FilterSidebar";
+import { CatalogToolbar } from "~/components/catalog/CatalogToolbar";
 import { FilterFab } from "~/components/catalog/FilterFab";
 import { FilterSheet } from "~/components/catalog/FilterSheet";
 import { PublicSidebar } from "~/components/layout/PublicSidebar";
@@ -176,6 +177,7 @@ export default function Index() {
           <div className="flex items-start gap-8 pt-3 lg:pt-5">
             <FilterSidebar />
             <div className="min-w-0 flex-1">
+              <CatalogToolbar products={products} />
               <ProductGrid products={products} categories={categories} />
             </div>
           </div>

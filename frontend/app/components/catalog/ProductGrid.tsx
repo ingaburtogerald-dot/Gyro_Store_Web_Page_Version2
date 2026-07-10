@@ -5,14 +5,11 @@
 // Vista por DEFECTO (sin filtros ni búsqueda): se segmenta en secciones estilo
 // tienda — "SuperOfertas" (ofertas reales) y luego el catálogo completo. Al buscar
 // o filtrar, colapsa a una única grilla de resultados (sin encabezados de sección).
-import { useMemo } from "react";
 import { PackageSearch, Flame, LayoutGrid } from "lucide-react";
 import { ProductCard } from "./ProductCard";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
-import { useAppSelector } from "~/store/hooks";
+import { useCatalogFilter, isDeal } from "~/lib/useCatalogFilter";
 import { cn } from "~/lib/utils";
-
-const isDeal = (p: CatalogProduct) => Boolean(p.isPromo) || (p.compareAtPrice ?? 0) > p.price;
 
 // Regla determinista de tiles ANCHOS para romper la grilla uniforme (ver Bento):
 //  · El primero abre como pieza destacada (editorial horizontal).
@@ -25,33 +22,8 @@ const catalogWide =
     total >= 5 && (i === 0 || isDeal(p));
 
 export function ProductGrid({ products, categories }: { products: CatalogProduct[]; categories: Category[] }) {
-  const category = useAppSelector((s) => s.ui.activeCategory);
-  const search = useAppSelector((s) => s.ui.search).trim().toLowerCase();
-  const priceMin = useAppSelector((s) => s.ui.priceMin);
-  const priceMax = useAppSelector((s) => s.ui.priceMax);
-  const sort = useAppSelector((s) => s.ui.sort);
-  const onlyOnSale = useAppSelector((s) => s.ui.onlyOnSale);
-  const onlyInStock = useAppSelector((s) => s.ui.onlyInStock);
-
-  // ¿Vista por defecto? (sin ningún filtro ni búsqueda activos) → segmentamos.
-  const isDefault =
-    !category && !search && priceMin == null && priceMax == null && !onlyInStock && !onlyOnSale;
-
-  // Filtros en cliente (categoría + búsqueda + filtros avanzados) y orden.
-  const filtered = useMemo(() => {
-    const result = products.filter((p) => {
-      if (category && p.category !== category) return false;
-      if (search && !p.name.toLowerCase().includes(search)) return false;
-      if (priceMin != null && p.price < priceMin) return false;
-      if (priceMax != null && p.price > priceMax) return false;
-      if (onlyInStock && (p.stock ?? 0) <= 0) return false;
-      if (onlyOnSale && !((p.compareAtPrice ?? 0) > p.price)) return false;
-      return true;
-    });
-    if (sort === "price-asc") result.sort((a, b) => a.price - b.price);
-    else if (sort === "price-desc") result.sort((a, b) => b.price - a.price);
-    return result;
-  }, [products, category, search, priceMin, priceMax, onlyInStock, onlyOnSale, sort]);
+  // Filtrado + orden compartidos con la toolbar (una sola fuente de verdad).
+  const { filtered, isDefault } = useCatalogFilter(products);
 
   // ── Vista segmentada (home por defecto): SuperOfertas + Catálogo ──
   if (isDefault) {
