@@ -40,7 +40,6 @@ export function ProductCard({
 }) {
   const dispatch = useAppDispatch();
   const reduce = useReducedMotion();
-  const [loaded, setLoaded] = useState(false);
   const category = categories.find((c) => c.id === product.category);
   const image = product.images?.[0];
   const soldOut = (product.stock ?? 0) <= 0;
@@ -115,14 +114,19 @@ export function ProductCard({
           <img
             src={image}
             alt={product.name}
+<<<<<<< Updated upstream
             loading="lazy"
             onLoad={() => setLoaded(true)}
+=======
+            loading={index < 4 ? "eager" : "lazy"}
+            fetchPriority={index < 4 ? "high" : "auto"}
+            decoding="async"
+>>>>>>> Stashed changes
             className={cn(
               "ease-expo h-full w-full object-contain p-6 transition duration-[600ms] will-change-transform",
               "group-hover:scale-[1.06]",
               hoverImage && !soldOut && "group-hover:opacity-0",
-              soldOut && "opacity-40 grayscale",
-              loaded ? "scale-100 blur-0 opacity-100" : "scale-105 blur-md opacity-0",
+              soldOut && "opacity-40 grayscale"
             )}
             style={{ viewTransitionName: `vt-product-${product.id}` } as React.CSSProperties}
           />
