@@ -16,7 +16,7 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
   const reduce = useReducedMotion();
 
   return (
-    <section className="relative overflow-hidden px-4 pb-16 pt-14 text-center sm:pt-20">
+    <section className="relative overflow-hidden px-4 pb-8 pt-8 text-center sm:pb-16 sm:pt-20">
       {/* Ambiente: un único halo radial sereno detrás del contenido. */}
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute left-1/2 top-0 h-[52vh] w-[52vh] -translate-x-1/2 rounded-full bg-accent/10 blur-[130px]" />
@@ -24,7 +24,7 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
 
       <div className="relative z-10 mx-auto max-w-3xl">
         {/* Emblema protagonista: glow estático detrás + un solo gesto (flotar). */}
-        <div className="relative mx-auto mb-8 h-40 w-40 sm:h-48 sm:w-48">
+        <div className="relative mx-auto mb-4 h-24 w-24 sm:mb-8 sm:h-48 sm:w-48">
           <div className="absolute inset-2 rounded-full bg-accent/20 blur-2xl" aria-hidden />
           <motion.img
             src="/gyro-emblem.png"
@@ -53,14 +53,14 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
           <h1 className="font-heading text-[clamp(2.5rem,8vw,4.5rem)] font-bold leading-none tracking-[-0.03em] text-balance text-text">
             Gyro Store
           </h1>
-          <p className="mx-auto mt-5 max-w-lg text-pretty text-base text-muted">
+          <p className="mx-auto mt-3 max-w-lg text-pretty text-base text-muted sm:mt-5">
             Audio y gaming de élite en Managua —{" "}
             <span className="font-semibold text-text">equípate con Gyro</span>.
           </p>
 
           {/* Franja de confianza (la búsqueda vive en el MegaSearchBar, justo
               debajo del hero: un solo punto de búsqueda dominante). */}
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted sm:mt-7 sm:gap-x-6">
             {TRUST.map(({ icon: Icon, label }) => (
               <span key={label} className="inline-flex items-center gap-1.5">
                 <Icon className="h-4 w-4 text-accent-2" /> {label}
@@ -68,7 +68,7 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
             ))}
           </div>
 
-          <p className="mt-5 text-xs tabular-nums text-muted">{productCount} productos disponibles</p>
+          <p className="mt-4 text-xs tabular-nums text-muted sm:mt-5">{productCount} productos disponibles</p>
         </motion.div>
       </div>
     </section>

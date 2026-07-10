@@ -14,6 +14,16 @@ import { cn } from "~/lib/utils";
 
 const isDeal = (p: CatalogProduct) => Boolean(p.isPromo) || (p.compareAtPrice ?? 0) > p.price;
 
+// Regla determinista de tiles ANCHOS para romper la grilla uniforme (ver Bento):
+//  · El primero abre como pieza destacada (editorial horizontal).
+//  · Las ofertas se ganan un tile ancho.
+// Es determinista → sobrevive al filtrado sin verse aleatorio, y solo activa la
+// asimetría cuando hay suficientes ítems para que no quede un tile ancho solitario.
+const catalogWide =
+  (total: number) =>
+  (p: CatalogProduct, i: number): boolean =>
+    total >= 5 && (i === 0 || isDeal(p));
+
 export function ProductGrid({ products, categories }: { products: CatalogProduct[]; categories: Category[] }) {
   const category = useAppSelector((s) => s.ui.activeCategory);
   const search = useAppSelector((s) => s.ui.search).trim().toLowerCase();
@@ -72,7 +82,7 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
             subtitle="Explora todos nuestros productos"
             count={rest.length}
           />
-          <Bento products={rest} categories={categories} />
+          <Bento products={rest} categories={categories} wideFn={catalogWide(rest.length)} />
         </section>
       </div>
     );
@@ -84,7 +94,7 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
   }
   return (
     <div className="pb-12">
-      <Bento products={filtered} categories={categories} />
+      <Bento products={filtered} categories={categories} wideFn={catalogWide(filtered.length)} />
     </div>
   );
 }

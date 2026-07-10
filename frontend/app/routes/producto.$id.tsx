@@ -517,7 +517,15 @@ export default function ProductDetail() {
                 >
                   {isAdded ? (
                     <>
-                      <Check className="h-5 w-5 mr-2 animate-bounce" /> ¡Agregado con éxito!
+                      <motion.span
+                        initial={{ scale: 0.6, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                        className="mr-2 inline-flex"
+                      >
+                        <Check className="h-5 w-5" />
+                      </motion.span>{" "}
+                      ¡Agregado con éxito!
                     </>
                   ) : (
                     <>
