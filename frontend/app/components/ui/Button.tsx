@@ -8,11 +8,13 @@ type Variant = "primary" | "submit" | "destructive" | "whatsapp" | "ghost" | "ou
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
-  // Gradiente — CTAs de página (Nueva venta, Registrar compra…)
-  primary: "bg-gradient-accent text-white shadow-lg shadow-accent/20",
-  // Sólido — submits dentro de modales y formularios secundarios.
-  // Hover oscurece (patrón Vercel): el botón se "hunde" al pasar el mouse.
-  submit: "bg-accent text-white hover:bg-accent-hover shadow-md shadow-accent/20",
+  // Primaria — acento sólido brillante con texto oscuro (una sola convención en
+  // toda la app: mismo look que tarjetas, buscador y toolbar). Con esmeralda el
+  // texto oscuro da contraste ≈9:1 (AA holgado) donde el texto blanco fallaba.
+  primary: "bg-accent text-bg font-semibold hover:bg-accent-hover shadow-lg shadow-accent/25",
+  // Sólido — submits dentro de modales y formularios (idéntico a primary para
+  // que no haya dos "botones principales" distintos).
+  submit: "bg-accent text-bg font-semibold hover:bg-accent-hover shadow-md shadow-accent/20",
   // Destructivo — eliminar, rechazar
   destructive: "bg-danger/10 text-danger hover:bg-danger hover:text-white",
   // WhatsApp — solo para botones que abren un chat de WhatsApp real

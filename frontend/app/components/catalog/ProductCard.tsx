@@ -43,8 +43,6 @@ export function ProductCard({
   const [loaded, setLoaded] = useState(false);
   const category = categories.find((c) => c.id === product.category);
   const image = product.images?.[0];
-  // 2ª foto para el hover-swap (estilo simpletechnic): crossfade al pasar el mouse.
-  const hoverImage = product.images?.[1];
   const soldOut = (product.stock ?? 0) <= 0;
   const compareAt = product.compareAtPrice ?? 0;
   const onSale = compareAt > product.price;
@@ -117,9 +115,7 @@ export function ProductCard({
           <img
             src={image}
             alt={product.name}
-            loading={index < 4 ? "eager" : "lazy"}
-            fetchPriority={index < 4 ? "high" : "auto"}
-            decoding="async"
+            loading="lazy"
             onLoad={() => setLoaded(true)}
             className={cn(
               "ease-expo h-full w-full object-contain p-6 transition duration-[600ms] will-change-transform",
@@ -137,7 +133,6 @@ export function ProductCard({
               alt=""
               aria-hidden
               loading="lazy"
-              decoding="async"
               className="ease-expo pointer-events-none absolute inset-0 h-full w-full object-contain p-6 opacity-0 transition duration-[600ms] group-hover:scale-[1.06] group-hover:opacity-100"
             />
           )}
