@@ -170,9 +170,16 @@ function SectionHeader({
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-card border border-dashed border-border py-16 text-center text-muted">
-      <PackageSearch className="h-8 w-8" />
-      <p className="max-w-xs text-sm">{text}</p>
+    <div className="card-premium flex flex-col items-center gap-4 rounded-card py-20 text-center">
+      <span
+        className="relative grid h-16 w-16 place-items-center rounded-2xl bg-accent/8 text-accent-2 ring-1 ring-inset ring-accent/15"
+        aria-hidden
+      >
+        {/* Halo suave detrás del icono para darle profundidad. */}
+        <span className="absolute inset-0 rounded-2xl bg-accent/10 blur-xl" />
+        <PackageSearch className="relative h-7 w-7" />
+      </span>
+      <p className="max-w-xs text-balance text-sm text-muted">{text}</p>
     </div>
   );
 }
