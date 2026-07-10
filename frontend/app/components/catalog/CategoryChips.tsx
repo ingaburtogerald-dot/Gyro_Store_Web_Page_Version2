@@ -136,7 +136,18 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
                 type="button"
                 role="tab"
                 aria-selected={active}
-                onClick={() => dispatch(setCategory(c.id))}
+                aria-haspopup={hasSub ? "menu" : undefined}
+                aria-expanded={hasSub ? isOpen : undefined}
+                onClick={(e) => {
+                  // Con subcategorías: clic en el nombre ABRE el submenú (lo intuitivo).
+                  // Sin subcategorías: filtra por esa categoría.
+                  if (hasSub) {
+                    const wrap = e.currentTarget.closest("[data-cat-item]") as HTMLElement;
+                    toggleMenu(c.id, wrap ?? e.currentTarget);
+                  } else {
+                    dispatch(setCategory(c.id));
+                  }
+                }}
                 className={cn(
                   "flex items-center gap-1.5 whitespace-nowrap rounded-lg py-1.5 pl-3 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent",
                   hasSub ? "pr-1" : "pr-3",
@@ -196,6 +207,20 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
                 onMouseLeave={closeMenu}
               >
                 <ul className="p-1.5">
+                  {/* Filtrar por la categoría padre (el clic en el chip ahora abre el menú). */}
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        dispatch(setCategory(openData.id));
+                        setOpenCat(null);
+                      }}
+                      className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-text transition-colors hover:bg-white/5"
+                    >
+                      Ver todo {openData.name}
+                    </button>
+                  </li>
+                  <li aria-hidden className="my-1 h-px bg-white/10" />
                   {openData.subcategories.map((sub) => (
                     <li key={sub.id}>
                       <Link

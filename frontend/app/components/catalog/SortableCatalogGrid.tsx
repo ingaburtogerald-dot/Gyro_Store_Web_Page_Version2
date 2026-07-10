@@ -98,7 +98,7 @@ function SortableCard({ item, onEdit, onDelete }: { item: CatalogProduct; onEdit
 
       <div className="aspect-square bg-surface-2 shrink-0">
         {item.images?.[0] ? (
-          <img src={item.images[0]} alt={baseName} className="h-full w-full object-cover" />
+          <img src={item.images[0]} alt={baseName} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         ) : (
           <div className="grid h-full place-items-center text-muted"><ImageOff className="h-8 w-8" /></div>
         )}

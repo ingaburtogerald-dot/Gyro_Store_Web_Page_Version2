@@ -3,6 +3,8 @@ import { X, User, ChevronRight, ArrowRight } from "lucide-react";
 import { Link } from "@remix-run/react";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { closePublicSidebar, setCategory } from "~/store/slices/uiSlice";
+import { selectUser, selectStatus, selectRoles } from "~/store/slices/authSlice";
+import { roleLandingPath } from "~/lib/constants";
 import type { Category } from "~/store/api/catalogApi";
 
 interface Props {
@@ -25,6 +27,11 @@ const itemVariants = {
 export function PublicSidebar({ categories }: Props) {
   const dispatch = useAppDispatch();
   const open = useAppSelector((s) => s.ui.publicSidebarOpen);
+  const user = useAppSelector(selectUser);
+  const status = useAppSelector(selectStatus);
+  const roles = useAppSelector(selectRoles);
+  const authed = status === "authenticated" && Boolean(user);
+  const firstName = user?.name?.trim().split(/\s+/)[0] ?? "";
 
   function handleCategory(id: string | null) {
     dispatch(setCategory(id));
@@ -53,13 +60,32 @@ export function PublicSidebar({ categories }: Props) {
           >
             {/* Premium Header */}
             <div className="relative flex items-center justify-between bg-surface px-6 py-6 border-b border-white/5">
-              <div className="flex items-center gap-4">
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-tr from-accent to-accent-2/80 text-bg shadow-lg shadow-accent/20">
-                  <User className="h-6 w-6" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-muted uppercase tracking-wider">Hola,</span>
-                  <span className="text-xl font-bold tracking-tight text-text">Bienvenido</span>
+              <div className="flex min-w-0 items-center gap-4">
+                {authed && user?.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-white/10"
+                  />
+                ) : (
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-tr from-accent to-accent-2/80 text-bg">
+                    <User className="h-6 w-6" />
+                  </div>
+                )}
+                <div className="flex min-w-0 flex-col">
+                  {authed ? (
+                    <>
+                      <span className="text-xs font-medium uppercase tracking-wider text-muted">Hola,</span>
+                      <span className="truncate text-xl font-bold tracking-tight text-text">
+                        {firstName || user!.name}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs font-medium uppercase tracking-wider text-muted">Bienvenido</span>
+                      <span className="text-xl font-bold tracking-tight text-text">Invitado</span>
+                    </>
+                  )}
                 </div>
               </div>
               <button
@@ -144,11 +170,13 @@ export function PublicSidebar({ categories }: Props) {
                   </li>
                   <li>
                     <Link
-                      to="/login"
+                      to={authed ? roleLandingPath(roles) : "/login"}
                       onClick={() => dispatch(closePublicSidebar())}
                       className="group flex w-full items-center py-2.5 text-[15px] text-muted-foreground hover:text-text transition-colors"
                     >
-                      <span className="transform transition-transform group-hover:translate-x-1">Acceso Colaboradores</span>
+                      <span className="transform transition-transform group-hover:translate-x-1">
+                        {authed ? "Centro de Administración" : "Acceso Colaboradores"}
+                      </span>
                     </Link>
                   </li>
                 </ul>

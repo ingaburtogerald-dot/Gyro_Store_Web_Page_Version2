@@ -57,6 +57,9 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
           <motion.img
             src="/gyro-emblem.png"
             alt="Gyro — mascota de Gyro Store"
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
             initial={{ opacity: 0, scale: 0.94 }}
             animate={
               reduce ? { opacity: 1, scale: 1 } : { opacity: 1, scale: 1, y: [0, -9, 0] }

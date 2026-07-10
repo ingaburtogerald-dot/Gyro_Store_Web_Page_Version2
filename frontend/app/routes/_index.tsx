@@ -42,29 +42,32 @@ export async function loader({ request }: LoaderFunctionArgs) {
     if (pRes.ok) products = (await pRes.json()) as CatalogProduct[];
     if (cRes.ok) categories = ((await cRes.json()) as { categories?: Category[] }).categories ?? [];
     
-    // MOCK: Override categories with the user's specific list
-    categories = [
-      { 
-        id: "audifonos-in-ear", 
-        name: "Audífonos In Ear",
-        subcategories: [
-          { id: "8SfJHhV1qyrc8RgmXVfw", name: "KZ EDX Pro X" },
-          { id: "bKBxJnxVkoon9W547X0w", name: "KZ Castor Harman" },
-          { id: "SqdEZCJuq8Jb0nUGSbtY", name: "KZ Castor Bass" }
-        ]
-      },
+    // Categorías de la tienda. FUENTE ÚNICA DE VERDAD: el `id` de cada categoría
+    // DEBE ser el valor real de `product.category` que devuelve la API. Así el chip
+    // activo, las subcategorías y el filtro de la grilla hablan el mismo idioma
+    // (antes los ids inventados no coincidían con ningún producto → filtros vacíos).
+    // Valores reales actuales en la API: audifonos-kz, adaptador-bt, accesorios-pc.
+    const baseCategories = [
+      { id: "audifonos-kz", name: "Audífonos In Ear" },
       { id: "accesorios-kz", name: "Accesorios para audífonos KZ" },
-      { 
-        id: "adaptador-kz", 
-        name: "Adaptador Bluetooth para audífonos KZ",
-        subcategories: [
-          { id: "ojFAh1SZvi0E0wbilLlw", name: "KZ AZ09" }
-        ]
-      },
+      { id: "adaptador-bt", name: "Adaptador Bluetooth para audífonos KZ" },
       { id: "accesorios-pc", name: "Accesorios Para computadores" },
       { id: "accesorios-moto", name: "Accesorios Para moto" },
       { id: "accesorios-gaming", name: "Accesorios para gaming variados" },
     ];
+
+    // Subcategorías = productos cuya `category` coincide con el id de la categoría
+    // (ids ya alineados con los valores reales de la API → coincidencia directa).
+    categories = baseCategories
+      .map((cat) => {
+        const catProducts = products.filter((p) => p.category === cat.id || p.category === cat.name);
+        return {
+          ...cat,
+          subcategories: catProducts.length > 0 ? catProducts.map((p) => ({ id: p.id, name: p.name })) : undefined,
+        };
+      })
+      // Ocultar categorías sin productos: nada que mostrar ni que filtrar.
+      .filter((cat) => cat.subcategories);
   } catch {
     // Si la API falla, la página igual renderiza (grilla vacía con su estado vacío).
   }
@@ -138,7 +141,7 @@ export default function Index() {
         bottomBar={
           !editing ? (
             <div className="w-full bg-surface-2/80 border-b border-border/50 backdrop-blur-md">
-              <div className="mx-auto flex w-full max-w-7xl items-center px-4">
+              <div className="flex w-full items-center px-4 md:px-8">
                 <CategoryChips categories={categories} />
               </div>
             </div>
@@ -154,7 +157,7 @@ export default function Index() {
         )}
       </AnimatePresence>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4">
+      <main className="w-full flex-1 px-4 md:px-8">
         {!editing && <BrandStrip />}
 
         {/* Carrusel destacado (solo en la vista por defecto, sin filtros). */}

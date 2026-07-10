@@ -117,7 +117,9 @@ export function ProductCard({
           <img
             src={image}
             alt={product.name}
-            loading="lazy"
+            loading={index < 4 ? "eager" : "lazy"}
+            fetchPriority={index < 4 ? "high" : "auto"}
+            decoding="async"
             onLoad={() => setLoaded(true)}
             className={cn(
               "ease-expo h-full w-full object-contain p-6 transition duration-[600ms] will-change-transform",
@@ -135,6 +137,7 @@ export function ProductCard({
               alt=""
               aria-hidden
               loading="lazy"
+              decoding="async"
               className="ease-expo pointer-events-none absolute inset-0 h-full w-full object-contain p-6 opacity-0 transition duration-[600ms] group-hover:scale-[1.06] group-hover:opacity-100"
             />
           )}

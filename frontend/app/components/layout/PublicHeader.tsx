@@ -82,7 +82,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
   return (
     <>
     <header className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur-lg">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:gap-6">
+      <div className="flex w-full items-center gap-3 px-4 py-3 md:px-8 lg:gap-6">
         <button
           onClick={() => setIsAboutOpen(true)}
           className="group -ml-1 shrink-0 rounded-xl px-2 py-1 text-left transition-all duration-300 hover:bg-white/5 active:scale-95"
