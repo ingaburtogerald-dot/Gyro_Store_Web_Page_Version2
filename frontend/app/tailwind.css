@@ -518,6 +518,30 @@
   backdrop-filter: blur(8px);
 }
 
+/* Marquee horizontal infinito (tira de marcas). El contenido se duplica en el DOM;
+   animamos -50% para que el loop sea perfecto y sin saltos. Pausa al hover. */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@utility animate-marquee {
+  animation: marquee-x var(--marquee-duration, 38s) linear infinite;
+}
+.group\/marquee:hover .animate-marquee {
+  animation-play-state: paused;
+}
+/* Máscara de desvanecido en ambos bordes del marquee. */
+@utility marquee-mask {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+
   /* Glows de acento contenidos para el storefront (heredan --color-accent) */
 @utility shadow-accent-cta {
   box-shadow: 0 12px 30px -10px color-mix(in srgb, var(--color-accent) 55%, transparent);
@@ -531,7 +555,8 @@
   .skeleton::after,
   .animate-aurora,
   .animate-glow,
-  .animate-twinkle {
+  .animate-twinkle,
+  .animate-marquee {
     animation: none !important;
   }
   * { scroll-behavior: auto !important; }
