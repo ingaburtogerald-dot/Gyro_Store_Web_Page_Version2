@@ -438,12 +438,14 @@
   --color-surface-hover: #1c2740;
   --color-border: rgba(148, 184, 255, 0.09);
 
-  /* Acento único — cyan eléctrico calibrado (precios, focos, CTAs) */
-  --color-accent: #22d3ee;
-  --color-accent-2: #7df0fb;
-  --color-accent-hover: #06b6d4;
-  --color-grad-from: #0e7490;
-  --color-grad-to: #0891b2;
+  /* Acento único — esmeralda / verde tech calibrado (precios, focos, CTAs).
+     accent es medio-claro → los CTAs planos llevan texto oscuro (text-bg) con
+     contraste AA holgado; accent-2 es el highlight brillante para glows/hover. */
+  --color-accent: #10b981;
+  --color-accent-2: #5eead4;
+  --color-accent-hover: #059669;
+  --color-grad-from: #047857;
+  --color-grad-to: #059669;
 
   /* Texto — blanco azulado + muted legible sobre near-black (≥6:1) */
   --color-text: #eaf1ff;
@@ -469,11 +471,11 @@
      con los overrides del skin. */
   font-family: var(--font-sans);
   background-color: var(--color-bg);
-  /* Ambiente: un foco cyan frío arriba + una brasa cálida muy tenue abajo, para
+  /* Ambiente: un foco esmeralda arriba + un halo verde-teal muy tenue abajo, para
      que el fondo no sea plano ni compita con el producto. */
   background-image:
-    radial-gradient(1100px 560px at 82% -8%, rgba(34, 211, 238, 0.08), transparent 62%),
-    radial-gradient(820px 520px at -12% 108%, rgba(56, 189, 248, 0.05), transparent 60%);
+    radial-gradient(1100px 560px at 82% -8%, rgba(16, 185, 129, 0.09), transparent 62%),
+    radial-gradient(820px 520px at -12% 108%, rgba(94, 234, 212, 0.05), transparent 60%);
   background-attachment: fixed;
 }
 
@@ -515,7 +517,7 @@
   backdrop-filter: blur(8px);
 }
 
-/* Glows cyan contenidos para el storefront (también sirven en emerald) */
+  /* Glows de acento contenidos para el storefront (heredan --color-accent) */
 @utility shadow-accent-cta {
   box-shadow: 0 12px 30px -10px color-mix(in srgb, var(--color-accent) 55%, transparent);
 }

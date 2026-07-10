@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { PublicHeader } from "~/components/layout/PublicHeader";
@@ -101,6 +102,18 @@ export default function Index() {
   const searchQuery = useAppSelector((state) => state.ui.search);
   const activeCategory = useAppSelector((state) => state.ui.activeCategory);
   const hasFilters = Boolean(searchQuery.trim() || activeCategory);
+  const reduce = useReducedMotion();
+
+  // Colapso elegante de las secciones de "bienvenida" (Hero + carrusel) cuando el
+  // usuario filtra. Animar height:auto↔0 + opacity evita el salto brusco de montar/
+  // desmontar en seco (la causa del "empuje sin sentido" al elegir categoría).
+  const collapse = {
+    initial: { height: 0, opacity: 0 },
+    animate: { height: "auto" as const, opacity: 1 },
+    exit: { height: 0, opacity: 0 },
+    transition: { duration: reduce ? 0 : 0.45, ease: [0.16, 1, 0.3, 1] as const },
+    style: { overflow: "hidden" as const },
+  };
 
   // Deep-link desde el menú del admin: /?edit=1 activa el modo edición UNA vez y
   // limpia el query param. Es Redux (no la URL) la fuente de verdad del modo edición,
@@ -132,20 +145,30 @@ export default function Index() {
         }
       />
 
-      {!hasFilters && <Hero productCount={products.length} />}
+      <AnimatePresence initial={false}>
+        {!hasFilters && (
+          <motion.div key="hero" {...collapse}>
+            <Hero productCount={products.length} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4">
         {!editing && <BrandStrip />}
 
         {/* Carrusel destacado (solo en la vista por defecto, sin filtros). */}
-        {!editing && !hasFilters && (
-          <ProductCarousel
-            title="Lo Más Nuevo"
-            subtitle="Recién llegados a la tienda"
-            products={products.filter((p) => p.images?.[0]).slice(0, 12)}
-            categories={categories}
-          />
-        )}
+        <AnimatePresence initial={false}>
+          {!editing && !hasFilters && (
+            <motion.div key="carousel" {...collapse}>
+              <ProductCarousel
+                title="Lo Más Nuevo"
+                subtitle="Recién llegados a la tienda"
+                products={products.filter((p) => p.images?.[0]).slice(0, 12)}
+                categories={categories}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {editing ? (
           <SortableCatalogGrid />
