@@ -222,7 +222,7 @@ export function ProductCard({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         soldOut
           ? "cursor-not-allowed bg-surface-2 text-muted"
-          : "bg-accent text-bg hover:bg-accent-2",
+          : "bg-accent text-bg hover:bg-accent-2 hover:shadow-accent-cta",
       )}
     >
       <ShoppingCart className="h-4 w-4" />
@@ -242,11 +242,12 @@ export function ProductCard({
     whileTap: reduce ? undefined : { scale: 0.985, y: 0 },
   };
 
-  // Editorial dark: panel plano con hairline 1px (nada de glass ni glow neón).
-  // La jerarquía la carga el tipo y el borde que se aclara al hover, no la sombra.
+  // Material premium: superficie con luz cenital + hairline superior encendido y
+  // sombra profunda (card-premium). Al hover, el borde toma el acento y aparece un
+  // glow cyan contenido → la tarjeta "se enciende" sin recurrir a neón permanente.
   const shell = cn(
-    "group relative h-full overflow-hidden rounded-xl border border-white/10 bg-surface",
-    "transition-colors duration-300 hover:border-white/25",
+    "card-premium ease-expo group relative h-full overflow-hidden rounded-2xl",
+    "transition-[transform,border-color,box-shadow] duration-300 hover:border-accent/35 hover:shadow-accent-soft",
   );
 
   // Selector de variante (portal a <body>; se monta en el primer uso).

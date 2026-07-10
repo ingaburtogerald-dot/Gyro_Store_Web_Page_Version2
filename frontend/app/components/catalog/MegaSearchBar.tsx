@@ -61,30 +61,61 @@ export function MegaSearchBar({
   return (
     <div
       className={cn(
-        "ease-expo relative flex w-full items-stretch rounded-md overflow-hidden transition duration-300",
+        "ease-expo group relative flex w-full items-stretch overflow-hidden rounded-pill border bg-surface-2/70 backdrop-blur-md transition duration-300",
         focused
-          ? "ring-4 ring-accent/40 border-accent"
-          : "ring-0 border-transparent",
+          ? "border-accent/70 ring-4 ring-accent/20"
+          : "border-border hover:border-white/20",
         className,
       )}
     >
-      <input
-        ref={inputRef}
-        type="search"
-        inputMode="search"
-        value={search}
-        onChange={(e) => dispatch(setSearch(e.target.value))}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        placeholder=""
-        aria-label="Buscar productos"
+      {/* Icono de búsqueda a la izquierda (se enciende al enfocar). */}
+      <span
         className={cn(
-          "w-full bg-white pl-4 pr-10 text-base font-medium text-gray-900 outline-none",
-          tall ? "h-12" : "h-10",
+          "pointer-events-none grid shrink-0 place-items-center pl-4 pr-2 transition-colors",
+          focused ? "text-accent-2" : "text-muted",
         )}
-      />
+        aria-hidden
+      >
+        <Search className="h-[18px] w-[18px]" />
+      </span>
 
+      <div className="relative flex-1">
+        <input
+          ref={inputRef}
+          type="search"
+          inputMode="search"
+          value={search}
+          onChange={(e) => dispatch(setSearch(e.target.value))}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={idle ? "" : "Buscar productos…"}
+          aria-label="Buscar productos"
+          className={cn(
+            "w-full bg-transparent pr-10 text-[15px] font-medium text-text outline-none placeholder:text-muted",
+            "[&::-webkit-search-cancel-button]:appearance-none",
+            tall ? "h-12" : "h-11",
+          )}
+        />
 
+        {/* Placeholder "vivo": rota sugerencias reales solo cuando el input está en reposo. */}
+        {idle && (
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center overflow-hidden text-[15px] text-muted">
+            <span className="mr-1">Buscar</span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={hint}
+                initial={reduce ? false : { y: 14, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={reduce ? undefined : { y: -14, opacity: 0 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="font-semibold text-text/80"
+              >
+                {SUGERENCIAS[hint]}
+              </motion.span>
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
 
       {search && (
         <button
@@ -94,19 +125,19 @@ export function MegaSearchBar({
             inputRef.current?.focus();
           }}
           aria-label="Limpiar búsqueda"
-          className="absolute right-[52px] top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-800"
+          className="my-auto mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-white/10 hover:text-text"
         >
           <X className="h-4 w-4" />
         </button>
       )}
 
-      {/* Amazon-style search button */}
+      {/* Botón de búsqueda (acento) — texto oscuro sobre cyan para contraste AA. */}
       <button
         type="button"
         aria-label="Buscar"
-        className="flex shrink-0 items-center justify-center bg-accent px-4 text-bg transition-colors hover:bg-accent-2"
+        className="my-1 mr-1 flex shrink-0 items-center justify-center rounded-pill bg-accent px-5 text-bg transition-colors hover:bg-accent-2"
       >
-        <Search className="h-5 w-5" />
+        <Search className="h-[18px] w-[18px]" />
       </button>
     </div>
   );

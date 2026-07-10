@@ -429,36 +429,90 @@
    que el texto blanco de header/FABs siga siendo AA sin tocarlos.
    ─────────────────────────────────────────────────────────── */
 [data-skin="store"] {
-  /* Superficies — azul medianoche profundo */
-  --color-bg: #0a0f1c;
-  --color-surface: #0f1728;
-  --color-surface-2: #17223a;
-  --color-surface-hover: #1b2845;
-  --color-border: rgba(148, 197, 255, 0.12);
+  /* Superficies — near-black con undertone azul (más profundo y "caro" que el
+     navy plano anterior). Cada nivel sube ~6% de luminosidad para crear una
+     jerarquía de materiales real (bg < surface < surface-2 < hover). */
+  --color-bg: #060910;
+  --color-surface: #0d1320;
+  --color-surface-2: #151d2f;
+  --color-surface-hover: #1c2740;
+  --color-border: rgba(148, 184, 255, 0.09);
 
   /* Acento único — cyan eléctrico calibrado (precios, focos, CTAs) */
   --color-accent: #22d3ee;
-  --color-accent-2: #67e8f9;
+  --color-accent-2: #7df0fb;
   --color-accent-hover: #06b6d4;
-  --color-grad-from: #155e75;
-  --color-grad-to: #0e7490;
+  --color-grad-from: #0e7490;
+  --color-grad-to: #0891b2;
 
-  /* Texto — blanco azulado + muted legible sobre medianoche (≥6:1) */
-  --color-text: #e8eefc;
-  --color-muted: #94a3b8;
+  /* Texto — blanco azulado + muted legible sobre near-black (≥6:1) */
+  --color-text: #eaf1ff;
+  --color-muted: #8b9bb8;
 
-  /* Tipografía propia del storefront (el admin sigue en Inter/Sora) */
+  /* Tipografía del storefront: tensión display/texto real. Bricolage Grotesque
+     (display, editorial) para titulares; Plus Jakarta Sans para el cuerpo.
+     El admin conserva Inter/Sora. */
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-heading: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-heading: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+
+  /* Radios ligeramente más generosos = look premium/software. */
+  --radius-card: 20px;
+  --radius-input: 14px;
+
+  /* Sombra premium propia del store: anillo sutil + doble elevación profunda. */
+  --shadow-premium:
+    0 0 0 1px rgba(148, 184, 255, 0.06),
+    0 2px 8px -2px rgba(0, 0, 0, 0.5),
+    0 24px 48px -24px rgba(0, 0, 0, 0.75);
 
   /* body fija font/bg con los tokens de :root; aquí se re-resuelven
      con los overrides del skin. */
   font-family: var(--font-sans);
   background-color: var(--color-bg);
-  /* Ambiente: halos cyan/violeta muy sutiles (nunca compiten con el producto) */
+  /* Ambiente: un foco cyan frío arriba + una brasa cálida muy tenue abajo, para
+     que el fondo no sea plano ni compita con el producto. */
   background-image:
-    radial-gradient(900px 480px at 85% -5%, rgba(34, 211, 238, 0.07), transparent 60%),
-    radial-gradient(720px 420px at -10% 35%, rgba(139, 92, 246, 0.06), transparent 55%);
+    radial-gradient(1100px 560px at 82% -8%, rgba(34, 211, 238, 0.08), transparent 62%),
+    radial-gradient(820px 520px at -12% 108%, rgba(56, 189, 248, 0.05), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Grano finísimo sobre el fondo del store: mata el banding de los gradientes y
+   añade textura de "papel" premium. Se aplica una sola vez, fijo, sin capturar
+   eventos. */
+[data-skin="store"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* El contenido del store vive por encima del grano. */
+[data-skin="store"] > * { position: relative; z-index: 1; }
+
+/* Material de tarjeta premium: superficie con degradado sutil (luz cenital),
+   hairline superior encendido y sombra profunda. Un solo lugar → todas las
+   tarjetas del store lo heredan. */
+@utility card-premium {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-surface) 100%, transparent),
+    color-mix(in srgb, var(--color-bg) 55%, var(--color-surface))
+  );
+  border: 1px solid var(--color-border);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+    0 1px 2px -1px rgba(0, 0, 0, 0.6),
+    0 18px 40px -28px rgba(0, 0, 0, 0.8);
+}
+
+/* Chip/eyebrow de vidrio con borde de acento — para etiquetas editoriales. */
+@utility pill-glass {
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 /* Glows cyan contenidos para el storefront (también sirven en emerald) */
