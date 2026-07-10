@@ -9,7 +9,8 @@ import { PublicFooter } from "~/components/layout/PublicFooter";
 import { VariantPicker, type VariantSelection } from "~/components/catalog/VariantPicker";
 import { TikTokButton } from "~/components/catalog/TikTokButton";
 import { Button } from "~/components/ui/Button";
-import { useGetConfigQuery, type CatalogDetail } from "~/store/api/catalogApi";
+import { ProductCarousel } from "~/components/catalog/ProductCarousel";
+import { useGetConfigQuery, type CatalogDetail, type CatalogProduct, type Category } from "~/store/api/catalogApi";
 import { useAppDispatch } from "~/store/hooks";
 import { addItem, openCart } from "~/store/slices/cartSlice";
 import { formatCordobas, buildWhatsappUrl, cn } from "~/lib/utils";
@@ -25,13 +26,23 @@ export const headers: HeadersFunction = () => ({
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const origin = new URL(request.url).origin;
   let product: CatalogDetail | null = null;
+  let catalog: CatalogProduct[] = [];
+  let categories: Category[] = [];
   try {
-    const res = await fetch(`${origin}/api/catalog/${params.id}`);
-    if (res.ok) product = (await res.json()) as CatalogDetail;
+    // Producto + catálogo + categorías en paralelo: el catálogo alimenta el
+    // carrusel de relacionados ("Tal vez te pueda interesar").
+    const [pRes, listRes, cRes] = await Promise.all([
+      fetch(`${origin}/api/catalog/${params.id}`),
+      fetch(`${origin}/api/catalog`),
+      fetch(`${origin}/api/config`),
+    ]);
+    if (pRes.ok) product = (await pRes.json()) as CatalogDetail;
+    if (listRes.ok) catalog = (await listRes.json()) as CatalogProduct[];
+    if (cRes.ok) categories = ((await cRes.json()) as { categories?: Category[] }).categories ?? [];
   } catch {
     /* product queda null → el componente muestra "no encontrado" */
   }
-  return { product, url: request.url, origin };
+  return { product, catalog, categories, url: request.url, origin };
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -89,7 +100,7 @@ export default function ProductDetail() {
   const { id } = useParams();
   // El producto viene del loader SSR (mejor FCP y meta para compartir). Ya no se
   // re-pide en cliente con RTK Query: era un fetch duplicado.
-  const { product } = useLoaderData<typeof loader>();
+  const { product, catalog, categories } = useLoaderData<typeof loader>();
   const [lightbox, setLightbox] = useState(false);
   const dispatch = useAppDispatch();
   const { data: config } = useGetConfigQuery();
@@ -98,7 +109,7 @@ export default function ProductDetail() {
   const [selection, setSelection] = useState<VariantSelection | null>(null);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const [isHovered, setIsHovered] = useState(false);
-  const [activeTab, setActiveTab] = useState<"desc" | "specs">("desc");
+  const [activeTab, setActiveTab] = useState<"opciones" | "desc" | "specs">("opciones");
   const [isAdded, setIsAdded] = useState(false);
 
   const selectedVariant = selection?.variant ?? product?.variants[0];
@@ -138,6 +149,15 @@ export default function ProductDetail() {
     const byColor = selection?.color ? product?.imagesByColor?.[selection.color] : undefined;
     return byColor && byColor.length ? byColor : product?.images ?? [];
   }, [selection?.color, product?.imagesByColor, product?.images]);
+
+  // Relacionados ("Tal vez te pueda interesar"): misma categoría, excluyendo el
+  // producto actual; si hay pocos, se rellena con otros del catálogo.
+  const related = useMemo(() => {
+    if (!product) return [];
+    const others = catalog.filter((p) => p.id !== product.id);
+    const sameCat = others.filter((p) => p.category === product.category);
+    return (sameCat.length >= 4 ? sameCat : others).slice(0, 12);
+  }, [catalog, product]);
 
   function add() {
     if (!product || !selectedVariant) return;
@@ -391,190 +411,31 @@ export default function ProductDetail() {
                     : `${stockCount} unidades disponibles`}
               </motion.p>
 
-              {/* Selector de variantes multi-eje */}
-              {product.variants.length > 0 && (
-                <motion.div variants={itemFade} className="mt-8">
-                  <VariantPicker
-                    variants={product.variants}
-                    axisLabels={product.axisLabels}
-                    onChange={(s) => {
-                      setSelection(s);
-                      setActiveImage(0);
-                    }}
-                  />
-                </motion.div>
-              )}
-
-              {/* Selector de cantidad */}
-              <motion.div variants={itemFade} className="mt-8">
-                <p className="mb-3 text-sm font-semibold text-text/80">Cantidad</p>
-                <div className="flex items-center rounded-2xl border border-border bg-surface-2 p-1 w-fit shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}
-                    className="flex h-10 w-12 items-center justify-center rounded-xl text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95"
-                    aria-label="Quitar uno"
-                  >
-                    −
-                  </button>
-                  <span className="w-12 text-center text-base font-bold">{qty}</span>
-                  <button
-                    type="button"
-                    onClick={() => setQty((q) => q + 1)}
-                    className="flex h-10 w-12 items-center justify-center rounded-xl text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95"
-                    aria-label="Agregar uno"
-                  >
-                    +
-                  </button>
-                </div>
-              </motion.div>
-
-              {/* Bundles de mayoreo: exactamente 3 cards (Tercios / Media docena / Docena) */}
-              {discounts.length > 0 && (
-                <motion.div variants={itemFade} className="mt-8">
-                  <p className="mb-3 text-sm font-semibold flex items-center gap-2 text-text/80">
-                    <ShieldCheck className="h-4 w-4 text-accent" /> Ahorra comprando más
-                  </p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {bulkBundles.map((b) => {
-                      const t = discounts.find((d) => b.qty >= d.minQty && (d.maxQty == null || b.qty <= d.maxQty)) ?? null;
-                      const pct = t?.discountPercent ?? 0;
-                      const u = Math.round(price * (1 - pct / 100));
-                      const saved = Math.round(price - u); // ahorro por unidad (C$)
-                      const active = qty === b.qty;
-                      return (
-                        <motion.button
-                          whileHover={{ scale: 1.02, y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          type="button"
-                          key={b.qty}
-                          onClick={() => setQty(b.qty)}
-                          className={cn(
-                            "relative flex flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all overflow-hidden",
-                            active
-                              ? "border-accent bg-accent/5 ring-1 ring-accent shadow-md shadow-accent/10"
-                              : "border-border hover:border-accent/30 bg-surface-2",
-                          )}
-                        >
-                          <span className={cn("text-xs font-semibold uppercase tracking-wide", active ? "text-accent" : "text-muted")}>{b.label}</span>
-                          <span className="mt-0.5 text-[10px] text-muted">{b.qty} unidades</span>
-                          <span className="mt-1.5 font-heading text-xl font-bold text-text">{formatCordobas(u)}</span>
-                          <span className="text-[10px] font-medium text-muted">por unidad</span>
-                          {saved > 0 ? (
-                            <div className="mt-2 w-full rounded-md bg-accent/12 py-1 text-[11px] font-bold tabular-nums text-accent-2">
-                              Ahorras {formatCordobas(saved)} c/u
-                            </div>
-                          ) : (
-                            <div className="mt-2 w-full py-1 text-[11px] font-medium text-muted/70">Precio normal</div>
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Banner de Upsell dinámico */}
-                  {discounts.length > 0 && (
-                    <motion.div 
-                      layout
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-4 flex items-center gap-2.5 rounded-2xl bg-accent/10 border border-accent/20 px-4.5 py-3 text-sm text-accent-2"
-                    >
-                      <TrendingUp className="h-4 w-4 shrink-0" />
-                      <p className="leading-snug font-medium">
-                        {nextTier ? (
-                          <>
-                            Agregá <span className="font-bold text-white">{nextTier.minQty - qty} {nextTier.minQty - qty === 1 ? "unidad" : "unidades"}</span> más para ahorrar un <span className="font-bold text-white">{nextTier.discountPercent}%</span> por unidad.
-                          </>
-                        ) : (
-                          <>
-                            ¡Felicidades! Estás aprovechando el descuento máximo del <span className="font-bold text-white">{tier?.discountPercent}%</span> por unidad.
-                          </>
-                        )}
-                      </p>
-                    </motion.div>
-                  )}
-                </motion.div>
-              )}
-
-              {/* Botones de acción principales */}
-              <motion.div variants={itemFade} className="mt-10 flex flex-col gap-4 sm:flex-row">
-                <Button
-                  className={cn(
-                    "ease-expo flex-1 h-14 rounded-2xl text-base transition duration-300 hover:-translate-y-0.5 active:scale-95",
-                    isAdded && "bg-whatsapp hover:bg-whatsapp border-transparent text-white",
-                  )}
-                  onClick={add}
-                  disabled={!inStock}
-                >
-                  {isAdded ? (
-                    <>
-                      <motion.span
-                        initial={{ scale: 0.6, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                        className="mr-2 inline-flex"
-                      >
-                        <Check className="h-5 w-5" />
-                      </motion.span>{" "}
-                      ¡Agregado con éxito!
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingBag className="h-5 w-5 mr-2" /> Agregar al carrito
-                    </>
-                  )}
-                </Button>
-                <a href={whatsappUrl} target="_blank" rel="noreferrer" className="flex-1">
-                  <Button
-                    variant="whatsapp"
-                    className="ease-expo w-full h-auto py-3.5 px-4 rounded-2xl text-base transition duration-300 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-3"
-                  >
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7 shrink-0">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.878-.788-1.471-1.761-1.643-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
-                    </svg>
-                    <span className="text-left leading-tight">Compras al por mayor<br className="hidden sm:inline" /> consulta por WhatsApp</span>
-                  </Button>
-                </a>
-              </motion.div>
-
-              {/* Trust Box: envíos y garantía consolidados (reemplaza textos sueltos) */}
-              <motion.div variants={itemFade} className="mt-6 space-y-3 rounded-2xl bg-surface-2/50 p-5">
-                <div className="flex items-center gap-3">
-                  <Bike className="h-5 w-5 shrink-0 text-accent" />
-                  <p className="text-sm text-muted">
-                    <span className="font-semibold text-text">Delivery en Managua</span> (costo extra)
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Package className="h-5 w-5 shrink-0 text-accent" />
-                  <p className="text-sm text-muted">
-                    Envíos a departamentos por <span className="font-semibold text-text">Cargo Trans</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Banknote className="h-5 w-5 shrink-0 text-accent" />
-                  <p className="text-sm text-muted">
-                    <span className="font-semibold text-text">Pago contra entrega</span>: efectivo o transferencia
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="h-5 w-5 shrink-0 text-accent" />
-                  <p className="text-sm text-muted">
-                    <span className="font-semibold text-text">Garantía de 1 mes</span> por defectos de fábrica
-                  </p>
-                </div>
-              </motion.div>
-
               {/* Contenedor Unificado en Pestañas */}
-              <motion.div variants={itemFade} className="mt-12 rounded-3xl border border-border/60 bg-surface-2/40 p-6 sm:p-8">
+              <motion.div variants={itemFade} className="mt-8 rounded-3xl border border-border/60 bg-surface-2/40 p-6 sm:p-8">
                 {/* Cabecera de pestañas */}
                 <div className="flex border-b border-border/40 pb-px mb-6 overflow-x-auto scrollbar-none gap-6">
                   <button
                     type="button"
+                    onClick={() => setActiveTab("opciones")}
+                    className={cn(
+                      "relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none cursor-pointer whitespace-nowrap",
+                      activeTab === "opciones" ? "text-text" : "text-muted hover:text-text"
+                    )}
+                  >
+                    <span>Opciones</span>
+                    {activeTab === "opciones" && (
+                      <motion.div
+                        layoutId="activeTabUnderline"
+                        className="absolute bottom-0 inset-x-0 h-0.5 bg-accent"
+                      />
+                    )}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setActiveTab("desc")}
                     className={cn(
-                      "relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none cursor-pointer",
+                      "relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none cursor-pointer whitespace-nowrap",
                       activeTab === "desc" ? "text-text" : "text-muted hover:text-text"
                     )}
                   >
@@ -591,7 +452,7 @@ export default function ProductDetail() {
                       type="button"
                       onClick={() => setActiveTab("specs")}
                       className={cn(
-                        "relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none cursor-pointer",
+                        "relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none cursor-pointer whitespace-nowrap",
                         activeTab === "specs" ? "text-text" : "text-muted hover:text-text"
                       )}
                     >
@@ -606,8 +467,198 @@ export default function ProductDetail() {
                   )}
                 </div>
 
-                {/* Contenido de las pestañas con animación de desvanecimiento */}
+                {/* Contenido de las pestañas */}
                 <AnimatePresence mode="wait">
+                  {activeTab === "opciones" && (
+                    <motion.div
+                      key="opciones"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col focus:outline-none"
+                    >
+                      {/* Selector de variantes multi-eje */}
+                      {product.variants.length > 0 && (
+                        <div className="mb-8">
+                          <VariantPicker
+                            variants={product.variants}
+                            axisLabels={product.axisLabels}
+                            onChange={(s) => {
+                              setSelection(s);
+                              setActiveImage(0);
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Selector de cantidad */}
+                      <div className="mb-8">
+                        <p className="mb-3 text-sm font-semibold text-text/80">Cantidad</p>
+                        <div className="flex items-center rounded-2xl border border-border bg-surface-2 p-1 w-fit shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => setQty((q) => Math.max(1, q - 1))}
+                            className="flex h-10 w-12 items-center justify-center rounded-xl text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95"
+                            aria-label="Quitar uno"
+                          >
+                            −
+                          </button>
+                          <span className="w-12 text-center text-base font-bold">{qty}</span>
+                          <button
+                            type="button"
+                            onClick={() => setQty((q) => q + 1)}
+                            className="flex h-10 w-12 items-center justify-center rounded-xl text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95"
+                            aria-label="Agregar uno"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bundles de mayoreo */}
+                      {discounts.length > 0 && (
+                        <div className="mb-8">
+                          <p className="mb-3 text-sm font-semibold flex items-center gap-2 text-text/80">
+                            <ShieldCheck className="h-4 w-4 text-accent" /> Ahorra comprando más
+                          </p>
+                          <div className="grid grid-cols-3 gap-3">
+                            {bulkBundles.map((b) => {
+                              const t = discounts.find((d) => b.qty >= d.minQty && (d.maxQty == null || b.qty <= d.maxQty)) ?? null;
+                              const pct = t?.discountPercent ?? 0;
+                              const u = Math.round(price * (1 - pct / 100));
+                              const saved = Math.round(price - u);
+                              const active = qty === b.qty;
+                              return (
+                                <motion.button
+                                  whileHover={{ scale: 1.02, y: -2 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  type="button"
+                                  key={b.qty}
+                                  onClick={() => setQty(b.qty)}
+                                  className={cn(
+                                    "relative flex flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all overflow-hidden",
+                                    active
+                                      ? "border-accent bg-accent/5 ring-1 ring-accent shadow-md shadow-accent/10"
+                                      : "border-border hover:border-accent/30 bg-surface-2",
+                                  )}
+                                >
+                                  <span className={cn("text-xs font-semibold uppercase tracking-wide", active ? "text-accent" : "text-muted")}>{b.label}</span>
+                                  <span className="mt-0.5 text-[10px] text-muted">{b.qty} unidades</span>
+                                  <span className="mt-1.5 font-heading text-xl font-bold text-text">{formatCordobas(u)}</span>
+                                  <span className="text-[10px] font-medium text-muted">por unidad</span>
+                                  {saved > 0 ? (
+                                    <div className="mt-2 w-full rounded-md bg-accent/12 py-1 text-[11px] font-bold tabular-nums text-accent-2">
+                                      Ahorras {formatCordobas(saved)} c/u
+                                    </div>
+                                  ) : (
+                                    <div className="mt-2 w-full py-1 text-[11px] font-medium text-muted/70">Precio normal</div>
+                                  )}
+                                </motion.button>
+                              );
+                            })}
+                          </div>
+
+                          {nextTier && (
+                            <motion.div 
+                              layout
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="mt-4 flex items-center gap-2.5 rounded-2xl bg-accent/10 border border-accent/20 px-4.5 py-3 text-sm text-accent-2"
+                            >
+                              <TrendingUp className="h-4 w-4 shrink-0" />
+                              <p className="leading-snug font-medium">
+                                Agregá <span className="font-bold text-white">{nextTier.minQty - qty} {nextTier.minQty - qty === 1 ? "unidad" : "unidades"}</span> más para ahorrar un <span className="font-bold text-white">{nextTier.discountPercent}%</span> por unidad.
+                              </p>
+                            </motion.div>
+                          )}
+                          {!nextTier && tier && (
+                            <motion.div 
+                              layout
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="mt-4 flex items-center gap-2.5 rounded-2xl bg-accent/10 border border-accent/20 px-4.5 py-3 text-sm text-accent-2"
+                            >
+                              <TrendingUp className="h-4 w-4 shrink-0" />
+                              <p className="leading-snug font-medium">
+                                ¡Felicidades! Estás aprovechando el descuento máximo del <span className="font-bold text-white">{tier.discountPercent}%</span> por unidad.
+                              </p>
+                            </motion.div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Botones de acción principales */}
+                      <div className="mb-6 flex flex-col gap-4 sm:flex-row">
+                        <Button
+                          className={cn(
+                            "ease-expo flex-1 h-14 rounded-2xl text-base transition duration-300 hover:-translate-y-0.5 active:scale-95",
+                            isAdded && "bg-whatsapp hover:bg-whatsapp border-transparent text-white",
+                          )}
+                          onClick={add}
+                          disabled={!inStock}
+                        >
+                          {isAdded ? (
+                            <>
+                              <motion.span
+                                initial={{ scale: 0.6, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                                className="mr-2 inline-flex"
+                              >
+                                <Check className="h-5 w-5" />
+                              </motion.span>{" "}
+                              ¡Agregado con éxito!
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingBag className="h-5 w-5 mr-2" /> Agregar al carrito
+                            </>
+                          )}
+                        </Button>
+                        <a href={whatsappUrl} target="_blank" rel="noreferrer" className="flex-1">
+                          <Button
+                            variant="whatsapp"
+                            className="ease-expo w-full h-auto py-3.5 px-4 rounded-2xl text-base transition duration-300 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-3"
+                          >
+                            <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7 shrink-0">
+                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.878-.788-1.471-1.761-1.643-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
+                            </svg>
+                            <span className="text-left leading-tight">Compras al por mayor<br className="hidden sm:inline" /> consulta por WhatsApp</span>
+                          </Button>
+                        </a>
+                      </div>
+
+                      {/* Trust Box */}
+                      <div className="space-y-3 rounded-2xl bg-surface-2/50 p-5 mt-2">
+                        <div className="flex items-center gap-3">
+                          <Bike className="h-5 w-5 shrink-0 text-accent" />
+                          <p className="text-sm text-muted">
+                            <span className="font-semibold text-text">Delivery en Managua</span> (costo extra)
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Package className="h-5 w-5 shrink-0 text-accent" />
+                          <p className="text-sm text-muted">
+                            Envíos a departamentos por <span className="font-semibold text-text">Cargo Trans</span>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Banknote className="h-5 w-5 shrink-0 text-accent" />
+                          <p className="text-sm text-muted">
+                            <span className="font-semibold text-text">Pago contra entrega</span>: efectivo o transferencia
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <ShieldCheck className="h-5 w-5 shrink-0 text-accent" />
+                          <p className="text-sm text-muted">
+                            <span className="font-semibold text-text">Garantía de 1 mes</span> por defectos de fábrica
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {activeTab === "desc" && (
                     <motion.div
                       key="desc"
@@ -634,7 +685,7 @@ export default function ProductDetail() {
                     </motion.div>
                   )}
 
-                  {activeTab === "specs" && product.specs && product.specs.length > 0 && (
+                  {activeTab === "specs" && (
                     <motion.div
                       key="specs"
                       initial={{ opacity: 0, y: 10 }}
@@ -643,22 +694,30 @@ export default function ProductDetail() {
                       transition={{ duration: 0.2 }}
                       className="focus:outline-none"
                     >
-                      {/* Grilla de specs con hairlines: el gap-px sobre bg-border deja
-                          ver líneas de 1px entre celdas (look editorial de ficha técnica). */}
-                      <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
-                        {product.specs.map((s: any, i: number) => (
-                          <div key={i} className="bg-surface-2 p-4">
-                            <dt className="text-xs font-light uppercase tracking-wide text-muted">{s.label}</dt>
-                            <dd className="mt-1 break-words font-bold text-text">{s.value}</dd>
-                          </div>
+                      <ul className="divide-y divide-border/50 rounded-2xl border border-border/50 bg-surface-2">
+                        {product.specs?.map((s: any, i: number) => (
+                          <li key={i} className="flex px-5 py-4">
+                            <span className="w-1/3 text-sm font-medium text-text">{s.label}</span>
+                            <span className="w-2/3 text-sm text-muted">{s.value}</span>
+                          </li>
                         ))}
-                      </dl>
+                      </ul>
                     </motion.div>
                   )}
-
                 </AnimatePresence>
               </motion.div>
             </motion.div>
+          </div>
+        )}
+
+        {/* Relacionados: reusa el carrusel del home. */}
+        {product && related.length > 0 && (
+          <div className="mt-16 border-t border-white/5 pt-8">
+            <ProductCarousel
+              title="Tal vez te pueda interesar"
+              products={related}
+              categories={categories}
+            />
           </div>
         )}
       </main>
