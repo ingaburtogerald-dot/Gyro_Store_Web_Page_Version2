@@ -134,6 +134,7 @@ export function CatalogEditorDrawer({
     setTemplateId(value);
     const t = templates.find((x) => x.id === value);
     if (t) {
+      if (t.name) setName(t.name);
       if (t.description) setDescription(t.description);
       if (t.category) setCategory(t.category);
     }
@@ -292,7 +293,12 @@ export function CatalogEditorDrawer({
                 {/* ── Paso 1: Información básica ── */}
                 {step === 1 && (
                   <div className="mx-auto max-w-xl space-y-4">
-                    <Field label="Nombre"><input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus /></Field>
+                    <Field label="Categoría">
+                      <select className="input" value={category} onChange={(e) => changeCategory(e.target.value)}>
+                        <option value="">Selecciona…</option>
+                        {config?.categories.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                      </select>
+                    </Field>
                     <Field label="Plantilla">
                       {templates.length === 0 ? (
                         <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted">
@@ -301,18 +307,15 @@ export function CatalogEditorDrawer({
                       ) : (
                         <select className="input" value={templateId} onChange={(e) => changeTemplate(e.target.value)}>
                           <option value="">Selecciona una plantilla…</option>
-                          {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                          {templates.filter(t => !category || t.category === category).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                       )}
                     </Field>
+                    <Field label="Nombre">
+                      <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+                    </Field>
                     <Field label="Descripción">
                       <textarea className="input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Escribe aquí la descripción detallada del producto…" />
-                    </Field>
-                    <Field label="Categoría">
-                      <select className="input" value={category} onChange={(e) => changeCategory(e.target.value)}>
-                        <option value="">Selecciona…</option>
-                        {config?.categories.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-                      </select>
                     </Field>
                   </div>
                 )}

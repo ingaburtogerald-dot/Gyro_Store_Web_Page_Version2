@@ -6,7 +6,9 @@ import { baseApi } from "./baseApi";
 export interface Category {
   id: string;
   name: string;
-  icon: string;
+  /** Emoji o glifo opcional; muchas categorías no lo tienen (look editorial). */
+  icon?: string;
+  subcategories?: { id: string; name: string }[];
 }
 
 // Escalón de descuento por cantidad (compra de más de 1 unidad).

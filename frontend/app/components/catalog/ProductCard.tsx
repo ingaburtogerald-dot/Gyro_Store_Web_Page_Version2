@@ -43,6 +43,8 @@ export function ProductCard({
   const [loaded, setLoaded] = useState(false);
   const category = categories.find((c) => c.id === product.category);
   const image = product.images?.[0];
+  // 2ª foto para el hover-swap (estilo simpletechnic): crossfade al pasar el mouse.
+  const hoverImage = product.images?.[1];
   const soldOut = (product.stock ?? 0) <= 0;
   const compareAt = product.compareAtPrice ?? 0;
   const onSale = compareAt > product.price;
@@ -111,19 +113,32 @@ export function ProductCard({
       </div>
 
       {image ? (
-        <img
-          src={image}
-          alt={product.name}
-          loading="lazy"
-          onLoad={() => setLoaded(true)}
-          className={cn(
-            "ease-expo h-full w-full object-contain p-6 transition duration-[600ms] will-change-transform",
-            "group-hover:scale-[1.06]",
-            soldOut && "opacity-40 grayscale",
-            loaded ? "scale-100 blur-0 opacity-100" : "scale-105 blur-md opacity-0",
+        <>
+          <img
+            src={image}
+            alt={product.name}
+            loading="lazy"
+            onLoad={() => setLoaded(true)}
+            className={cn(
+              "ease-expo h-full w-full object-contain p-6 transition duration-[600ms] will-change-transform",
+              "group-hover:scale-[1.06]",
+              hoverImage && !soldOut && "group-hover:opacity-0",
+              soldOut && "opacity-40 grayscale",
+              loaded ? "scale-100 blur-0 opacity-100" : "scale-105 blur-md opacity-0",
+            )}
+            style={{ viewTransitionName: `vt-product-${product.id}` } as React.CSSProperties}
+          />
+          {/* Foto 2 revelada al hover (crossfade) */}
+          {hoverImage && !soldOut && (
+            <img
+              src={hoverImage}
+              alt=""
+              aria-hidden
+              loading="lazy"
+              className="ease-expo pointer-events-none absolute inset-0 h-full w-full object-contain p-6 opacity-0 transition duration-[600ms] group-hover:scale-[1.06] group-hover:opacity-100"
+            />
           )}
-          style={{ viewTransitionName: `vt-product-${product.id}` } as React.CSSProperties}
-        />
+        </>
       ) : (
         <div className="grid h-full place-items-center text-muted">
           <ImageOff className="h-8 w-8" />
@@ -151,7 +166,7 @@ export function ProductCard({
       prefetch="intent"
       viewTransition
       className={cn(
-        "ease-expo line-clamp-2 font-semibold leading-snug text-text transition-colors group-hover:text-accent-2",
+        "ease-expo line-clamp-2 font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2",
         isList ? "text-lg" : "text-[0.95rem]",
       )}
     >
@@ -203,11 +218,11 @@ export function ProductCard({
       aria-haspopup={needsPicker ? "dialog" : undefined}
       aria-label={soldOut ? "Producto agotado" : `Agregar ${product.name} al carrito`}
       className={cn(
-        "ease-expo flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition duration-300 active:scale-[0.97]",
+        "ease-expo flex h-11 w-full items-center justify-center gap-2 rounded-lg text-sm font-bold transition duration-300 active:translate-y-px active:scale-[0.98]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         soldOut
           ? "cursor-not-allowed bg-surface-2 text-muted"
-          : "bg-accent text-bg hover:bg-accent-2 hover:shadow-accent-cta",
+          : "bg-accent text-bg hover:bg-accent-2",
       )}
     >
       <ShoppingCart className="h-4 w-4" />
@@ -221,14 +236,17 @@ export function ProductCard({
     whileInView: { opacity: 1, y: 0 },
     viewport: { once: true, margin: "-40px" },
     transition: { duration: 0.5, delay: (index % 4) * 0.06, ease: [0.16, 1, 0.3, 1] as const },
-    whileHover: reduce
-      ? undefined
-      : { y: -4, scale: 1.02, transition: { type: "spring" as const, stiffness: 300, damping: 22 } },
+    // Editorial: la tarjeta se ELEVA (no crece); el "zoom" queda solo para la foto.
+    whileHover: reduce ? undefined : { y: -4, transition: { type: "spring" as const, stiffness: 260, damping: 24 } },
+    // Tactile push: hundir levemente al tocar (feedback físico sin rebote).
+    whileTap: reduce ? undefined : { scale: 0.985, y: 0 },
   };
 
+  // Editorial dark: panel plano con hairline 1px (nada de glass ni glow neón).
+  // La jerarquía la carga el tipo y el borde que se aclara al hover, no la sombra.
   const shell = cn(
-    "group relative h-full overflow-hidden rounded-2xl border border-accent/15 bg-white/[0.04] backdrop-blur-md",
-    "transition-[border-color,box-shadow] duration-300 hover:border-accent/50 hover:shadow-accent-soft",
+    "group relative h-full overflow-hidden rounded-xl border border-white/10 bg-surface",
+    "transition-colors duration-300 hover:border-white/25",
   );
 
   // Selector de variante (portal a <body>; se monta en el primer uso).

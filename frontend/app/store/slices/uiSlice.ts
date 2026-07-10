@@ -17,6 +17,7 @@ export interface UiState {
   sidebarOpen: boolean; // sidebar del admin en móvil (overlay)
   sidebarCollapsed: boolean; // sidebar del admin en escritorio (oculto/visible)
   activeModal: string | null;
+  publicSidebarOpen: boolean; // sidebar de Amazon (público)
 }
 
 const initialState: UiState = {
@@ -31,6 +32,7 @@ const initialState: UiState = {
   sidebarOpen: false,
   sidebarCollapsed: false,
   activeModal: null,
+  publicSidebarOpen: false,
 };
 
 const uiSlice = createSlice({
@@ -89,6 +91,12 @@ const uiSlice = createSlice({
     closeModal(state) {
       state.activeModal = null;
     },
+    openPublicSidebar(state) {
+      state.publicSidebarOpen = true;
+    },
+    closePublicSidebar(state) {
+      state.publicSidebarOpen = false;
+    },
   },
 });
 
@@ -109,6 +117,8 @@ export const {
   setSidebarCollapsed,
   openModal,
   closeModal,
+  openPublicSidebar,
+  closePublicSidebar,
 } = uiSlice.actions;
 export default uiSlice.reducer;
 

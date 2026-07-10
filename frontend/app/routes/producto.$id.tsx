@@ -214,16 +214,8 @@ export default function ProductDetail() {
             {/* Galería (sticky) */}
             <div className="md:sticky md:top-24 h-fit">
               <div className="relative w-full group/gallery">
-                {/* Ambient Glow */}
-                <div className="absolute inset-4 -z-10 overflow-hidden rounded-[2rem] filter blur-3xl opacity-25 pointer-events-none transition-all duration-700 scale-95">
-                  {gallery[activeImage] ?? gallery[0] ? (
-                    <img
-                      src={gallery[activeImage] ?? gallery[0]}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : null}
-                </div>
+                {/* Sin glow ambiental: el product-stage ya aporta profundidad editorial
+                    con su foco radial. Las hairlines y el tipo cargan la jerarquía. */}
 
                 <button
                   type="button"
@@ -334,7 +326,7 @@ export default function ProductDetail() {
                 {product.badges && product.badges.length > 0 && (
                   <div className="mb-3 flex flex-wrap gap-2">
                     {product.badges.map((b) => (
-                      <span key={b} className="rounded-pill bg-accent/15 px-3 py-1 text-xs font-bold tracking-wide text-accent-2 shadow-sm shadow-accent/5">
+                      <span key={b} className="rounded-pill bg-accent/15 px-3 py-1 text-xs font-bold tracking-wide text-accent-2 ring-1 ring-accent/20">
                         {b}
                       </span>
                     ))}
@@ -342,7 +334,7 @@ export default function ProductDetail() {
                 )}
 
                 <div className="flex items-start justify-between gap-4">
-                  <h1 className="font-heading text-[clamp(1.9rem,5vw,2.75rem)] font-bold leading-[1.1] tracking-[-0.02em] text-balance text-text">
+                  <h1 className="font-heading text-[clamp(2rem,5.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-balance text-text">
                     {selectedVariant ? selectedVariant.name : baseName}
                   </h1>
                   <button
@@ -623,7 +615,7 @@ export default function ProductDetail() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.2 }}
-                      className="text-sm md:text-base leading-relaxed text-muted whitespace-pre-wrap focus:outline-none"
+                      className="max-w-[65ch] whitespace-pre-wrap text-sm leading-relaxed text-muted focus:outline-none md:text-base"
                     >
                       {product.description ? (
                         <div dangerouslySetInnerHTML={{ __html: product.description.replace(/\n/g, '<br/>') }} />
@@ -651,16 +643,16 @@ export default function ProductDetail() {
                       transition={{ duration: 0.2 }}
                       className="focus:outline-none"
                     >
-                      <table className="w-full text-sm">
-                        <tbody>
-                          {product.specs.map((s: any, i: number) => (
-                            <tr key={i} className="group border-b border-border/40 last:border-0 hover:bg-surface/40 transition-colors">
-                              <td className="py-3.5 pr-4 text-muted whitespace-nowrap">{s.label}</td>
-                              <td className="py-3.5 font-semibold text-text text-right break-words">{s.value}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      {/* Grilla de specs con hairlines: el gap-px sobre bg-border deja
+                          ver líneas de 1px entre celdas (look editorial de ficha técnica). */}
+                      <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
+                        {product.specs.map((s: any, i: number) => (
+                          <div key={i} className="bg-surface-2 p-4">
+                            <dt className="text-xs font-light uppercase tracking-wide text-muted">{s.label}</dt>
+                            <dd className="mt-1 break-words font-bold text-text">{s.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
                     </motion.div>
                   )}
 

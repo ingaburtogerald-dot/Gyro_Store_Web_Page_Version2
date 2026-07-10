@@ -5,12 +5,14 @@ import { PublicHeader } from "~/components/layout/PublicHeader";
 import { PublicFooter } from "~/components/layout/PublicFooter";
 import { Hero } from "~/components/catalog/Hero";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
+import { ProductCarousel } from "~/components/catalog/ProductCarousel";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
 import { BrandStrip } from "~/components/catalog/BrandStrip";
 import { CategoryChips } from "~/components/catalog/CategoryChips";
 import { FilterSidebar } from "~/components/catalog/FilterSidebar";
 import { FilterFab } from "~/components/catalog/FilterFab";
 import { FilterSheet } from "~/components/catalog/FilterSheet";
+import { PublicSidebar } from "~/components/layout/PublicSidebar";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectEditMode, selectIsAdmin, setEditMode } from "~/store/slices/authSlice";
@@ -37,6 +39,30 @@ export async function loader({ request }: LoaderFunctionArgs) {
     ]);
     if (pRes.ok) products = (await pRes.json()) as CatalogProduct[];
     if (cRes.ok) categories = ((await cRes.json()) as { categories?: Category[] }).categories ?? [];
+    
+    // MOCK: Override categories with the user's specific list
+    categories = [
+      { 
+        id: "audifonos-in-ear", 
+        name: "Audífonos In Ear",
+        subcategories: [
+          { id: "8SfJHhV1qyrc8RgmXVfw", name: "KZ EDX Pro X" },
+          { id: "bKBxJnxVkoon9W547X0w", name: "KZ Castor Harman" },
+          { id: "SqdEZCJuq8Jb0nUGSbtY", name: "KZ Castor Bass" }
+        ]
+      },
+      { id: "accesorios-kz", name: "Accesorios para audífonos KZ" },
+      { 
+        id: "adaptador-kz", 
+        name: "Adaptador Bluetooth para audífonos KZ",
+        subcategories: [
+          { id: "ojFAh1SZvi0E0wbilLlw", name: "KZ AZ09" }
+        ]
+      },
+      { id: "accesorios-pc", name: "Accesorios Para computadores" },
+      { id: "accesorios-moto", name: "Accesorios Para moto" },
+      { id: "accesorios-gaming", name: "Accesorios para gaming variados" },
+    ];
   } catch {
     // Si la API falla, la página igual renderiza (grilla vacía con su estado vacío).
   }
@@ -46,7 +72,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const origin = data?.origin ?? "";
   const img = `${origin}/logo.jpg`;
-  const title = "Gyro Store · Electrónica importada en Managua";
+  const title = "Gyro Store";
   const description = "Audífonos KZ, adaptadores Bluetooth y accesorios para PC en Managua, Nicaragua.";
   return [
     { title },
@@ -110,8 +136,17 @@ export default function Index() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4">
         {!editing && <BrandStrip />}
-        {/* Sub-nav de categorías se movió arriba del Hero */}
-        
+
+        {/* Carrusel destacado (solo en la vista por defecto, sin filtros). */}
+        {!editing && !hasFilters && (
+          <ProductCarousel
+            title="Lo Más Nuevo"
+            subtitle="Recién llegados a la tienda"
+            products={products.filter((p) => p.images?.[0]).slice(0, 12)}
+            categories={categories}
+          />
+        )}
+
         {editing ? (
           <SortableCatalogGrid />
         ) : (
@@ -131,6 +166,7 @@ export default function Index() {
         <>
           <FilterFab />
           <FilterSheet />
+          <PublicSidebar categories={categories} />
         </>
       )}
     </div>
