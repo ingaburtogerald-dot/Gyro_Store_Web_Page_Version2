@@ -106,7 +106,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
               onClick={() => dispatch(toggleEditMode())}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-pill border px-3 py-2 text-sm transition-colors",
-                editMode ? "border-transparent bg-gradient-accent text-white" : "border-border text-muted hover:text-text",
+                editMode ? "border-transparent bg-accent font-semibold text-bg" : "border-border text-muted hover:text-text",
               )}
               title="Modo edición del catálogo"
             >
@@ -121,7 +121,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
           {status === "authenticated" ? (
             <Link
               to={roleLandingPath(roles)}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-gradient-accent px-4 py-2 text-sm font-semibold text-white shadow-md shadow-accent/25 transition-all hover:shadow-lg hover:shadow-accent/40 hover:brightness-110 active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-bg shadow-md shadow-accent/25 transition-all hover:bg-accent-hover hover:shadow-lg hover:shadow-accent/40 active:scale-95"
               title="Centro de Administración"
             >
               <LayoutDashboard className="h-4 w-4" />
