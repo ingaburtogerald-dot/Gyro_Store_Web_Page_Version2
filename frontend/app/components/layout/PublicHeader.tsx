@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@remix-run/react";
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
-import { KeyRound, Pencil, LayoutDashboard, ShoppingBag } from "lucide-react";
+import { KeyRound, Pencil, ShieldCheck, ShoppingCart } from "lucide-react";
 import { Logo } from "~/components/ui/Logo";
 import { MegaSearchBar } from "~/components/catalog/MegaSearchBar";
 import { CartDrawer } from "~/components/cart/CartDrawer";
@@ -39,7 +39,7 @@ function CartButton() {
       aria-label={count > 0 ? `Abrir carrito, ${count} artículo${count === 1 ? "" : "s"}` : "Abrir carrito"}
       className="relative grid h-10 w-10 place-items-center rounded-pill text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
-      <ShoppingBag className="h-5 w-5" />
+      <ShoppingCart className="h-5 w-5" />
       <AnimatePresence>
         {count > 0 && (
           <motion.span
@@ -124,7 +124,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
               className="inline-flex items-center gap-1.5 rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-bg shadow-md shadow-accent/25 transition-all hover:bg-accent-hover hover:shadow-lg hover:shadow-accent/40 active:scale-95"
               title="Centro de Administración"
             >
-              <LayoutDashboard className="h-4 w-4" />
+              <ShieldCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Centro de Administración</span>
             </Link>
           ) : status === "unauthenticated" ? (

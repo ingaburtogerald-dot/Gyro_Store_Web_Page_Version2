@@ -1,10 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, User, ChevronRight, ArrowRight } from "lucide-react";
-import { Link } from "@remix-run/react";
+import { Link, useNavigate } from "@remix-run/react";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
-import { closePublicSidebar, setCategory } from "~/store/slices/uiSlice";
+import { closePublicSidebar, setCategory, resetFilters } from "~/store/slices/uiSlice";
 import { selectUser, selectStatus, selectRoles } from "~/store/slices/authSlice";
 import { roleLandingPath } from "~/lib/constants";
+import { getProductUrl } from "~/lib/utils";
 import type { Category } from "~/store/api/catalogApi";
 
 interface Props {
@@ -26,6 +27,7 @@ const itemVariants = {
 
 export function PublicSidebar({ categories }: Props) {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const open = useAppSelector((s) => s.ui.publicSidebarOpen);
   const user = useAppSelector(selectUser);
   const status = useAppSelector(selectStatus);
@@ -36,6 +38,14 @@ export function PublicSidebar({ categories }: Props) {
   function handleCategory(id: string | null) {
     dispatch(setCategory(id));
     dispatch(closePublicSidebar());
+    navigate("/");
+  }
+
+  function handleHomeClick() {
+    dispatch(resetFilters());
+    dispatch(setCategory(null));
+    dispatch(closePublicSidebar());
+    navigate("/");
   }
 
   return (
@@ -56,7 +66,7 @@ export function PublicSidebar({ categories }: Props) {
             animate={{ x: 0, boxShadow: "20px 0 50px rgba(0,0,0,0.5)" }}
             exit={{ x: "-100%", boxShadow: "0 0 0 rgba(0,0,0,0)" }}
             transition={{ type: "spring", damping: 28, stiffness: 220 }}
-            className="fixed inset-y-0 left-0 z-50 flex w-full max-w-[340px] flex-col bg-bg overflow-hidden"
+            className="fixed inset-y-0 left-0 z-50 flex w-full max-w-[380px] flex-col bg-bg overflow-hidden"
           >
             {/* Premium Header */}
             <div className="relative flex items-center justify-between bg-surface px-6 py-6 border-b border-white/5">
@@ -99,16 +109,28 @@ export function PublicSidebar({ categories }: Props) {
             <div className="flex-1 overflow-y-auto py-6 custom-scrollbar">
               {/* Sección Categorías */}
               <div className="mb-8">
-                <h3 className="px-6 mb-4 text-xs font-bold text-muted uppercase tracking-widest">
-                  Departamentos
-                </h3>
-                
                 <motion.ul 
                   variants={containerVariants}
                   initial="hidden"
                   animate="show"
                   className="flex flex-col space-y-6"
                 >
+                  <motion.li variants={itemVariants} className="px-6">
+                    <button
+                      onClick={handleHomeClick}
+                      className="group flex w-full items-center justify-between rounded-xl bg-surface/50 p-4 text-[15px] font-medium text-text hover:bg-surface transition-colors border border-white/5"
+                    >
+                      <span>Volver al inicio</span>
+                      <ChevronRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-1 group-hover:text-accent" />
+                    </button>
+                  </motion.li>
+
+                  <motion.li variants={itemVariants} className="px-6 pt-2 pb-1">
+                    <h3 className="text-xs font-black bg-gradient-to-r from-accent to-accent-2 bg-clip-text text-transparent uppercase tracking-widest">
+                      Productos
+                    </h3>
+                  </motion.li>
+
                   {categories.map((c) => (
                     <motion.li variants={itemVariants} key={c.id} className="px-6">
                       <button
@@ -126,7 +148,7 @@ export function PublicSidebar({ categories }: Props) {
                           {c.subcategories.map((sub) => (
                             <li key={sub.id}>
                               <Link
-                                to={`/producto/${sub.id}`}
+                                to={getProductUrl(sub.id, sub.name)}
                                 onClick={() => dispatch(closePublicSidebar())}
                                 className="group flex w-full items-center px-4 py-2 text-[15px] text-muted-foreground hover:text-text transition-all"
                               >
@@ -140,16 +162,6 @@ export function PublicSidebar({ categories }: Props) {
                       )}
                     </motion.li>
                   ))}
-                  
-                  <motion.li variants={itemVariants} className="pt-4 px-6">
-                    <button
-                      onClick={() => handleCategory(null)}
-                      className="group flex w-full items-center justify-between rounded-xl bg-surface/50 p-4 text-[15px] font-medium text-text hover:bg-surface transition-colors border border-white/5"
-                    >
-                      <span>Ver todo el catálogo</span>
-                      <ChevronRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-1 group-hover:text-accent" />
-                    </button>
-                  </motion.li>
                 </motion.ul>
               </div>
 

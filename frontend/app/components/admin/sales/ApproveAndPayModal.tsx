@@ -1,3 +1,4 @@
+
 // Modal "Aprobar y Pagar" (lote de un solo vendedor). Extraído del God component.
 // La matemática del pago vive en domain/computePayout; la mutación + toasts + modal de
 // éxito los maneja el hook (vía `onSubmit`). Aquí solo: formulario + validación de UI.

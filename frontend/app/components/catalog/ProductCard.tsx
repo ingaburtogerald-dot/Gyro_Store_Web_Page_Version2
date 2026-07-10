@@ -22,7 +22,7 @@ import { QuickAddSheet } from "./QuickAddSheet";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useAppDispatch } from "~/store/hooks";
 import { addItem, openCart } from "~/store/slices/cartSlice";
-import { formatCordobas, cn } from "~/lib/utils";
+import { formatCordobas, cn, getProductUrl } from "~/lib/utils";
 
 const MAX_PILLS = 3;
 
@@ -42,6 +42,7 @@ export function ProductCard({
   const reduce = useReducedMotion();
   const category = categories.find((c) => c.id === product.category);
   const image = product.images?.[0];
+  const hoverImage = product.images?.[1];
   const soldOut = (product.stock ?? 0) <= 0;
   const compareAt = product.compareAtPrice ?? 0;
   const onSale = compareAt > product.price;
@@ -86,7 +87,7 @@ export function ProductCard({
   // ── Escenario de la imagen (Link al detalle) ──
   const Stage = (
     <Link
-      to={`/producto/${product.id}`}
+      to={getProductUrl(product.id, product.name)}
       prefetch="intent"
       viewTransition
       aria-label={product.name}
@@ -114,14 +115,9 @@ export function ProductCard({
           <img
             src={image}
             alt={product.name}
-<<<<<<< Updated upstream
-            loading="lazy"
-            onLoad={() => setLoaded(true)}
-=======
             loading={index < 4 ? "eager" : "lazy"}
             fetchPriority={index < 4 ? "high" : "auto"}
             decoding="async"
->>>>>>> Stashed changes
             className={cn(
               "ease-expo h-full w-full object-contain p-6 transition duration-[600ms] will-change-transform",
               "group-hover:scale-[1.06]",
@@ -164,7 +160,7 @@ export function ProductCard({
 
   const Name = (
     <Link
-      to={`/producto/${product.id}`}
+      to={getProductUrl(product.id, product.name)}
       prefetch="intent"
       viewTransition
       className={cn(

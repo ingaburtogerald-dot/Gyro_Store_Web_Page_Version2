@@ -37,7 +37,7 @@ export function ArrivalModal({
   const shippingUnit = useWatch({ control, name: "shippingUnit" });
   
   const parsedShipping = Number(shippingUnit);
-  const hasShipping = shippingUnit !== undefined && shippingUnit !== "" && !isNaN(parsedShipping);
+  const hasShipping = shippingUnit !== undefined && String(shippingUnit) !== "" && !isNaN(parsedShipping);
 
   const costUnit = purchase?.costUnit || 0;
   const taxUnit = purchase?.taxUnit || 0;

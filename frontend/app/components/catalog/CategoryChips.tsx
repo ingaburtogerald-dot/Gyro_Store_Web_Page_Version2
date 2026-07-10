@@ -14,6 +14,7 @@ import { Menu, ChevronDown } from "lucide-react";
 import { Link } from "@remix-run/react";
 import type { Category } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
+import { getProductUrl } from "~/lib/utils";
 import { setCategory, openPublicSidebar } from "~/store/slices/uiSlice";
 import { cn } from "~/lib/utils";
 
@@ -217,14 +218,14 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
                       }}
                       className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-text transition-colors hover:bg-white/5"
                     >
-                      Ver todo {openData.name}
+                      Ver todos
                     </button>
                   </li>
                   <li aria-hidden className="my-1 h-px bg-white/10" />
                   {openData.subcategories.map((sub) => (
                     <li key={sub.id}>
                       <Link
-                        to={`/producto/${sub.id}`}
+                        to={getProductUrl(sub.id, sub.name)}
                         onClick={() => setOpenCat(null)}
                         className="block w-full rounded-lg px-3 py-2 text-left text-sm text-muted transition-colors hover:bg-white/5 hover:text-text"
                       >

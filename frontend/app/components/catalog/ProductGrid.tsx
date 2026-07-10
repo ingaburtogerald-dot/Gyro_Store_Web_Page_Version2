@@ -16,10 +16,11 @@ import { cn } from "~/lib/utils";
 //  · Las ofertas se ganan un tile ancho.
 // Es determinista → sobrevive al filtrado sin verse aleatorio, y solo activa la
 // asimetría cuando hay suficientes ítems para que no quede un tile ancho solitario.
+// Regla determinista de tiles ANCHOS para romper la grilla uniforme (ver Bento):
+// (Desactivada por solicitud del usuario: ahora todas las cards son del mismo tamaño)
 const catalogWide =
   (total: number) =>
-  (p: CatalogProduct, i: number): boolean =>
-    total >= 5 && (i === 0 || isDeal(p));
+  (p: CatalogProduct, i: number): boolean => false;
 
 export function ProductGrid({ products, categories }: { products: CatalogProduct[]; categories: Category[] }) {
   // Filtrado + orden compartidos con la toolbar (una sola fuente de verdad).

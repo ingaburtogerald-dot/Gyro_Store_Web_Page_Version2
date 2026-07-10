@@ -16,7 +16,7 @@ import { VariantPicker, type VariantSelection } from "~/components/catalog/Varia
 import { useGetCatalogItemQuery, type CatalogProduct } from "~/store/api/catalogApi";
 import { useAppDispatch } from "~/store/hooks";
 import { addItem, openCart } from "~/store/slices/cartSlice";
-import { formatCordobas, cn } from "~/lib/utils";
+import { formatCordobas, cn, getProductUrl } from "~/lib/utils";
 
 export function QuickAddSheet({
   product,
@@ -185,7 +185,7 @@ export function QuickAddSheet({
                     : "Variante agotada"}
               </button>
               <Link
-                to={`/producto/${product.id}`}
+                to={getProductUrl(product.id, product.name)}
                 prefetch="intent"
                 viewTransition
                 onClick={onClose}

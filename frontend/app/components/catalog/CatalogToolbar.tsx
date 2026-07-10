@@ -7,13 +7,17 @@
 // expone el botón de "Filtros" (abre el sheet), unificando el control del catálogo.
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpDown, Check, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { ArrowUpDown, Check, ChevronDown, SlidersHorizontal, Tag, PackageCheck } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import {
   type CatalogSort,
   setSort,
   openFilterSheet,
   selectActiveFilterCount,
+  setPriceMin,
+  setPriceMax,
+  setOnlyOnSale,
+  setOnlyInStock,
 } from "~/store/slices/uiSlice";
 import { useCatalogFilter } from "~/lib/useCatalogFilter";
 import type { CatalogProduct } from "~/store/api/catalogApi";
@@ -30,6 +34,11 @@ export function CatalogToolbar({ products }: { products: CatalogProduct[] }) {
   const sort = useAppSelector((s) => s.ui.sort);
   const activeFilters = useAppSelector(selectActiveFilterCount);
   const current = SORTS.find((s) => s.value === sort) ?? SORTS[0];
+  const priceMin = useAppSelector((s) => s.ui.priceMin);
+  const priceMax = useAppSelector((s) => s.ui.priceMax);
+  const onlyOnSale = useAppSelector((s) => s.ui.onlyOnSale);
+  const onlyInStock = useAppSelector((s) => s.ui.onlyInStock);
+  
   // Mismo hook que ProductGrid → el conteo siempre coincide con lo que se ve.
   const { filtered } = useCatalogFilter(products);
   const count = filtered.length;
@@ -37,31 +46,90 @@ export function CatalogToolbar({ products }: { products: CatalogProduct[] }) {
   return (
     <div className="sticky top-24 z-20 -mx-4 mb-5 px-4">
       <div className="card-premium flex items-center justify-between gap-2 rounded-2xl px-3 py-2.5 sm:gap-3 sm:px-4">
-        {/* Conteo de resultados */}
-        <p className="flex min-w-0 items-baseline gap-1.5 text-sm text-muted">
-          <span className="font-heading text-base font-bold tabular-nums text-text sm:text-lg">
-            {count}
-          </span>
-          <span className="truncate">{count === 1 ? "producto" : "productos"}</span>
-        </p>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {/* Botón de filtros (solo móvil; en ≥lg está el sidebar). */}
+        {/* Botón de filtros (solo móvil) - Izquierda en móvil */}
+        <div className="flex shrink-0 lg:hidden">
           <button
             type="button"
             onClick={() => dispatch(openFilterSheet())}
-            className="ease-expo relative inline-flex items-center gap-2 rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-sm font-semibold text-text transition duration-300 hover:border-accent/40 lg:hidden"
+            className="ease-expo relative inline-flex items-center gap-2 rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-sm font-semibold text-text transition duration-300 hover:border-accent/40"
           >
             <SlidersHorizontal className="h-4 w-4" />
-            <span>Filtros</span>
+            <span className="hidden sm:inline">Filtros</span>
             {activeFilters > 0 && (
               <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-xs font-bold tabular-nums text-bg">
                 {activeFilters}
               </span>
             )}
           </button>
+        </div>
 
+        {/* Filtros integrados (solo en escritorio) - Izquierda en escritorio */}
+        <div className="hidden lg:flex items-center gap-4 mr-auto">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-extrabold uppercase tracking-wider bg-gradient-to-r from-accent to-accent-2 bg-clip-text text-transparent">Precio C$</span>
+            <input
+              type="number"
+              placeholder="Mín"
+              value={priceMin ?? ""}
+              onChange={(e) => dispatch(setPriceMin(e.target.value ? Number(e.target.value) : null))}
+              className="w-[72px] rounded-lg bg-surface-2 border border-border px-2 py-1 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/40 transition-all duration-300"
+            />
+            <span className="text-muted font-medium">—</span>
+            <input
+              type="number"
+              placeholder="Máx"
+              value={priceMax ?? ""}
+              onChange={(e) => dispatch(setPriceMax(e.target.value ? Number(e.target.value) : null))}
+              className="w-[72px] rounded-lg bg-surface-2 border border-border px-2 py-1 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/40 transition-all duration-300"
+            />
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => dispatch(setOnlyOnSale(!onlyOnSale))}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-all duration-300 border shadow-sm",
+              onlyOnSale
+                ? "border-transparent bg-gradient-to-r from-accent to-accent-2 text-bg shadow-accent/20"
+                : "border-border text-muted hover:text-text hover:border-accent/40 bg-surface-2/60 hover:bg-surface-2"
+            )}
+          >
+            <Tag className="w-4 h-4" /> Ofertas
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => dispatch(setOnlyInStock(!onlyInStock))}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-all duration-300 border shadow-sm",
+              onlyInStock
+                ? "border-transparent bg-gradient-to-r from-accent to-accent-2 text-bg shadow-accent/20"
+                : "border-border text-muted hover:text-text hover:border-accent/40 bg-surface-2/60 hover:bg-surface-2"
+            )}
+          >
+            <PackageCheck className="w-4 h-4" /> Disp.
+          </motion.button>
+
+          {/* Separador visual */}
+          <div className="h-6 w-px bg-border mx-1"></div>
+
+          {/* Ordenar: Relevancia */}
           <SortDropdown current={current} sort={sort} onSelect={(v) => dispatch(setSort(v))} />
+        </div>
+
+        {/* Grupo de la derecha: Conteo de resultados */}
+        <div className="flex shrink-0 items-center ml-auto">
+          {/* Mostramos el dropdown en móvil a la derecha si los filtros están ocultos */}
+          <div className="lg:hidden mr-4">
+             <SortDropdown current={current} sort={sort} onSelect={(v) => dispatch(setSort(v))} />
+          </div>
+
+          <p className="flex min-w-0 items-baseline gap-1 text-sm text-muted">
+            <span className="font-heading text-base font-bold tabular-nums text-text sm:text-lg">
+              {count}
+            </span>
+            <span className="truncate hidden sm:inline">{count === 1 ? "producto" : "productos"}</span>
+          </p>
         </div>
       </div>
     </div>

@@ -10,7 +10,6 @@ import { ProductCarousel } from "~/components/catalog/ProductCarousel";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
 import { BrandStrip } from "~/components/catalog/BrandStrip";
 import { CategoryChips } from "~/components/catalog/CategoryChips";
-import { FilterSidebar } from "~/components/catalog/FilterSidebar";
 import { CatalogToolbar } from "~/components/catalog/CatalogToolbar";
 import { FilterFab } from "~/components/catalog/FilterFab";
 import { FilterSheet } from "~/components/catalog/FilterSheet";
@@ -158,12 +157,11 @@ export default function Index() {
       </AnimatePresence>
 
       <main className="w-full flex-1 px-4 md:px-8">
-        {!editing && <BrandStrip />}
-
-        {/* Carrusel destacado (solo en la vista por defecto, sin filtros). */}
+        {/* Marcas y Carrusel destacado (solo en la vista por defecto, sin filtros). */}
         <AnimatePresence initial={false}>
           {!editing && !hasFilters && (
-            <motion.div key="carousel" {...collapse}>
+            <motion.div key="brands-and-carousel" {...collapse}>
+              <BrandStrip />
               <ProductCarousel
                 title="Lo Más Nuevo"
                 subtitle="Recién llegados a la tienda"
@@ -177,12 +175,9 @@ export default function Index() {
         {editing ? (
           <SortableCatalogGrid />
         ) : (
-          <div className="flex items-start gap-8 pt-3 lg:pt-5">
-            <FilterSidebar />
-            <div className="min-w-0 flex-1">
-              <CatalogToolbar products={products} />
-              <ProductGrid products={products} categories={categories} />
-            </div>
+          <div className="pt-3 lg:pt-5">
+            <CatalogToolbar products={products} />
+            <ProductGrid products={products} categories={categories} />
           </div>
         )}
       </main>

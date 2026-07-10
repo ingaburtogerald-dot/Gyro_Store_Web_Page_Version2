@@ -40,3 +40,20 @@ export function cordobasFromUsd(usd: number): string {
 export function buildWhatsappUrl(phone: string, message: string): string {
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
+
+// Crea un slug amigable para la URL (ej: "KZ EDX Pro X" -> "kz-edx-pro-x")
+export function createSlug(name: string): string {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .replace(/[^a-z0-9]+/g, "-") // caracteres no alfanumericos por guion
+    .replace(/(^-|-$)+/g, ""); // quita guiones en extremos
+}
+
+// Genera la URL del producto con slug SEO amigable (ej: /producto/kz-edx-pro-x--olkFjqrHZSnKnyqIDMa8)
+export function getProductUrl(id: string, name: string): string {
+  const slug = createSlug(name);
+  return slug ? `/producto/${slug}--${id}` : `/producto/${id}`;
+}
