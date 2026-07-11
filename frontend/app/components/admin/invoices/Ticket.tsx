@@ -27,14 +27,14 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
         WebkitPrintColorAdjust: "exact",
         printColorAdjust: "exact",
       }}
-      className="mx-auto bg-white px-4 pb-5 pt-0.5 text-[13px] leading-snug text-black"
+      className="mx-auto bg-white px-4 pb-3 pt-0.5 text-[13px] leading-snug text-black"
     >
       {/* ═══════════════════════════════════════════
           CABECERA: Logo centrado + info de contacto
           ═══════════════════════════════════════════ */}
-      <div className="mb-4 text-center">
+      <div className="mb-2 text-center">
         {/* Contenedor recortado: oculta el texto "GYRO STORE" del fondo del PNG */}
-        <div className="mx-auto mb-1 h-20 w-28 overflow-hidden">
+        <div className="mx-auto mb-1 h-16 w-28 overflow-hidden">
           <img
             src="/logo-ticket.png"
             alt="Gyro Store"
@@ -97,7 +97,7 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
           ═══════════════════════════════════════════ */}
       <div className="space-y-0">
         {invoice.items.map((l, i) => (
-          <div key={i} className="border-b border-dotted border-black/40 py-2.5">
+          <div key={i} className="border-b border-dotted border-black/40 py-2">
             {/* Nombre del producto a ancho completo */}
             <p className="text-[13px] font-bold leading-tight">{l.productName}</p>
             {/* Detalles: Cant · Precio unitario → Total alineado a la derecha */}
@@ -114,7 +114,7 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
       {/* ═══════════════════════════════════════════
           RESUMEN FINANCIERO
           ═══════════════════════════════════════════ */}
-      <div className="mt-3 space-y-1 text-[12px]">
+      <div className="mt-2 space-y-1 text-[12px]">
         <Row label="Subtotal" value={c$(invoice.subtotal)} />
         {invoice.discount > 0 && (
           <Row label="Descuento" value={`-${c$(invoice.discount)}`} />
@@ -125,7 +125,7 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
       </div>
 
       {/* ── TOTAL DESTACADO ── */}
-      <div className="mt-3 flex items-center justify-between bg-black text-white px-2 py-2">
+      <div className="mt-2 flex items-center justify-between bg-black text-white px-2 py-1.5">
         <span className="text-[14px] font-black tracking-[0.1em]">TOTAL A PAGAR</span>
         <span className="text-[18px] font-black">{c$(grandTotal)}</span>
       </div>
@@ -145,13 +145,13 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
         <p className="mt-1 text-[11px]">Visita nuestra tienda en línea</p>
 
         {/* QR dinámico */}
-        <div className="my-3 flex justify-center">
+        <div className="my-2 flex justify-center">
           <img
             src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
               "https://gyro-store.onrender.com/",
             )}`}
             alt="QR Tienda Online"
-            className="h-[80px] w-[80px]"
+            className="h-[72px] w-[72px]"
           />
         </div>
         <p className="text-[11px] font-bold">gyro-store.onrender.com</p>
@@ -164,11 +164,11 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
       {/* ═══════════════════════════════════════════
           POLÍTICAS DE GARANTÍA
           ═══════════════════════════════════════════ */}
-      <div className="mt-2 px-0.5 text-[11px] leading-[1.35]">
-        <p className="mb-1.5 text-center text-[12px] font-bold uppercase tracking-wider">
+      <div className="mt-2 px-0.5 text-[11px] leading-tight">
+        <p className="mb-1 text-center text-[12px] font-bold uppercase tracking-wider">
           Políticas de Garantía
         </p>
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <p>
             <span className="font-bold">La garantía solo cubre defectos de fábrica.</span> No
             aplica si el producto presenta desperfectos por el uso (como rayones o golpes).
@@ -186,7 +186,7 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
       </div>
 
       {/* ── Corte final ── */}
-      <div className="mt-4 text-center text-[8px] tracking-[0.3em] text-black">
+      <div className="mt-2 text-center text-[8px] tracking-[0.3em] text-black">
         {"· ".repeat(22)}
       </div>
     </div>
@@ -197,12 +197,12 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
 
 /** Separador punteado */
 function DashedSep() {
-  return <div className="my-3 border-b-[1.5px] border-dashed border-black" />;
+  return <div className="my-2 border-b-[1.5px] border-dashed border-black" />;
 }
 
 /** Separador sólido fino */
 function Separator() {
-  return <div className="mx-auto my-2 h-[1px] w-full bg-black/30" />;
+  return <div className="mx-auto my-1.5 h-[1px] w-full bg-black/30" />;
 }
 
 /** Fila clave:valor */
