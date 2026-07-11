@@ -20,23 +20,17 @@ export function TicketPrintModal({ invoice, onClose }: { invoice: Invoice; onClo
   const handlePrint = useReactToPrint({
     contentRef: ticketRef,
     documentTitle: invoice.ticketNumber,
-    // `@page { margin: 0 }` elimina el doble margen del navegador. `print-color-adjust:
-    // exact` OBLIGA a imprimir fondos/colores (sin esto la franja negra del TOTAL
-    // desaparece y su texto blanco queda invisible). `break-inside: avoid` evita que
-    // los bloques se partan, y el padding inferior deja avance para que la cuchilla
-    // no corte las últimas líneas.
+    // `@page { size: 80mm auto; margin: 0 }` pide un rollo continuo de 80mm SIN alto
+    // fijo. El fondo del panel admin es OSCURO: hay que forzarlo a BLANCO en impresión,
+    // porque si no, todo el espacio del papel debajo del ticket sale negro. El color
+    // exacto (franja del TOTAL) se fuerza SOLO dentro del ticket, vía su estilo raíz.
     pageStyle: `
       @page { size: 80mm auto; margin: 0; }
       @media print {
         html, body {
           margin: 0 !important;
           padding: 0 !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
+          background: #fff !important;
         }
       }
     `,
