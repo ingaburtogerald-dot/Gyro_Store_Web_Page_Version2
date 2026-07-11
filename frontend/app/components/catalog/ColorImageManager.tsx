@@ -34,13 +34,23 @@ export function ColorImageManager({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
+    const input = e.target;
+    const files = input.files;
     if (!files?.length || !current) return;
+    
     if (list.length + files.length > MAX_PER_COLOR) {
+      input.value = "";
       return toast.error(`Máximo ${MAX_PER_COLOR} fotos por color.`);
     }
+    
+    // Clonamos para la subida
     const urls = await upload(files);
-    onChange({ ...imagesByColor, [current]: [...list, ...urls] });
+    
+    if (urls && urls.length > 0) {
+      onChange({ ...imagesByColor, [current]: [...new Set([...list, ...urls])] });
+    }
+    // Reiniciar el input para poder volver a seleccionar los mismos archivos
+    input.value = "";
   }
 
   function remove(i: number) {
@@ -58,61 +68,80 @@ export function ColorImageManager({
 
   if (colors.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted">
+      <p className="rounded-xl border border-dashed border-border/60 bg-surface/30 p-6 text-center text-xs text-muted">
         Vincula variantes con color para subir fotos por color.
       </p>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
+    <div className="space-y-4">
+      {/* Pestañas de Color */}
+      <div className="flex flex-wrap gap-2">
         {colors.map((c) => (
           <button
             key={c}
             type="button"
             onClick={() => setActive(c)}
             className={cn(
-              "rounded-pill border px-2.5 py-1 text-xs",
-              current === c ? "border-transparent bg-gradient-accent text-white" : "border-border text-muted hover:text-text",
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+              current === c
+                ? "bg-accent/10 text-accent ring-1 ring-accent/30"
+                : "bg-surface/40 text-muted hover:bg-surface hover:text-text",
             )}
           >
             {c}
-            <span className="ml-1 opacity-70">{(imagesByColor[c] ?? []).length}</span>
+            <span
+              className={cn(
+                "rounded-md px-1.5 py-0.5 text-[9px]",
+                current === c ? "bg-accent/20 text-accent" : "bg-border text-muted",
+              )}
+            >
+              {(imagesByColor[c] ?? []).length}
+            </span>
           </button>
         ))}
       </div>
 
       {list.length > 1 && (
-        <p className="text-[11px] text-muted">Arrastra para ordenar · la 1ª es la principal.</p>
+        <p className="text-[11px] font-medium text-muted">Arrastra para ordenar · la 1ª es la principal.</p>
       )}
 
+      {/* Grid de Imágenes */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={list as UniqueIdentifier[]} strategy={rectSortingStrategy}>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {list.map((url, i) => (
               <SortablePhoto key={url} id={url} url={url} isPrimary={i === 0} onRemove={() => remove(i)} />
             ))}
-            {list.length === 0 && (
-              <div className="grid h-16 w-16 place-items-center rounded-lg border border-dashed border-border text-muted">
-                <ImageOff className="h-5 w-5" />
-              </div>
+
+            {/* Caja de subida integrada en la grilla */}
+            {list.length < MAX_PER_COLOR && (
+              <label
+                className={cn(
+                  "group flex h-24 w-24 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed transition-all",
+                  uploading
+                    ? "border-accent/40 bg-accent/5 text-accent"
+                    : "border-border/60 bg-surface/30 text-muted hover:border-accent/50 hover:bg-accent/5 hover:text-accent",
+                )}
+              >
+                {uploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Upload className="h-5 w-5 transition-transform group-hover:-translate-y-0.5" />
+                )}
+                <span className="text-[10px] font-semibold">{uploading ? "Subiendo..." : "Añadir"}</span>
+                <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
+              </label>
             )}
           </div>
         </SortableContext>
       </DndContext>
-
-      <label className="flex w-fit cursor-pointer items-center gap-2 rounded-pill border border-border px-3 py-2 text-sm text-muted hover:text-text">
-        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-        Subir a “{current}”
-        <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} />
-      </label>
     </div>
   );
 }
 
-// Miniatura arrastrable. Todo el recuadro es el "asa"; el botón X detiene el
-// pointer para que quitar una foto no inicie un arrastre.
+// Miniatura arrastrable con diseño premium
 function SortablePhoto({
   id,
   url,
@@ -134,24 +163,27 @@ function SortablePhoto({
       {...attributes}
       {...listeners}
       className={cn(
-        "relative h-16 w-16 cursor-grab touch-none overflow-hidden rounded-lg border active:cursor-grabbing",
-        isPrimary ? "border-accent ring-1 ring-accent" : "border-border",
+        "group relative h-24 w-24 cursor-grab touch-none overflow-hidden rounded-xl border bg-surface/20 active:cursor-grabbing",
+        isPrimary ? "border-accent ring-2 ring-accent/20" : "border-border/60",
       )}
     >
-      <img src={url} alt="" className="pointer-events-none h-full w-full object-cover" />
+      <img src={url} alt="" className="pointer-events-none h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+      
+      {/* Badge Principal (flotante superior izquierdo) */}
       {isPrimary && (
-        <span className="absolute bottom-0 left-0 right-0 bg-black/65 py-0.5 text-center text-[9px] font-semibold text-white">
+        <span className="absolute left-1.5 top-1.5 rounded-md bg-accent/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm backdrop-blur-md">
           Principal
         </span>
       )}
+
+      {/* Botón Eliminar (flotante superior derecho, visible en hover) */}
       <button
         type="button"
         onClick={onRemove}
         onPointerDown={(e) => e.stopPropagation()}
-        className="absolute right-0 top-0 bg-black/60 p-0.5 text-white"
-        aria-label="Quitar foto"
+        className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/40 text-white opacity-0 shadow-sm backdrop-blur-md transition-all hover:bg-destructive group-hover:opacity-100"
       >
-        <X className="h-3 w-3" />
+        <X className="h-3.5 w-3.5" />
       </button>
     </div>
   );

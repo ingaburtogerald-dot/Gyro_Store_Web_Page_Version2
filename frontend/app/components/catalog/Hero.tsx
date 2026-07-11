@@ -103,11 +103,7 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
             ))}
           </div>
 
-          {productCount > 0 && (
-            <p className="mt-5 text-xs tabular-nums text-muted">
-              <span className="font-semibold text-text">{productCount}</span> productos disponibles
-            </p>
-          )}
+
         </motion.div>
       </div>
     </section>

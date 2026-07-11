@@ -15,7 +15,7 @@ const storage = require('../services/storage');
 const CATALOG = config.collections.catalog;
 const TEMPLATES = config.collections.templates;
 const PRODUCTS = config.collections.products;
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
 
 // Caché en memoria para el catálogo público
 let catalogCache = null;
@@ -240,8 +240,15 @@ function buildCatalogFields(body) {
     name: String(name).trim(),
     description: String(description || '').trim(),
     category: String(category).trim(),
-    images: Array.isArray(images) ? images : [],
-    imagesByColor: imagesByColor && typeof imagesByColor === 'object' ? imagesByColor : {},
+    images: Array.isArray(images) ? [...new Set(images)].filter(Boolean) : [],
+    imagesByColor: (() => {
+      if (!imagesByColor || typeof imagesByColor !== 'object') return {};
+      const clean = {};
+      for (const [color, urls] of Object.entries(imagesByColor)) {
+        if (Array.isArray(urls)) clean[color] = [...new Set(urls)].filter(Boolean);
+      }
+      return clean;
+    })(),
     badges: Array.isArray(badges) ? badges.map((s) => String(s).trim()).filter(Boolean) : [],
     tiktokUrl: String(tiktokUrl || '').trim(),
     compareAtPrice: Number(compareAtPrice) || 0,
@@ -281,15 +288,30 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 // PUT /api/catalog/:id — edita un ítem del catálogo.
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(CATALOG).doc(req.params.id);
-  if (!(await ref.get()).exists) return res.status(404).json({ error: 'Producto no encontrado.' });
+  const oldDoc = await ref.get();
+  if (!oldDoc.exists) return res.status(404).json({ error: 'Producto no encontrado.' });
+  
   const fields = buildCatalogFields(req.body);
   const update = {
     ...fields,
     price: fields.basePrice,
     updatedAt: FieldValue.serverTimestamp(),
   };
+  
   await ref.update(update);
   clearCatalogCache();
+
+  // Eliminar físicamente las imágenes removidas de Firebase Storage
+  const oldData = oldDoc.data();
+  const oldImages = [...new Set([...(oldData.images || []), ...Object.values(oldData.imagesByColor || {}).flat()])];
+  const newImages = [...new Set([...(update.images || []), ...Object.values(update.imagesByColor || {}).flat()])];
+  const removed = oldImages.filter(url => typeof url === 'string' && !newImages.includes(url));
+  
+  if (removed.length > 0) {
+    const { deleteFileByUrl } = require('../services/storage');
+    removed.forEach(url => deleteFileByUrl(url).catch(console.error));
+  }
+
   res.json({ id: req.params.id, ...update });
 }));
 

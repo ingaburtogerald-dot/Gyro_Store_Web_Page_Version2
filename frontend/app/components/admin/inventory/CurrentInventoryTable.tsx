@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { DataTable } from "~/components/ui/DataTable";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
@@ -16,16 +16,32 @@ import {
   type InventoryRow,
   type Purchase,
 } from "~/store/api/inventoryApi";
+import { useGetAdminCatalogQuery } from "~/store/api/catalogApi";
 import { formatUsd, formatCordobas } from "~/lib/utils";
 import { CodeCell } from "~/components/ui/cells";
-
+import { useNavigate } from "@remix-run/react";
 
 export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
+  const navigate = useNavigate();
   const { data: rows = [], isLoading } = useGetCurrentInventoryQuery(period);
   // Las compras se traen sin filtro de periodo: se usan para resolver el lote
   // detrás de una fila al editar, y ese lote puede ser de cualquier mes.
   const { data: purchases = [] } = useGetPurchasesQuery();
+  const { data: catalog = [] } = useGetAdminCatalogQuery();
   const [revert] = useRevertPurchaseMutation();
+
+  const skuToCatalogMap = useMemo(() => {
+    const map = new Map<string, string>();
+    catalog.forEach((c: any) => {
+      if (c.variantMappings) {
+        Object.values(c.variantMappings).forEach((m: any) => {
+          if (m.sku) map.set(m.sku, c.id);
+          if (m.skus) m.skus.forEach((s: string) => map.set(s, c.id));
+        });
+      }
+    });
+    return map;
+  }, [catalog]);
 
   const [revertFor, setRevertFor] = useState<InventoryRow | null>(null);
   const [editFor, setEditFor] = useState<Purchase | null>(null);
@@ -49,6 +65,31 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
     () => [
       { accessorKey: "code", header: "Código", sortingFn: "alphanumeric", cell: (c) => <CodeCell value={c.getValue()} /> },
       { accessorKey: "productName", header: "Nombre" },
+      {
+        id: "mappedStatus",
+        header: "Catálogo",
+        enableSorting: false,
+        cell: ({ row }) => {
+          const catalogId = skuToCatalogMap.get(row.original.code);
+          return catalogId ? (
+            <button
+              onClick={() => navigate(`/admin/catalogo?edit=${catalogId}`)}
+              className="inline-flex items-center gap-1 rounded-md bg-whatsapp/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-whatsapp hover:bg-whatsapp/25 transition-colors cursor-pointer"
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              Mapeado
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate(`/admin/catalogo?link=new`)}
+              className="inline-flex items-center gap-1 rounded-md bg-warning/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-warning hover:bg-warning/25 transition-colors cursor-pointer"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              Sin mapear
+            </button>
+          );
+        }
+      },
       { accessorKey: "quantityOriginal", header: "Comprado", meta: { align: "right" } },
       {
         accessorKey: "quantitySold",
@@ -123,7 +164,7 @@ export function CurrentInventoryTable({ period = "all" }: { period?: string }) {
         },
       },
     ],
-    [purchases],
+    [purchases, skuToCatalogMap, navigate],
   );
 
   if (isLoading) {

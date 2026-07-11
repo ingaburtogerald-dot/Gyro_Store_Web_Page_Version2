@@ -105,7 +105,7 @@ function useNavBadges(roles: Role[]): Record<string, number> {
   const canCRM = isAdmin || roles.includes("seller");
   const { data: agenda = [] } = useGetAgendaQuery(undefined, { skip: !canCRM });
   const { data: pending } = useGetSalesPaginatedQuery(
-    { page: 1, limit: 1, status: "pending_approval", sellerEmail: "all", date: "all" },
+    { page: 1, limit: 50, status: "pending_approval", sellerEmail: "all", date: "all" },
     { skip: !isAdmin, pollingInterval: 15000 },
   );
   return {
@@ -167,7 +167,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="mb-3 flex items-center justify-between">
-          <Logo size={44} withText textClassName="text-lg" />
+          <Link
+            to="/"
+            target="_blank"
+            rel="noopener"
+            onClick={() => dispatch(setSidebar(false))}
+            className="rounded-xl outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent"
+            title="Ir al catálogo"
+          >
+            <Logo size={44} withText textClassName="text-lg" />
+          </Link>
           <button className="md:hidden" onClick={() => dispatch(setSidebar(false))} aria-label="Cerrar menú">
             <X className="h-5 w-5 text-muted" />
           </button>
@@ -180,20 +189,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <PanelLeftClose className="h-5 w-5" />
           </button>
         </div>
-
-        {/* CTA vistoso: ir a la tienda pública (abre en pestaña nueva). La paleta
-            ⌘K sigue disponible por teclado (Cmd/Ctrl+K), sin botón visible. */}
-        <Link
-          to="/"
-          target="_blank"
-          rel="noopener"
-          onClick={() => dispatch(setSidebar(false))}
-          className="ease-expo group mb-3 flex items-center gap-2.5 rounded-xl bg-gradient-accent px-3.5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_-8px_rgba(16,185,129,0.55)] transition duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
-        >
-          <Store className="h-[18px] w-[18px]" />
-          <span className="flex-1">Ir al catálogo</span>
-          <ArrowUpRight className="h-4 w-4 opacity-90 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-        </Link>
 
         <nav className="-mx-1 flex-1 space-y-4 overflow-y-auto px-1 pb-2">
           {visibleGroups.map((group) => (

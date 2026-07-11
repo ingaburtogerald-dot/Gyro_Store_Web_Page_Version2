@@ -292,7 +292,7 @@ export function CatalogEditorDrawer({
               <div className="flex-1 overflow-y-auto p-5">
                 {/* ── Paso 1: Información básica ── */}
                 {step === 1 && (
-                  <div className="mx-auto max-w-xl space-y-4">
+                  <div className="mx-auto max-w-xl space-y-6">
                     <Field label="Categoría">
                       <select className="input" value={category} onChange={(e) => changeCategory(e.target.value)}>
                         <option value="">Selecciona…</option>
@@ -322,7 +322,7 @@ export function CatalogEditorDrawer({
 
                 {/* ── Paso 2: Precio y disponibilidad ── */}
                 {step === 2 && (
-                  <div className="mx-auto max-w-xl space-y-4">
+                  <div className="mx-auto max-w-xl space-y-6">
                     {templateId && template && (
                       <>
                         <Field label="Precio base (C$)">
@@ -380,7 +380,7 @@ export function CatalogEditorDrawer({
 
                 {/* ── Paso 3: Mapeo de variantes a bodega ── */}
                 {step === 3 && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {templateId && template ? (
                       <VariantMappingTable
                         axes={template.axes}
@@ -401,9 +401,9 @@ export function CatalogEditorDrawer({
 
                 {/* ── Paso 4: Media y publicación ── */}
                 {step === 4 && (
-                  <div className="mx-auto max-w-xl space-y-4">
+                  <div className="mx-auto max-w-xl space-y-6">
                     <div>
-                      <span className="mb-1.5 block text-sm font-medium">
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-muted/90">
                         {colorAxis ? "Fotos por color encendido (máx 10 c/u)" : "Fotos del producto (máx 10)"}
                       </span>
                       <ColorImageManager
@@ -434,22 +434,22 @@ export function CatalogEditorDrawer({
                 )}
               </div>
 
-              <footer className="border-t border-border p-4 bg-surface/30 flex items-center justify-between gap-2.5">
-                <Button variant="outline" onClick={onClose} disabled={creating || updating}>
+              <footer className="border-t border-border p-4 bg-surface/50 flex items-center justify-between gap-2.5">
+                <Button variant="outline" onClick={onClose} disabled={creating || updating} className="shadow-sm">
                   Cancelar
                 </Button>
                 <div className="flex gap-2.5">
                   {step > 1 && (
-                    <Button variant="outline" onClick={goPrev} disabled={creating || updating}>
+                    <Button variant="outline" onClick={goPrev} disabled={creating || updating} className="shadow-sm">
                       <ChevronLeft className="h-4 w-4" /> Anterior
                     </Button>
                   )}
                   {step < 4 ? (
-                    <Button onClick={goNext}>
+                    <Button onClick={goNext} className="shadow-accent-cta">
                       Siguiente <ChevronRight className="h-4 w-4" />
                     </Button>
                   ) : (
-                    <Button onClick={save} loading={creating || updating}>
+                    <Button onClick={save} loading={creating || updating} className="shadow-accent-cta">
                       {editId ? "Guardar cambios" : "Crear producto"}
                     </Button>
                   )}
@@ -485,9 +485,9 @@ function StepIndicator({ step, onStepClick }: { step: number; onStepClick: (n: n
               <span
                 className={cn(
                   "grid h-7 w-7 place-items-center rounded-full text-xs font-bold transition-colors",
-                  active ? "bg-gradient-accent text-white"
+                  active ? "bg-gradient-accent text-white shadow-md shadow-accent/30"
                     : done ? "bg-accent/20 text-accent"
-                      : "bg-surface-2 text-muted",
+                      : "bg-surface-2 text-muted border border-border",
                 )}
               >
                 {done ? <Check className="h-3.5 w-3.5" /> : n}
@@ -496,7 +496,7 @@ function StepIndicator({ step, onStepClick }: { step: number; onStepClick: (n: n
                 {n}. {label}
               </span>
             </button>
-            {!isLast && <span className={cn("mx-2 h-px flex-1 transition-colors", done ? "bg-accent/40" : "bg-border")} />}
+            {!isLast && <span className={cn("mx-2 h-[2px] flex-1 transition-colors", done ? "bg-accent/40" : "bg-border")} />}
           </div>
         );
       })}
@@ -507,7 +507,7 @@ function StepIndicator({ step, onStepClick }: { step: number; onStepClick: (n: n
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium">{label}</span>
+      <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-muted/90">{label}</span>
       {children}
     </label>
   );

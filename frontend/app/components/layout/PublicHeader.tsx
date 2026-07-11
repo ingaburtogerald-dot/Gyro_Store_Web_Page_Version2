@@ -85,7 +85,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
       <div className="flex w-full items-center gap-3 px-4 py-3 md:px-8 lg:gap-6">
         <button
           onClick={() => setIsAboutOpen(true)}
-          className="group -ml-1 shrink-0 rounded-xl px-2 py-1 text-left transition-all duration-300 hover:bg-white/5 active:scale-95"
+          className="group -ml-1 shrink-0 rounded-xl px-2 py-1 text-left transition-all duration-300 hover:bg-surface-hover active:scale-95"
           aria-label="Acerca de Gyro Store"
         >
           <Logo size={38} withText textClassName="text-xl transition-all group-hover:brightness-125" />

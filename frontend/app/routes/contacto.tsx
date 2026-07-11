@@ -34,8 +34,7 @@ export default function Contacto() {
   }
 
   return (
-    // Piel "Midnight Neon" del storefront (misma que _index; ver tailwind.css).
-    <div data-skin="store" className="flex min-h-dvh flex-col bg-bg font-sans text-text">
+    <div className="flex min-h-dvh flex-col bg-bg font-sans text-text">
       <PublicHeader />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10">

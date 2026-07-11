@@ -2,9 +2,10 @@
 // ajustar cantidad/eliminar y abre el modal de checkout.
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Minus, Plus, Trash2, ImageOff } from "lucide-react";
+import { X, Minus, Plus, Trash2, ImageOff, Pencil } from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { CheckoutModal } from "./CheckoutModal";
+import { EditCartItemSheet } from "./EditCartItemSheet";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import {
   closeCart,
@@ -26,23 +27,29 @@ export function CartDrawer() {
   const items = useAppSelector(selectCartItems);
   const total = useAppSelector(selectCartTotal);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
+
+  const itemToEdit = editingItemKey ? items.find((i) => lineKey(i) === editingItemKey) : null;
 
   return (
     <>
       <AnimatePresence>
         {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => dispatch(closeCart())}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.aside
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+          <motion.div
+            key="cart-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => dispatch(closeCart())}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+          />
+        )}
+        {isOpen && (
+          <motion.aside
+            key="cart-panel"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-surface"
               role="dialog"
@@ -92,13 +99,22 @@ export function CartDrawer() {
                             </span>
                           </div>
                         </div>
-                        <button
-                          onClick={() => dispatch(removeItem(key))}
-                          aria-label="Eliminar"
-                          className="self-start text-muted hover:text-danger"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex flex-col gap-3 self-start">
+                          <button
+                            onClick={() => setEditingItemKey(key)}
+                            aria-label="Editar"
+                            className="text-muted hover:text-text"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => dispatch(removeItem(key))}
+                            aria-label="Eliminar"
+                            className="text-muted hover:text-danger"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })
@@ -117,11 +133,18 @@ export function CartDrawer() {
                 </footer>
               )}
             </motion.aside>
-          </>
         )}
       </AnimatePresence>
 
       <CheckoutModal open={checkoutOpen} onClose={() => setCheckoutOpen(false)} />
+      
+      {itemToEdit && (
+        <EditCartItemSheet 
+          item={itemToEdit} 
+          open={!!editingItemKey} 
+          onClose={() => setEditingItemKey(null)} 
+        />
+      )}
     </>
   );
 }

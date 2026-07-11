@@ -14,15 +14,18 @@ const STORAGE_KEY = "gyro-theme";
 const DEFAULT_THEME: ThemeId = "dark";
 
 function readStored(): ThemeId {
-  if (typeof document !== "undefined") {
-    const attr = document.documentElement.getAttribute("data-theme") as ThemeId | null;
-    if (attr) return attr;
-  }
+  // localStorage es la fuente de verdad DURABLE. Se lee primero porque el atributo
+  // `data-theme` es transitorio: React puede borrarlo durante la hidratación, y en ese
+  // caso queremos restaurar la preferencia guardada, no caer al default oscuro.
   try {
     const saved = localStorage.getItem(STORAGE_KEY) as ThemeId | null;
-    if (saved) return saved;
+    if (saved === "dark" || saved === "light") return saved;
   } catch {
     /* noop */
+  }
+  if (typeof document !== "undefined") {
+    const attr = document.documentElement.getAttribute("data-theme") as ThemeId | null;
+    if (attr === "dark" || attr === "light") return attr;
   }
   return DEFAULT_THEME;
 }

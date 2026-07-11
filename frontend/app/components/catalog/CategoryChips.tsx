@@ -107,14 +107,14 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
           onClick={() => dispatch(openPublicSidebar())}
           className={cn(
             "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium outline-none transition-colors",
-            "text-muted hover:bg-white/5 hover:text-text focus-visible:ring-2 focus-visible:ring-accent",
+            "text-muted hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-accent",
           )}
         >
           <Menu className="h-4 w-4" />
           Todo
         </button>
 
-        <span className="mx-1 h-4 w-px shrink-0 bg-white/10" aria-hidden />
+        <span className="mx-1 h-4 w-px shrink-0 bg-border" aria-hidden />
 
         {categories.map((c) => {
           const active = activeCategory === c.id;
@@ -127,7 +127,7 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
               data-cat-item
               className={cn(
                 "flex shrink-0 items-center rounded-lg transition-colors",
-                active ? "bg-accent/12" : "hover:bg-white/5",
+                active ? "bg-accent/12" : "hover:bg-surface-hover",
               )}
               onMouseEnter={(e) => hasSub && openMenu(c.id, e.currentTarget)}
               onMouseLeave={hasSub ? closeMenu : undefined}
@@ -216,18 +216,18 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
                         dispatch(setCategory(openData.id));
                         setOpenCat(null);
                       }}
-                      className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-text transition-colors hover:bg-white/5"
+                      className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-text transition-colors hover:bg-surface-hover"
                     >
                       Ver todos
                     </button>
                   </li>
-                  <li aria-hidden className="my-1 h-px bg-white/10" />
+                  <li aria-hidden className="my-1 h-px bg-border" />
                   {openData.subcategories.map((sub) => (
                     <li key={sub.id}>
                       <Link
                         to={getProductUrl(sub.id, sub.name)}
                         onClick={() => setOpenCat(null)}
-                        className="block w-full rounded-lg px-3 py-2 text-left text-sm text-muted transition-colors hover:bg-white/5 hover:text-text"
+                        className="block w-full rounded-lg px-3 py-2 text-left text-sm text-muted transition-colors hover:bg-surface-hover hover:text-text"
                       >
                         {sub.name}
                       </Link>

@@ -1,6 +1,7 @@
 // Grid de catálogo en modo edición: drag & drop para reordenar (dnd-kit),
 // botón de editar por card y botón para agregar producto.
 import { useEffect, useState } from "react";
+import { useSearchParams } from "@remix-run/react";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
@@ -8,7 +9,7 @@ import {
   SortableContext, arrayMove, rectSortingStrategy, useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, ImageOff, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Plus, ImageOff, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { CatalogEditorDrawer } from "./CatalogEditorDrawer";
@@ -26,8 +27,28 @@ export function SortableCatalogGrid() {
   const [items, setItems] = useState<CatalogProduct[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => setItems(serverItems), [serverItems]);
+
+  useEffect(() => {
+    const edit = searchParams.get("edit");
+    const link = searchParams.get("link");
+    if (edit) {
+      setEditId(edit);
+      setDrawerOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("link") === "new") {
+      const timer = setTimeout(() => {
+        setSearchParams({}, { replace: true });
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, setSearchParams]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -59,6 +80,23 @@ export function SortableCatalogGrid() {
 
   return (
     <div className="pb-8">
+      {searchParams.get("link") === "new" && (
+        <div className="mb-6 flex items-start justify-between rounded-lg border border-accent/30 bg-accent/10 p-4 relative overflow-hidden">
+          <div className="relative z-10">
+            <h3 className="mb-1 text-sm font-bold text-accent">💡 Vinculación de Inventario</h3>
+            <p className="text-sm text-accent/90">
+              Estás en la gestión de catálogo. Acá podrás vincular artículos con publicaciones del catálogo digital o crear uno nuevo para los artículos no vinculados.
+            </p>
+          </div>
+          <button 
+            onClick={() => setSearchParams({}, { replace: true })}
+            className="relative z-10 rounded-md p-1.5 text-accent/70 hover:bg-accent/20 hover:text-accent transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted">Arrastra para reordenar · {items.length} productos</p>
         <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4" /> Agregar producto</Button>

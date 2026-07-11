@@ -56,6 +56,26 @@ const cartSlice = createSlice({
       if (item) item.quantity = Math.max(1, action.payload.quantity);
       persist(state.items);
     },
+    updateItem(state, action: PayloadAction<{ oldKey: string; newItem: CartItem }>) {
+      const { oldKey, newItem } = action.payload;
+      const index = state.items.findIndex(i => lineKey(i) === oldKey);
+      if (index !== -1) {
+        const newKey = lineKey(newItem);
+        if (newKey !== oldKey) {
+          const existingIndex = state.items.findIndex(i => lineKey(i) === newKey);
+          if (existingIndex !== -1) {
+            // Se fusionan cantidades si la variante nueva ya existía
+            state.items[existingIndex].quantity += newItem.quantity;
+            state.items.splice(index, 1);
+          } else {
+            state.items[index] = newItem;
+          }
+        } else {
+          state.items[index] = newItem;
+        }
+        persist(state.items);
+      }
+    },
     removeItem(state, action: PayloadAction<string>) {
       state.items = state.items.filter((i) => lineKey(i) !== action.payload);
       persist(state.items);
@@ -73,7 +93,7 @@ const cartSlice = createSlice({
   },
 });
 
-export const { hydrate, addItem, setQuantity, removeItem, clearCart, openCart, closeCart } =
+export const { hydrate, addItem, setQuantity, updateItem, removeItem, clearCart, openCart, closeCart } =
   cartSlice.actions;
 export default cartSlice.reducer;
 

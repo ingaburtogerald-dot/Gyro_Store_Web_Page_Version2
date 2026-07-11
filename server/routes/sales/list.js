@@ -24,13 +24,22 @@ router.get('/', requireAnyRole, asyncHandler(async (req, res) => {
       docs = [];
     }
   } else if (isUserAdmin) {
+    let q = db.collection(ORDERS);
     if (req.query.sellerEmail && req.query.sellerEmail !== 'all') {
-      docs = (await db.collection(ORDERS).where('sellerEmail', '==', req.query.sellerEmail).get()).docs;
+      q = q.where('sellerEmail', '==', req.query.sellerEmail);
     } else {
-      docs = (await db.collection(ORDERS).where('type', 'in', ['seller_report', 'admin_report']).get()).docs;
+      q = q.where('type', 'in', ['seller_report', 'admin_report']);
     }
+    if (req.query.status && req.query.status !== 'all' && req.query.status !== 'history') {
+      q = q.where('status', '==', req.query.status);
+    }
+    docs = (await q.get()).docs;
   } else {
-    docs = (await db.collection(ORDERS).where('sellerEmail', '==', req.user.email).get()).docs;
+    let q = db.collection(ORDERS).where('sellerEmail', '==', req.user.email);
+    if (req.query.status && req.query.status !== 'all' && req.query.status !== 'history') {
+      q = q.where('status', '==', req.query.status);
+    }
+    docs = (await q.get()).docs;
   }
 
   // Mapear a objetos planos reteniendo Timestamp para filtros

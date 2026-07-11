@@ -23,7 +23,9 @@ el cromo nunca compite con la foto ni con el precio.
 - **Variance:** media-alta vía **asimetría estructural** (bento con tiles anchos, hero
   con emblema protagonista), NO vía decoración.
 - **Escena física:** se navega de noche, en el teléfono, con una mano. Por eso el fondo
-  es oscuro (menos fatiga) y las acciones primarias viven abajo/al alcance del pulgar.
+  es oscuro **por defecto** (menos fatiga) y las acciones primarias viven abajo/al alcance
+  del pulgar. Existe una variante clara "Daylight" opcional para uso diurno (ver §2.1); el
+  oscuro sigue siendo la identidad principal.
 
 **Prohibido:** layouts centrados y simétricos "de plantilla", grillas de 3 columnas
 idénticas repetidas, tarjetas apiladas en desorden.
@@ -38,11 +40,11 @@ Todo color se consume vía **token semántico** (`bg-bg`, `text-accent`, `border
 ### Superficies (neutros medianoche, no negro puro)
 | Token | Valor | Uso |
 |---|---|---|
-| `--color-bg` | `#0a0f1c` | Fondo de página (off-black azulado, nunca `#000`) |
-| `--color-surface` | `#0f1728` | Paneles, tarjetas, dropdowns |
-| `--color-surface-2` | `#17223a` | Stage de producto, controles, barra de categorías |
-| `--color-surface-hover` | `#1b2845` | Hover de superficies |
-| `--color-border` | `rgba(148,197,255,0.12)` | Hairline base |
+| `--color-bg` | `#060910` | Fondo de página (near-black azulado, nunca `#000`) |
+| `--color-surface` | `#0d1320` | Paneles, tarjetas, dropdowns |
+| `--color-surface-2` | `#151d2f` | Stage de producto, controles, barra de categorías |
+| `--color-surface-hover` | `#1c2740` | Hover de superficies |
+| `--color-border` | `rgba(148,184,255,0.09)` | Hairline base |
 
 Hairlines alternativas para el look editorial: `border-white/10` (reposo) →
 `border-white/25` (hover). 1px SIEMPRE.
@@ -50,19 +52,21 @@ Hairlines alternativas para el look editorial: `border-white/10` (reposo) →
 ### Texto (contraste AA verificado sobre `--color-bg`)
 | Token | Valor | Uso |
 |---|---|---|
-| `--color-text` | `#e8eefc` | Texto principal, nombres, precios |
-| `--color-muted` | `#94a3b8` | Secundario, metadatos, descripciones (≥4.5:1) |
+| `--color-text` | `#eaf1ff` | Texto principal, nombres, precios |
+| `--color-muted` | `#8b9bb8` | Secundario, metadatos, descripciones (≥4.5:1) |
 
-### Acento — **uno solo** (cyan calibrado, la firma de la marca)
+### Acento — **uno solo** (esmeralda calibrada, la firma de la marca)
 | Token | Valor | Uso |
 |---|---|---|
-| `--color-accent` | `#22d3ee` | Precio, CTA, foco, estado activo |
-| `--color-accent-2` | `#67e8f9` | Hover del nombre, íconos de confianza |
-| `--color-accent-hover` | `#06b6d4` | Hover del CTA |
+| `--color-accent` | `#10b981` | Precio, CTA, foco, estado activo |
+| `--color-accent-2` | `#5eead4` | Hover del nombre, íconos de confianza, highlights |
+| `--color-accent-hover` | `#059669` | Hover del CTA |
+| `--color-grad-from` / `--color-grad-to` | `#047857` / `#059669` | Gradiente `bg-gradient-accent` (verde profundo → texto blanco AA) |
 
-> **Nota de identidad:** el cyan ES la marca de Gyro (decisión deliberada, no default de
-> IA). Es el ÚNICO acento. Contraste crítico: el cyan es claro → los CTAs planos llevan
-> **texto oscuro** (`text-bg` sobre `bg-accent` ≈ 10:1). Nunca texto blanco sobre cyan plano.
+> **Nota de identidad:** el verde esmeralda ES la marca de Gyro (decisión deliberada, no
+> default de IA). Es el ÚNICO acento. Contraste crítico: el esmeralda es medio-claro → los
+> CTAs planos llevan **texto oscuro** (`text-bg` sobre `bg-accent` ≈ 10:1). Nunca texto
+> blanco sobre el accent plano. _(En modo claro el accent se oscurece a `#047857` — ver §2.1.)_
 
 ### Badge secundario (solo oferta/novedad — uso escaso)
 `--color-badge #8b5cf6` / `--color-badge-2 #c4b5fd`. Morado exclusivo para etiquetas
@@ -72,6 +76,39 @@ de oferta sobre la foto. No usar como acento general.
 - **Máximo un acento.** Si algo necesita "otro color", casi siempre necesita **peso** o **jerarquía**, no color.
 - Gris sobre fondo tintado se ve lavado: si el contraste está cerca, subir hacia `--color-text`.
 - Placeholder = mismo 4.5:1 que el texto (usar `--color-muted`, no un gris más claro).
+
+### 2.1 Modo claro "Daylight" (opcional, oscuro sigue siendo el default)
+
+El storefront **responde al tema** vía el hook `useTheme` (toggle en `PublicSidebar` y en
+`UserMenu`). El oscuro es el default de marca; el claro es una variante calibrada scoped a
+**`[data-theme="light"] [data-skin="store"]`** en `tailwind.css` (selector DESCENDIENTE:
+`data-theme` vive en `<html>`, `data-skin` en el wrapper de rutas públicas — son elementos
+distintos, NO un selector compuesto).
+
+| Token | Claro | Nota |
+|---|---|---|
+| `--color-bg` | `#e9edf3` | Base gris-azulada, no blanco puro |
+| `--color-surface` / `-2` / `-hover` | `#ffffff` / `#f3f6fa` / `#e4e9f1` | Paneles se elevan sobre el bg |
+| `--color-border` | `rgba(15,23,42,0.10)` | Hairline de **tinta**, no de luz |
+| `--color-accent` | `#047857` | emerald-700 — sirve relleno Y texto con un solo token |
+| `--color-accent-2` | `#0f766e` | teal-700 — highlights/hover legibles sobre claro |
+| `--color-accent-hover` | `#065f46` | emerald-800 |
+| `--color-text` / `--color-muted` | `#0b1220` / `#51607a` | ~16:1 / ~5:1 (AA) |
+
+Dos reglas que hacen que el modo claro no se rompa:
+
+1. **Acento oscurecido**: en claro el accent baja a `#047857`. Así `bg-accent` + `text-bg`
+   (el token bg es claro) da texto claro sobre verde profundo, y `text-accent` (precios)
+   queda ≥4.5:1 sobre el fondo claro. Un solo token, dos roles, sin conflicto.
+2. **Puente de hairlines**: las utilidades `border-white/α` y `bg-white/α` (el sistema de
+   hairlines/hover del storefront) son **invisibles** sobre fondo claro. Se remapean a tinta
+   oscura translúcida (`rgba(15,23,42,α)`) SOLO dentro del scope claro. Si agregas un nuevo
+   `border-white/N` o `bg-white/N`, **añádelo también al puente** en `tailwind.css`.
+
+> Regla de oro del modo claro: todo componente del storefront debe consumir **tokens**
+> (`bg-bg`, `text-accent`, `border-border`…). Un color crudo o un `text-white` sobre el
+> fondo de página se romperá en claro. Sombras negras profundas → usar la sombra clara
+> override de `.card-premium`.
 
 ---
 

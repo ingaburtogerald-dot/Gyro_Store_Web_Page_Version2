@@ -7,45 +7,38 @@
    (bg-bg, text-accent, rounded-card, font-heading, etc.)
    ─────────────────────────────────────────────────────────── */
 @theme {
-  /* Superficies — Paleta Obsidian (neutra, sin tinte azul) */
-  --color-bg: #09090b;
-  --color-surface: #121214;
-  --color-surface-2: #1a1a1c;
-  --color-surface-hover: #1a1a1c;
-  --color-border: rgba(255, 255, 255, 0.06);
+  /* Superficies — Midnight Neon */
+  --color-bg: #060910;
+  --color-surface: #0d1320;
+  --color-surface-2: #151d2f;
+  --color-surface-hover: #1c2740;
+  --color-border: rgba(148, 184, 255, 0.09);
 
-  /* Acentos — Esmeralda (identidad fintech) */
+  /* Acentos — Esmeralda / Verde tech */
   --color-accent: #10b981;
-  --color-accent-2: #34d399;
+  --color-accent-2: #5eead4;
   --color-accent-hover: #059669;
   --color-whatsapp: #00d4aa;
 
-  /* Gradiente de botones: verdes más profundos que el acento brillante para
-     garantizar contraste del texto blanco (AA). */
+  /* Gradiente de botones */
   --color-grad-from: #047857;
   --color-grad-to: #059669;
 
   /* Texto */
-  --color-text: #e2e8f0;
-  /* muted a ~4.9:1 sobre --color-bg (#09090b): #71717a daba 4.1:1 y no pasaba
-     AA para texto secundario (fechas, productos, subtítulos). */
-  --color-muted: #7d7d86;
+  --color-text: #eaf1ff;
+  --color-muted: #8b9bb8;
 
-  /* Estados semánticos — usar estos en vez de hex sueltos (bg-danger, text-warning…) */
+  /* Estados semánticos */
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
   --color-info: #0ea5e9;
   --color-success: #10b981;
 
-  /* Badge secundario del storefront (Oferta/Nuevo): morado vibrante + su tono
-     de texto legible sobre fondos oscuros. Genera bg-badge, text-badge-2, etc. */
+  /* Badge secundario */
   --color-badge: #8b5cf6;
   --color-badge-2: #c4b5fd;
 
-  /* Paleta CATEGÓRICA — tonos distinguibles para KPIs y gráficos (no son estados).
-     Los estados semánticos (danger/warning/info/success) van arriba; estos cubren
-     los hues extra que necesitan las grillas de KPIs sin recurrir a colores crudos
-     de Tailwind. Genera text-tone-indigo, bg-tone-rose/15, border-tone-purple/30… */
+  /* Paleta CATEGÓRICA */
   --color-tone-indigo: #818cf8;
   --color-tone-sky: #38bdf8;
   --color-tone-amber: #fbbf24;
@@ -54,17 +47,20 @@
   --color-tone-purple: #c084fc;
   --color-tone-red: #f87171;
 
-  /* Tipografía */
-  --font-sans: "Sora", system-ui, sans-serif;
-  --font-heading: "Sora", system-ui, sans-serif;
+  /* Tipografía (del storefront) */
+  --font-sans: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-heading: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
 
-  /* Radios */
-  --radius-card: 16px;
-  --radius-input: 12px;
+  /* Radios (del storefront) */
+  --radius-card: 20px;
+  --radius-input: 14px;
   --radius-pill: 99px;
 
-  /* Sombra premium: anillo sutil + elevación profunda (genera `shadow-premium`) */
-  --shadow-premium: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  /* Sombra premium (del storefront) */
+  --shadow-premium:
+    0 0 0 1px rgba(148, 184, 255, 0.06),
+    0 2px 8px -2px rgba(0, 0, 0, 0.5),
+    0 24px 48px -24px rgba(0, 0, 0, 0.75);
 }
 
 /* Gradiente de acento reutilizable */
@@ -96,22 +92,55 @@
 
 
 [data-theme="light"] {
-  --color-bg: #e7ede9;        /* fondo gris-esmeralda: hace que los cards blancos resalten */
+  /* Superficies: Blanco nieve y grises hielo ultra-limpios */
+  --color-bg: #f4f7f6;
   --color-surface: #ffffff;
-  --color-surface-2: #eef3f0;
-  --color-surface-hover: #eef3f0;
-  --color-border: #c2d1c9;    /* borde más definido y con mejor contraste */
-  --color-accent: #059669;
-  --color-accent-2: #10b981;
-  --color-accent-hover: #047857;
-  /* En claro el anillo blanco no se ve: sombra de elevación suave en su lugar */
-  --shadow-premium: 0 1px 2px rgba(16, 40, 30, 0.05), 0 12px 28px -14px rgba(16, 40, 30, 0.18);
-  --color-grad-from: #059669;
-  --color-grad-to: #047857;
+  --color-surface-2: #f0f4f4;
+  --color-surface-hover: #e5ebeb;
+  --color-border: rgba(15, 30, 25, 0.08);
+
+  /* Acentos: Verde pino y esmeralda corporativo (alto contraste) */
+  --color-accent: #0f766e;
+  --color-accent-2: #115e59;
+  --color-accent-hover: #134e4a;
   --color-whatsapp: #059669;
-  --color-text: #102a22;
-  --color-muted: #556b63;
+  
+  /* Gradiente de botones: Tonos profundos */
+  --color-grad-from: #0f766e;
+  --color-grad-to: #047857;
+
+  /* Texto: Grafito casi negro y gris pizarra */
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  
+  /* Estados semánticos (Oscurecidos para AA/AAA contraste) */
+  --color-danger: #e11d48;
+  --color-warning: #d97706;
+  --color-info: #0284c7;
+  --color-success: #16a34a;
+
+  /* Badges */
+  --color-badge: #6366f1;
+  --color-badge-2: #4f46e5;
+
+  /* Paleta CATEGÓRICA (Tonos joya profundos, sin ser neón) */
+  --color-tone-indigo: #4338ca;
+  --color-tone-sky: #0369a1;
+  --color-tone-amber: #b45309;
+  --color-tone-emerald: #047857;
+  --color-tone-rose: #be123c;
+  --color-tone-purple: #7e22ce;
+  --color-tone-red: #b91c1c;
+
+  /* Sombra diurna: Difusa, tinte azulado/grisáceo */
+  --shadow-premium: 0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 24px -12px rgba(15, 23, 42, 0.12);
   color-scheme: light;
+}
+
+[data-theme="light"] body {
+  /* Fondo súper limpio, sin gradientes nocturnos */
+  background-image: none;
+  background-color: var(--color-bg);
 }
 
 /* Table Headers */
@@ -232,6 +261,32 @@
   box-shadow: 0 0 8px rgba(0, 212, 170, 0.35), 0 0 20px rgba(0, 212, 170, 0.15);
 }
 
+/* ── Sobrescribir "Glows" en modo claro a "Tints" (Pasteles con borde) ── */
+[data-theme="light"] .glow-amber {
+  box-shadow: none;
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #b45309;
+}
+[data-theme="light"] .glow-emerald {
+  box-shadow: none;
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #047857;
+}
+[data-theme="light"] .glow-rose {
+  box-shadow: none;
+  background-color: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  color: #be123c;
+}
+[data-theme="light"] .glow-whatsapp {
+  box-shadow: none;
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #047857;
+}
+
 @keyframes badge-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
@@ -247,15 +302,30 @@
 }
 
 @layer base {
-  html,
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    /* Alternates de Inter (a, g, y…) = look Vercel/Geist */
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    /* Ambiente: un foco esmeralda arriba + un halo verde-teal muy tenue abajo */
+    background-image:
+      radial-gradient(1100px 560px at 82% -8%, rgba(16, 185, 129, 0.09), transparent 62%),
+      radial-gradient(820px 520px at -12% 108%, rgba(94, 234, 212, 0.05), transparent 60%);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  [data-theme="light"] body::before {
+    opacity: 0.01; /* El grano de "papel" se reduce al mínimo en modo claro */
   }
 
   ::selection {
@@ -270,7 +340,7 @@
   /* Cifras alineadas (estados de cuenta, KPIs, tablas) */
   .nums { font-variant-numeric: tabular-nums; }
 
-  /* Iconos lucide con trazo más fino = look más premium/refinado. */
+  /* Iconos lucide con trazo m�s fino = look m�s premium/refinado. */
   svg.lucide { stroke-width: 1.75; }
 
   /* Scrollbar discreta pero visible en fondos muy oscuros */
@@ -287,22 +357,233 @@
   }
 }
 
-/* Input estándar de formularios (tema oscuro) */
+/* Input est�ndar de formularios */
 @layer components {
   .input {
     width: 100%;
     border-radius: var(--radius-input);
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: color-mix(in srgb, var(--color-bg) 50%, var(--color-surface));
     padding: 0.625rem 0.75rem;
     font-size: 0.875rem;
     color: var(--color-text);
     outline: none;
     color-scheme: dark;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   }
+  
+  /* Reset para <select> y custom chevron */
+  select.input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='currentColor' class='size-6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M8.25 15 12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9' /%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+  }
+
   .input::placeholder {
     color: var(--color-muted);
   }
+  .input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+    background-color: var(--color-surface);
+  }
+}
+
+/* En modo claro el control nativo (n�meros, fecha) debe usar esquema claro */
+[data-theme="light"] .input {
+  color-scheme: light;
+}
+[data-theme="light"] select.input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='%2364748b' class='size-6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M8.25 15 12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9' /%3E%3C/svg%3E");
+}
+
+/* -- Date picker propio (react-day-picker) tematizado con los tokens -- */
+.app-daypicker {
+  --rdp-accent-color: var(--color-accent);
+  --rdp-accent-background-color: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  --rdp-today-color: var(--color-accent-2);
+  --rdp-day-width: 2.25rem;
+  --rdp-day-height: 2.25rem;
+  --rdp-day_button-width: 2.25rem;
+  --rdp-day_button-height: 2.25rem;
+  --rdp-day_button-border-radius: 10px;
+  --rdp-selected-border: none;
+  --rdp-disabled-opacity: 0.35;
+  --rdp-outside-opacity: 0.4;
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+.app-daypicker .rdp-caption_label,
+.app-daypicker .rdp-month_caption {
+  font-weight: 700;
+  color: var(--color-text);
+}.app-daypicker .rdp-weekday {
+  color: var(--color-muted);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.app-daypicker .rdp-day_button:hover {
+  background-color: var(--color-surface-2, color-mix(in srgb, var(--color-accent) 12%, transparent));
+}
+.app-daypicker .rdp-selected .rdp-day_button {
+  background-color: var(--rdp-accent-color);
+  color: #fff;
+  font-weight: 700;
+}
+.app-daypicker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: var(--color-accent-2);
+  font-weight: 700;
+}
+.app-daypicker .rdp-chevron {
+  fill: var(--color-accent);
+}
+.app-daypicker .rdp-button_previous:hover,
+.app-daypicker .rdp-button_next:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+/* Aurora animada para el hero */
+@keyframes aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(3%, -3%) scale(1.1); }
+  66% { transform: translate(-3%, 3%) scale(0.95); }
+}
+.animate-aurora {
+  animation: aurora 18s ease-in-out infinite;
+}
+
+/* Glow neón pulsante para el emblema del hero */
+@keyframes glowPulse {
+  0%, 100% { filter: drop-shadow(0 0 18px color-mix(in srgb, var(--color-accent) 55%, transparent)) drop-shadow(0 0 45px color-mix(in srgb, var(--color-accent-2) 35%, transparent)); }
+  50% { filter: drop-shadow(0 0 30px color-mix(in srgb, var(--color-accent) 80%, transparent)) drop-shadow(0 0 70px color-mix(in srgb, var(--color-accent-2) 55%, transparent)); }
+}
+.animate-glow {
+  animation: glowPulse 3.5s ease-in-out infinite;
+}
+
+/* Destellos titilantes */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.animate-twinkle {
+  animation: twinkle 2.8s ease-in-out infinite;
+}
+
+[data-theme="light"] .card-premium {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px -1px rgba(15, 23, 42, 0.12),
+    0 18px 40px -28px rgba(15, 23, 42, 0.3);
+}
+
+[data-theme="light"] .border-white\/5 { border-color: rgba(15, 23, 42, 0.07); }
+[data-theme="light"] .border-white\/10 { border-color: rgba(15, 23, 42, 0.11); }
+[data-theme="light"] .border-white\/20 { border-color: rgba(15, 23, 42, 0.16); }
+[data-theme="light"] .border-white\/25 { border-color: rgba(15, 23, 42, 0.2); }
+[data-theme="light"] .ring-white\/10 { --tw-ring-color: rgba(15, 23, 42, 0.11); }
+[data-theme="light"] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.04); }
+[data-theme="light"] .bg-white\/10 { background-color: rgba(15, 23, 42, 0.06); }
+[data-theme="light"] .bg-white\/\[0\.03\] { background-color: rgba(15, 23, 42, 0.035); }
+[data-theme="light"] .bg-white\/\[0\.06\] { background-color: rgba(15, 23, 42, 0.05); }
+[data-theme="light"] .hover\:bg-white\/5:hover { background-color: rgba(15, 23, 42, 0.05); }
+[data-theme="light"] .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 42, 0.07); }
+[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover { background-color: rgba(15, 23, 42, 0.05); }
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-text) 7%, transparent),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.table-sticky-head { position: sticky; top: 4rem; z-index: 10; }
+
+
+
+
+/* Material de tarjeta premium: superficie con degradado sutil (luz cenital),
+   hairline superior encendido y sombra profunda. Un solo lugar → todas las
+   tarjetas del store lo heredan. */
+@utility card-premium {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-surface) 100%, transparent),
+    color-mix(in srgb, var(--color-bg) 55%, var(--color-surface))
+  );
+  border: 1px solid var(--color-border);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+    0 1px 2px -1px rgba(0, 0, 0, 0.6),
+    0 18px 40px -28px rgba(0, 0, 0, 0.8);
+}
+
+/* Chip/eyebrow de vidrio con borde de acento — para etiquetas editoriales. */
+@utility pill-glass {
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+/* Marquee horizontal infinito (tira de marcas). El contenido se duplica en el DOM;
+   animamos -50% para que el loop sea perfecto y sin saltos. Pausa al hover. */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@utility animate-marquee {
+  animation: marquee-x var(--marquee-duration, 38s) linear infinite;
+}
+.group\/marquee:hover .animate-marquee {
+  animation-play-state: paused;
+}
+/* Máscara de desvanecido en ambos bordes del marquee. */
+@utility marquee-mask {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+
+  /* Glows de acento contenidos para el storefront (heredan --color-accent) */
+@utility shadow-accent-cta {
+  box-shadow: 0 12px 30px -10px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+@utility shadow-accent-soft {
+  box-shadow: 0 24px 60px -28px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+/* Respeta a quien pidió menos movimiento (accesibilidad + buena práctica). */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after,
+  .animate-aurora,
+  .animate-glow,
+  .animate-twinkle,
+  .animate-marquee {
+}
   .input:focus {
     border-color: var(--color-accent);
   }
@@ -388,9 +669,26 @@
   animation: twinkle 2.8s ease-in-out infinite;
 }
 
-/* ───────────────────────────────────────────────────────────
-   Skeletons con shimmer — carga percibida más rápida que un spinner.
-   ─────────────────────────────────────────────────────────── */
+[data-theme="light"] .card-premium {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px -1px rgba(15, 23, 42, 0.12),
+    0 18px 40px -28px rgba(15, 23, 42, 0.3);
+}
+
+[data-theme="light"] .border-white\/5 { border-color: rgba(15, 23, 42, 0.07); }
+[data-theme="light"] .border-white\/10 { border-color: rgba(15, 23, 42, 0.11); }
+[data-theme="light"] .border-white\/20 { border-color: rgba(15, 23, 42, 0.16); }
+[data-theme="light"] .border-white\/25 { border-color: rgba(15, 23, 42, 0.2); }
+[data-theme="light"] .ring-white\/10 { --tw-ring-color: rgba(15, 23, 42, 0.11); }
+[data-theme="light"] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.04); }
+[data-theme="light"] .bg-white\/10 { background-color: rgba(15, 23, 42, 0.06); }
+[data-theme="light"] .bg-white\/\[0\.03\] { background-color: rgba(15, 23, 42, 0.035); }
+[data-theme="light"] .bg-white\/\[0\.06\] { background-color: rgba(15, 23, 42, 0.05); }
+[data-theme="light"] .hover\:bg-white\/5:hover { background-color: rgba(15, 23, 42, 0.05); }
+[data-theme="light"] .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 42, 0.07); }
+[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover { background-color: rgba(15, 23, 42, 0.05); }
+
 .skeleton {
   position: relative;
   overflow: hidden;
@@ -413,85 +711,10 @@
   100% { transform: translateX(100%); }
 }
 
-/* Header de tabla pegajoso: queda justo bajo el header de la app (h-16). */
 .table-sticky-head { position: sticky; top: 4rem; z-index: 10; }
 
-/* ───────────────────────────────────────────────────────────
-   Skin del STOREFRONT — "Midnight Neon" (scoped: NO toca el admin).
-   Se activa con data-skin="store" en el contenedor de las rutas
-   públicas (_index, producto.$id, contacto). Sobre-escribe los
-   tokens del @theme igual que [data-theme]; todas las utilidades
-   (bg-bg, text-accent, bg-gradient-accent…) lo heredan solas.
 
-   Contraste: el acento cyan es CLARO → los CTAs planos llevan
-   texto oscuro (text-bg da ~10:1 sobre #22d3ee), y el gradiente
-   de botones usa cyan profundos (#155e75→#0e7490, ≥4.5:1) para
-   que el texto blanco de header/FABs siga siendo AA sin tocarlos.
-   ─────────────────────────────────────────────────────────── */
-[data-skin="store"] {
-  /* Superficies — near-black con undertone azul (más profundo y "caro" que el
-     navy plano anterior). Cada nivel sube ~6% de luminosidad para crear una
-     jerarquía de materiales real (bg < surface < surface-2 < hover). */
-  --color-bg: #060910;
-  --color-surface: #0d1320;
-  --color-surface-2: #151d2f;
-  --color-surface-hover: #1c2740;
-  --color-border: rgba(148, 184, 255, 0.09);
 
-  /* Acento único — esmeralda / verde tech calibrado (precios, focos, CTAs).
-     accent es medio-claro → los CTAs planos llevan texto oscuro (text-bg) con
-     contraste AA holgado; accent-2 es el highlight brillante para glows/hover. */
-  --color-accent: #10b981;
-  --color-accent-2: #5eead4;
-  --color-accent-hover: #059669;
-  --color-grad-from: #047857;
-  --color-grad-to: #059669;
-
-  /* Texto — blanco azulado + muted legible sobre near-black (≥6:1) */
-  --color-text: #eaf1ff;
-  --color-muted: #8b9bb8;
-
-  /* Tipografía del storefront: Unificada para usar la fuente de los titulares en todo el sitio. */
-  --font-sans: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-heading: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
-
-  /* Radios ligeramente más generosos = look premium/software. */
-  --radius-card: 20px;
-  --radius-input: 14px;
-
-  /* Sombra premium propia del store: anillo sutil + doble elevación profunda. */
-  --shadow-premium:
-    0 0 0 1px rgba(148, 184, 255, 0.06),
-    0 2px 8px -2px rgba(0, 0, 0, 0.5),
-    0 24px 48px -24px rgba(0, 0, 0, 0.75);
-
-  /* body fija font/bg con los tokens de :root; aquí se re-resuelven
-     con los overrides del skin. */
-  font-family: var(--font-sans);
-  background-color: var(--color-bg);
-  /* Ambiente: un foco esmeralda arriba + un halo verde-teal muy tenue abajo, para
-     que el fondo no sea plano ni compita con el producto. */
-  background-image:
-    radial-gradient(1100px 560px at 82% -8%, rgba(16, 185, 129, 0.09), transparent 62%),
-    radial-gradient(820px 520px at -12% 108%, rgba(94, 234, 212, 0.05), transparent 60%);
-  background-attachment: fixed;
-}
-
-/* Grano finísimo sobre el fondo del store: mata el banding de los gradientes y
-   añade textura de "papel" premium. Se aplica una sola vez, fijo, sin capturar
-   eventos. */
-[data-skin="store"]::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  /* z-index negativo → el grano se pinta DETRÁS del contenido sin necesidad de
-     tocar el position/z-index de los hijos (así no rompemos overlays ni FABs con
-     position: fixed, como el bottom sheet de filtros). */
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 
 /* Material de tarjeta premium: superficie con degradado sutil (luz cenital),
    hairline superior encendido y sombra profunda. Un solo lugar → todas las

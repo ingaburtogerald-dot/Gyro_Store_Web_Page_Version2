@@ -29,4 +29,19 @@ async function uploadFile(buffer, folder, filename, contentType) {
   return `https://storage.googleapis.com/${bucket.name}/${encodeURI(filePath)}`;
 }
 
-module.exports = { sanitizePathSegment, uploadFile };
+async function deleteFileByUrl(publicUrl) {
+  if (!publicUrl || typeof publicUrl !== 'string') return;
+  try {
+    const bucket = admin.storage().bucket();
+    const bucketPrefix = `https://storage.googleapis.com/${bucket.name}/`;
+    if (!publicUrl.startsWith(bucketPrefix)) return;
+    
+    const filePath = decodeURI(publicUrl.slice(bucketPrefix.length));
+    const file = bucket.file(filePath);
+    await file.delete();
+  } catch (err) {
+    if (err.code !== 404) console.error('Error al borrar de Storage:', err.message);
+  }
+}
+
+module.exports = { sanitizePathSegment, uploadFile, deleteFileByUrl };

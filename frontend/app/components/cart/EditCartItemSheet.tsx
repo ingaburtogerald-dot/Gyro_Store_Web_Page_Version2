@@ -1,31 +1,32 @@
-// Selector rápido de variante para el quick-add de la card (bottom sheet).
-// Se abre solo cuando el producto tiene >1 combinación (variantCount de la lista);
-// carga el detalle on-demand con RTK Query (cacheado entre aperturas) y reusa el
-// VariantPicker del detalle, que trabaja con stock REAL por combinación.
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ShoppingCart, X, ImageOff, ArrowRight } from "lucide-react";
+import { Check, X, ImageOff } from "lucide-react";
 import { toast } from "sonner";
 import { VariantPicker, type VariantSelection } from "~/components/catalog/VariantPicker";
-import { useGetCatalogItemQuery, type CatalogProduct } from "~/store/api/catalogApi";
+import { useGetCatalogItemQuery } from "~/store/api/catalogApi";
 import { useAppDispatch } from "~/store/hooks";
-import { addItem, openCart } from "~/store/slices/cartSlice";
-import { formatCordobas, cn, getProductUrl } from "~/lib/utils";
+import { updateItem, type CartItem } from "~/store/slices/cartSlice";
+import { formatCordobas, cn } from "~/lib/utils";
 
-export function QuickAddSheet({
-  product,
+function lineKey(i: Pick<CartItem, "catalogId" | "variantName">) {
+  return `${i.catalogId}::${i.variantName}`;
+}
+
+export function EditCartItemSheet({
+  item,
   open,
   onClose,
 }: {
-  product: CatalogProduct;
+  item: CartItem;
   open: boolean;
   onClose: () => void;
 }) {
   const dispatch = useAppDispatch();
   const [selection, setSelection] = useState<VariantSelection | null>(null);
-  const { data: detail, isFetching, isError } = useGetCatalogItemQuery(product.id, {
+  
+  // Cargamos los datos reales del producto para obtener todas sus variantes
+  const { data: detail, isFetching, isError } = useGetCatalogItemQuery(item.catalogId, {
     skip: !open,
   });
 
@@ -44,71 +45,70 @@ export function QuickAddSheet({
 
   const variant = selection?.variant ?? null;
   const inStock = selection?.inStock ?? false;
-  const price = variant?.price ?? product.price;
+  const price = variant?.price ?? item.price;
 
-  // Miniatura: foto del color elegido si existe; si no, la general.
+  // Miniatura: foto del color elegido si existe; si no, la que ya tenía el ítem.
   const thumb =
     (selection?.color && detail?.imagesByColor?.[selection.color]?.[0]) ||
     detail?.images?.[0] ||
-    product.images?.[0] ||
+    item.image ||
     "";
 
-  function add() {
+  function save() {
     if (!detail || !variant || !inStock) return;
+    
+    const oldKey = lineKey(item);
+    
     dispatch(
-      addItem({
-        catalogId: detail.id,
-        variantId: variant.id,
-        name: variant.name || product.name,
-        variantName: variant.variantName || "Estándar",
-        price,
-        image: thumb,
-        quantity: 1,
+      updateItem({
+        oldKey,
+        newItem: {
+          catalogId: detail.id,
+          variantId: variant.id,
+          name: variant.name || item.name,
+          variantName: variant.variantName || "Estándar",
+          price,
+          image: thumb,
+          quantity: item.quantity, // Conservamos la cantidad que tenía
+        },
       }),
     );
     onClose();
-    dispatch(openCart());
-    toast.success("Agregado al carrito");
+    toast.success("Variante actualizada");
   }
 
-  // SSR: el sheet solo existe tras una interacción, pero el guard evita que
-  // createPortal corra en el servidor si el componente quedara montado.
+  // SSR check
   if (typeof document === "undefined") return null;
 
   return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center font-sans"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 font-sans"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           {/* Backdrop */}
           <button
-            aria-label="Cerrar selector de variante"
+            aria-label="Cerrar editor de variante"
             onClick={onClose}
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
           />
 
           {/* Panel */}
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label={`Elegir variante de ${product.name}`}
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="relative w-full max-w-lg rounded-t-3xl border-t border-border bg-surface pb-[max(1rem,env(safe-area-inset-bottom))] text-text"
+            aria-label={`Editar variante de ${item.name}`}
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-surface text-text shadow-2xl"
           >
-            {/* Asa de arrastre */}
-            <div className="flex flex-col items-center pt-3">
-              <span className="h-1.5 w-10 rounded-full bg-border" />
-            </div>
-
-            {/* Cabecera: miniatura + nombre + precio de la variante elegida */}
-            <div className="flex items-center gap-3 px-5 pb-2 pt-3">
+            {/* Cabecera: miniatura + nombre + precio */}
+            <div className="flex items-center gap-3 px-5 pb-2 pt-5">
               <div className="product-stage grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl">
                 {thumb ? (
                   <img src={thumb} alt="" className="h-full w-full object-contain p-1.5" />
@@ -117,7 +117,7 @@ export function QuickAddSheet({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="line-clamp-1 font-heading text-base font-bold">{product.name}</h2>
+                <h2 className="line-clamp-1 font-heading text-base font-bold">{item.name}</h2>
                 <p className="font-heading text-lg font-extrabold tabular-nums leading-tight text-accent">
                   {formatCordobas(price)}
                 </p>
@@ -133,7 +133,6 @@ export function QuickAddSheet({
 
             <div className="max-h-[60vh] overflow-y-auto px-5 pb-3">
               {isFetching && !detail ? (
-                // Skeleton con la silueta del picker (dos ejes de ejemplo)
                 <div className="mt-5 space-y-5" aria-hidden>
                   {[0, 1].map((i) => (
                     <div key={i}>
@@ -147,7 +146,7 @@ export function QuickAddSheet({
                 </div>
               ) : isError || (detail && detail.variants.length === 0) ? (
                 <p className="py-6 text-center text-sm text-muted">
-                  No se pudieron cargar las variantes. Probá desde la página del producto.
+                  No se pudieron cargar las variantes.
                 </p>
               ) : detail ? (
                 <VariantPicker
@@ -159,10 +158,10 @@ export function QuickAddSheet({
             </div>
 
             {/* Acciones */}
-            <div className="space-y-3 border-t border-border px-5 pt-4">
+            <div className="space-y-3 border-t border-border p-5">
               <button
                 type="button"
-                onClick={add}
+                onClick={save}
                 disabled={!variant || !inStock}
                 className={cn(
                   "ease-expo flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition duration-300 active:scale-[0.97]",
@@ -172,22 +171,13 @@ export function QuickAddSheet({
                     : "cursor-not-allowed bg-surface-2 text-muted",
                 )}
               >
-                <ShoppingCart className="h-4 w-4" />
+                <Check className="h-5 w-5" />
                 {!detail
                   ? "Cargando…"
                   : variant && inStock
-                    ? "Agregar al carrito"
+                    ? "Actualizar variante"
                     : "Variante agotada"}
               </button>
-              <Link
-                to={getProductUrl(product.id, product.name)}
-                prefetch="intent"
-                viewTransition
-                onClick={onClose}
-                className="flex min-h-[40px] items-center justify-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-accent-2"
-              >
-                Ver detalles completos <ArrowRight className="h-4 w-4" />
-              </Link>
             </div>
           </motion.div>
         </motion.div>

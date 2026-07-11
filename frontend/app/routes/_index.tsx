@@ -8,7 +8,6 @@ import { Hero } from "~/components/catalog/Hero";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { ProductCarousel } from "~/components/catalog/ProductCarousel";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
-import { BrandStrip } from "~/components/catalog/BrandStrip";
 import { CategoryChips } from "~/components/catalog/CategoryChips";
 import { CatalogToolbar } from "~/components/catalog/CatalogToolbar";
 import { FilterFab } from "~/components/catalog/FilterFab";
@@ -133,9 +132,7 @@ export default function Index() {
   }, [isAdmin, searchParams, setSearchParams, dispatch]);
 
   return (
-    // data-skin="store": activa la piel "Midnight Neon" (tokens con scope en
-    // tailwind.css) solo en el storefront; el admin conserva Obsidian/Esmeralda.
-    <div data-skin="store" className="flex min-h-dvh flex-col bg-bg font-sans text-text">
+    <div className="flex min-h-dvh flex-col bg-bg font-sans text-text">
       <PublicHeader 
         bottomBar={
           !editing ? (
@@ -161,7 +158,6 @@ export default function Index() {
         <AnimatePresence initial={false}>
           {!editing && !hasFilters && (
             <motion.div key="brands-and-carousel" {...collapse}>
-              <BrandStrip />
               <ProductCarousel
                 title="Lo Más Nuevo"
                 subtitle="Recién llegados a la tienda"

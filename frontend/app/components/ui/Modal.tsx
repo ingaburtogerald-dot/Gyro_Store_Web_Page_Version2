@@ -37,17 +37,20 @@ export function Modal({
   if (!mounted) return null;
 
   return createPortal(
-    <AnimatePresence>
-      {open && (
-        <>
+      <AnimatePresence>
+        {open && (
           <motion.div
+            key="modal-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={preventOutsideClose ? undefined : onClose}
             className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
           />
+        )}
+        {open && (
           <motion.div
+            key="modal-content"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -66,8 +69,7 @@ export function Modal({
             </div>
             {children}
           </motion.div>
-        </>
-      )}
+        )}
     </AnimatePresence>,
     document.body,
   );

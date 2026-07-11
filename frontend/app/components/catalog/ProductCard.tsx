@@ -121,21 +121,10 @@ export function ProductCard({
             className={cn(
               "ease-expo h-full w-full object-contain p-6 transition duration-[600ms] will-change-transform",
               "group-hover:scale-[1.06]",
-              hoverImage && !soldOut && "group-hover:opacity-0",
               soldOut && "opacity-40 grayscale"
             )}
             style={{ viewTransitionName: `vt-product-${product.id}` } as React.CSSProperties}
           />
-          {/* Foto 2 revelada al hover (crossfade) */}
-          {hoverImage && !soldOut && (
-            <img
-              src={hoverImage}
-              alt=""
-              aria-hidden
-              loading="lazy"
-              className="ease-expo pointer-events-none absolute inset-0 h-full w-full object-contain p-6 opacity-0 transition duration-[600ms] group-hover:scale-[1.06] group-hover:opacity-100"
-            />
-          )}
         </>
       ) : (
         <div className="grid h-full place-items-center text-muted">
