@@ -18,7 +18,16 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
   return (
     <div
       ref={ref}
-      style={{ width: "80mm", fontFamily: "'Segoe UI', Arial, sans-serif", color: "#000" }}
+      style={{
+        width: "80mm",
+        fontFamily: "'Segoe UI', Arial, sans-serif",
+        color: "#000",
+        // Fuerza la impresión de fondos/colores (franja negra del TOTAL) y evita
+        // que la cuchilla parta el ticket a la mitad de un bloque.
+        WebkitPrintColorAdjust: "exact",
+        printColorAdjust: "exact",
+        breakInside: "avoid",
+      }}
       className="mx-auto bg-white px-4 pb-5 pt-0.5 text-[13px] leading-snug text-black"
     >
       {/* ═══════════════════════════════════════════
@@ -181,6 +190,10 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
       <div className="mt-4 text-center text-[8px] tracking-[0.3em] text-black">
         {"· ".repeat(22)}
       </div>
+
+      {/* Avance en blanco: da margen a la cuchilla térmica para que no corte
+          las últimas líneas del ticket. */}
+      <div aria-hidden style={{ height: "12mm" }} />
     </div>
   );
 });

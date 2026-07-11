@@ -20,9 +20,25 @@ export function TicketPrintModal({ invoice, onClose }: { invoice: Invoice; onClo
   const handlePrint = useReactToPrint({
     contentRef: ticketRef,
     documentTitle: invoice.ticketNumber,
+    // `@page { margin: 0 }` elimina el doble margen del navegador. `print-color-adjust:
+    // exact` OBLIGA a imprimir fondos/colores (sin esto la franja negra del TOTAL
+    // desaparece y su texto blanco queda invisible). `break-inside: avoid` evita que
+    // los bloques se partan, y el padding inferior deja avance para que la cuchilla
+    // no corte las últimas líneas.
     pageStyle: `
       @page { size: 80mm auto; margin: 0; }
-      @media print { html, body { margin: 0 !important; padding: 0 !important; } }
+      @media print {
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+      }
     `,
   });
   const [downloading, setDownloading] = useState(false);
