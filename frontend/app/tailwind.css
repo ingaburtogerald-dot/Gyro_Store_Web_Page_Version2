@@ -55,7 +55,7 @@
   --color-tone-red: #f87171;
 
   /* Tipografía */
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Sora", system-ui, sans-serif;
   --font-heading: "Sora", system-ui, sans-serif;
 
   /* Radios */
@@ -451,10 +451,8 @@
   --color-text: #eaf1ff;
   --color-muted: #8b9bb8;
 
-  /* Tipografía del storefront: tensión display/texto real. Bricolage Grotesque
-     (display, editorial) para titulares; Plus Jakarta Sans para el cuerpo.
-     El admin conserva Inter/Sora. */
-  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  /* Tipografía del storefront: Unificada para usar la fuente de los titulares en todo el sitio. */
+  --font-sans: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
   --font-heading: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
 
   /* Radios ligeramente más generosos = look premium/software. */
