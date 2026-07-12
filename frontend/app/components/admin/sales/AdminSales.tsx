@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Coins, Clock, ShoppingBag, Landmark, Plus, PiggyBank, SlidersHorizontal, Search, X } from "lucide-react";
+import { CheckCircle2, Coins, Clock, ShoppingBag, Landmark, Plus, PiggyBank } from "lucide-react";
+import { TableFilterBar, SearchInput } from "./TableFilters";
 import { PendingSalesContainer } from "./PendingSalesContainer";
 import { PaymentHistory } from "./PaymentHistory";
 import { SalesPerformance } from "./SalesPerformance";
@@ -284,32 +285,12 @@ export function AdminSales() {
           )}
 
           {/* ── Filtros (ahora debajo de los KPIs, justo antes de la tabla) ── */}
-          <div className="relative z-40 flex flex-wrap items-center gap-3 border-b border-border/60 pb-4">
-            <span className="mr-auto inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted hidden sm:inline-flex">
-              <SlidersHorizontal className="h-4 w-4" />
-              Filtros
-            </span>
-            
-            {/* ── Búsqueda Global ── */}
-            <div className="flex w-full items-center gap-2 rounded-pill border border-border bg-surface-2 px-3 py-1.5 transition-colors focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/20 sm:w-64">
-              <Search className="h-4 w-4 shrink-0 text-muted" />
-              <input
-                value={searchParams.get("search") || ""}
-                onChange={(e) => updateParams({ search: e.target.value || null, page: null })}
-                placeholder="Buscar producto..."
-                className="w-full bg-transparent text-sm text-text outline-none placeholder:text-muted"
-              />
-              {searchParams.get("search") && (
-                <button 
-                  onClick={() => updateParams({ search: null, page: null })} 
-                  aria-label="Limpiar" 
-                  className="shrink-0 text-muted hover:text-text"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
+          <TableFilterBar>
+            <SearchInput
+              value={searchParams.get("search") || ""}
+              onChange={(val) => updateParams({ search: val || null, page: null })}
+              placeholder="Buscar producto..."
+            />
             <div className="w-full sm:w-48">
               <UnifiedDatePicker
                 value={selectedDate}
@@ -325,24 +306,20 @@ export function AdminSales() {
                 dotTitle="Tiene ventas pendientes de aprobación"
               />
             </div>
-          </div>
+          </TableFilterBar>
         </div>
       )}
 
       {/* ── Filtro de período del vendedor (Ventas / Reportería) ── */}
       {showSellerDateBar && (
-        <div className="relative z-40 flex flex-wrap items-center gap-3 border-b border-border/60 pb-4">
-          <span className="mr-auto inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
-            <SlidersHorizontal className="h-4 w-4" />
-            Período
-          </span>
+        <TableFilterBar label="Período">
           <div className="w-full sm:w-52">
             <UnifiedDatePicker
               value={selectedDate}
               onChange={(val) => updateParams({ date: val, page: null })}
             />
           </div>
-        </div>
+        </TableFilterBar>
       )}
 
       {/* ── Contenido del sub-tab activo ── */}

@@ -6,7 +6,7 @@
 // tienda — "SuperOfertas" (ofertas reales) y luego el catálogo completo. Al buscar
 // o filtrar, colapsa a una única grilla de resultados (sin encabezados de sección).
 import { PackageSearch, Flame, LayoutGrid } from "lucide-react";
-import { ProductCard } from "./ProductCard";
+import { ProductCard } from "~/components/product/ProductCard";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useCatalogFilter, isDeal } from "~/lib/useCatalogFilter";
 import { cn } from "~/lib/utils";
@@ -16,11 +16,14 @@ import { cn } from "~/lib/utils";
 //  · Las ofertas se ganan un tile ancho.
 // Es determinista → sobrevive al filtrado sin verse aleatorio, y solo activa la
 // asimetría cuando hay suficientes ítems para que no quede un tile ancho solitario.
-// Regla determinista de tiles ANCHOS para romper la grilla uniforme (ver Bento):
-// (Desactivada por solicitud del usuario: ahora todas las cards son del mismo tamaño)
 const catalogWide =
   (total: number) =>
-  (p: CatalogProduct, i: number): boolean => false;
+  (p: CatalogProduct, i: number): boolean => {
+    if (total < 4) return false;
+    if (i === 0) return true;
+    if (isDeal(p)) return true;
+    return i > 0 && i % 5 === 0;
+  };
 
 export function ProductGrid({ products, categories }: { products: CatalogProduct[]; categories: Category[] }) {
   // Filtrado + orden compartidos con la toolbar (una sola fuente de verdad).

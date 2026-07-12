@@ -1,10 +1,9 @@
-// Drawer para crear/editar un ítem del catálogo (basado en plantillas).
-// Flujo: nombre → categoría → se elige una plantilla disponible en esa categoría;
-// sus ejes se muestran como toggles On/Off (lo apagado se ve "agotado" al cliente),
-// el admin mapea cada COMBINACIÓN de variante a un SKU de bodega vía combobox.
+// Editor de catálogo — formulario largo scrolleable (estilo Shopify).
+// Sin wizard: 4 tarjetas (General · Multimedia · Precios · Variantes). La
+// disponibilidad ya NO se togglea a mano: se deriva del stock del SKU mapeado.
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Eye, EyeOff, Info, Image as ImageIcon, Tag, Layers, SlidersHorizontal, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { ColorImageManager } from "./ColorImageManager";
@@ -14,14 +13,14 @@ import {
   useGetCatalogItemQuery,
   useGetTemplatesQuery,
   useGetTemplateQuery,
-  useGetWarehouseProductsQuery,
+  useGetInventorySkusQuery,
   useCreateCatalogItemMutation,
   useUpdateCatalogItemMutation,
   useUploadImagesMutation,
-  variantSkus,
-  type Availability,
+  variantSku,
   type VariantMappings,
 } from "~/store/api/catalogApi";
+import { FormDrawerLayout } from "~/components/ui/FormDrawerLayout";
 import { cn } from "~/lib/utils";
 
 export function CatalogEditorDrawer({
@@ -38,7 +37,7 @@ export function CatalogEditorDrawer({
   const [createItem, { isLoading: creating }] = useCreateCatalogItemMutation();
   const [updateItem, { isLoading: updating }] = useUpdateCatalogItemMutation();
   const [uploadImages, { isLoading: uploading }] = useUploadImagesMutation();
-  const { data: warehouseProducts = [], isLoading: loadingWarehouse } = useGetWarehouseProductsQuery(undefined, { skip: !open });
+  const { data: inventory = [], isLoading: loadingInv } = useGetInventorySkusQuery(undefined, { skip: !open });
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -48,37 +47,50 @@ export function CatalogEditorDrawer({
   const [published, setPublished] = useState(true);
   const [tiktokUrl, setTiktokUrl] = useState("");
   const [compareAtPrice, setCompareAtPrice] = useState("");
-
   const [templateId, setTemplateId] = useState("");
   const [basePrice, setBasePrice] = useState("");
-  const [availability, setAvailability] = useState<Availability>({});
   const [variantMappings, setVariantMappings] = useState<VariantMappings>({});
-
-  // Paso actual del wizard (1: Info · 2: Plantilla · 3: Mapeo · 4: Media).
-  const [step, setStep] = useState(1);
+  // Opciones que este producto ofrece por eje (poda estructural). { conector: ["Tipo C"], color: [...] }
+  const [axisOptions, setAxisOptions] = useState<Record<string, string[]>>({});
+  const [submitted, setSubmitted] = useState(false); // resalta campos inválidos tras intentar guardar
 
   const { data: templates = [] } = useGetTemplatesQuery(undefined, { skip: !open });
   const { data: template } = useGetTemplateQuery(templateId, { skip: !templateId });
 
-  // Colores encendidos del eje de color de la plantilla.
-  const colorAxis = template?.axes.find((a) => a.isColor);
-  const colorsForImages = useMemo(() => {
-    if (!colorAxis) return ["General"];
-    return colorAxis.options.filter((o) => {
-      const val = availability[colorAxis.key]?.[o];
-      if (typeof val === 'object' && val !== null) return val.enabled !== false;
-      return val !== false;
-    });
-  }, [colorAxis, availability]);
+  // Ejes con sus opciones podadas a lo que ESTE producto ofrece. La tabla y los
+  // combos se generan solo sobre esto (no sobre todo el catálogo de la plantilla).
+  const effectiveAxes = useMemo(
+    () => (template?.axes ?? []).map((a) => ({ ...a, options: axisOptions[a.key] ?? a.options })),
+    [template, axisOptions],
+  );
 
-  // Cada vez que se abre el drawer, arranca en el primer paso.
-  useEffect(() => {
-    if (open) setStep(1);
-  }, [open, editId]);
+  // Colores para el gestor de imágenes = solo los colores incluidos.
+  const colorAxis = template?.axes.find((a) => a.isColor);
+  const colorsForImages = useMemo(
+    () => (colorAxis ? (axisOptions[colorAxis.key] ?? colorAxis.options) : ["General"]),
+    [colorAxis, axisOptions],
+  );
+
+  // Alterna si el producto ofrece una opción (preserva el orden de la plantilla).
+  // Un eje no puede quedar sin ninguna opción (rompería el modelo y el backend
+  // interpretaría "vacío" como "todas").
+  function toggleAxisOption(axisKey: string, opt: string, allOptions: string[]) {
+    const cur = axisOptions[axisKey] ?? allOptions;
+    if (cur.includes(opt) && cur.length <= 1) {
+      toast.error("Cada eje debe ofrecer al menos una opción.");
+      return;
+    }
+    setAxisOptions((prev) => {
+      const list = prev[axisKey] ?? allOptions;
+      const nextSet = list.includes(opt) ? list.filter((o) => o !== opt) : [...list, opt];
+      return { ...prev, [axisKey]: allOptions.filter((o) => nextSet.includes(o)) };
+    });
+  }
 
   // Prefill al editar; limpiar al crear.
   useEffect(() => {
     if (!open) return;
+    setSubmitted(false);
     if (editId && detail) {
       setName(detail.name);
       setDescription(detail.description || "");
@@ -90,70 +102,46 @@ export function CatalogEditorDrawer({
       setCompareAtPrice(detail.compareAtPrice ? String(detail.compareAtPrice) : "");
       setTemplateId(detail.templateId || "");
       setBasePrice(detail.basePrice ? String(detail.basePrice) : "");
-      setAvailability(detail.availability || {});
       setVariantMappings(detail.variantMappings || {});
+      setAxisOptions(detail.axisOptions || {});
     } else if (!editId) {
       setName(""); setDescription(""); setCategory("");
       setImagesByColor({}); setIsPromo(false); setPublished(true);
       setTiktokUrl(""); setCompareAtPrice("");
-      setTemplateId(""); setBasePrice(""); setAvailability({}); setVariantMappings({});
+      setTemplateId(""); setBasePrice(""); setVariantMappings({}); setAxisOptions({});
     }
   }, [open, editId, detail]);
 
-  // Al cargar la plantilla: inicializa la disponibilidad (todo encendido por
-  // defecto, conservando lo ya guardado). Las specs se heredan de la plantilla
-  // y se muestran al cliente desde el backend (no se editan por producto).
-  // También precarga la descripción si el producto no tiene una.
+  // Al cargar la plantilla: precarga descripción y asegura que cada eje tenga su
+  // lista de opciones (por defecto TODAS incluidas; conserva la selección previa
+  // al editar y descarta opciones que ya no existen en la plantilla).
   useEffect(() => {
     if (!template) return;
-    setAvailability((prev) => {
-      const next: Availability = {};
+    setDescription((prev) => prev || template.description || "");
+    setAxisOptions((prev) => {
+      const next = { ...prev };
       for (const axis of template.axes) {
-        next[axis.key] = {};
-        for (const opt of axis.options) {
-          const p = prev[axis.key]?.[opt];
-          if (p === undefined) {
-             next[axis.key][opt] = { enabled: true, sku: "" };
-          } else if (typeof p === 'boolean') {
-             next[axis.key][opt] = { enabled: p, sku: "" };
-          } else {
-             next[axis.key][opt] = p;
-          }
-        }
+        next[axis.key] = next[axis.key]
+          ? axis.options.filter((o) => next[axis.key].includes(o))
+          : axis.options;
       }
       return next;
     });
-    setDescription((prev) => prev || template.description || "");
   }, [template]);
-
-  function changeCategory(value: string) {
-    setCategory(value);
-  }
 
   function changeTemplate(value: string) {
     setTemplateId(value);
     const t = templates.find((x) => x.id === value);
     if (t) {
-      if (t.name) setName(t.name);
-      if (t.description) setDescription(t.description);
-      if (t.category) setCategory(t.category);
+      setName((n) => n || t.name || "");
+      setCategory((c) => c || t.category || "");
     }
   }
-
-  function toggleOption(axisKey: string, opt: string) {
-    setAvailability((prev) => {
-      const val = prev[axisKey]?.[opt];
-      const on = typeof val === 'object' && val !== null ? val.enabled !== false : val !== false;
-      const sku = typeof val === 'object' && val !== null ? val.sku : "";
-      return { ...prev, [axisKey]: { ...(prev[axisKey] || {}), [opt]: { enabled: !on, sku } } };
-    });
-  }
-
 
   function togglePromo() {
     const next = !isPromo;
     setIsPromo(next);
-    if (!next) setCompareAtPrice(""); // al apagar la promo, limpia el precio
+    if (!next) setCompareAtPrice("");
   }
 
   async function uploadFiles(files: FileList): Promise<string[]> {
@@ -168,84 +156,62 @@ export function CatalogEditorDrawer({
     }
   }
 
-  // Valida el paso actual antes de avanzar. Devuelve true si se puede continuar.
-  function validateStep(s: number): boolean {
-    if (s === 1) {
-      if (!name.trim()) { toast.error("El nombre es obligatorio."); return false; }
-      if (!templateId) { toast.error("Selecciona una plantilla."); return false; }
-      if (!category) { toast.error("Selecciona una categoría."); return false; }
-    }
-    if (s === 2) {
-      if ((Number(basePrice) || 0) <= 0) { toast.error("Ingresa un precio base válido."); return false; }
-    }
-    return true; // paso 3 (mapeo) es opcional: lo no mapeado se muestra "Agotado"
-  }
-
-  function goNext() {
-    if (!validateStep(step)) return;
-    setStep((s) => Math.min(4, s + 1));
-  }
-
-  function goPrev() {
-    setStep((s) => Math.max(1, s - 1));
-  }
-
-  // Permite volver a un paso anterior tocando el indicador (nunca saltar hacia adelante sin validar).
-  function goToStep(target: number) {
-    if (target < step) setStep(target);
-  }
-
-  // Combinaciones habilitadas según la disponibilidad (mismo cálculo que la tabla de mapeo).
-  function enabledCombos(): string[] {
-    if (!template) return [];
+  // Producto cartesiano de TODAS las opciones de la plantilla (misma lógica que
+  // la tabla). Sirve para el aviso de "sin SKU" al guardar.
+  const allCombos = useMemo(() => {
+    if (!effectiveAxes.length) return [];
     let combos: string[][] = [[]];
-    for (const axis of template.axes) {
-      const enabledOpts = axis.options.filter((opt) => {
-        const val = availability[axis.key]?.[opt];
-        if (val === undefined) return true;
-        if (typeof val === "object" && val !== null) return val.enabled !== false;
-        return val !== false;
-      });
+    for (const axis of effectiveAxes) {
       const next: string[][] = [];
-      for (const combo of combos) for (const opt of enabledOpts) next.push([...combo, opt]);
+      for (const c of combos) for (const o of axis.options) next.push([...c, o]);
       combos = next;
     }
     return combos.map((c) => c.join(" / "));
-  }
+  }, [effectiveAxes]);
+
+  const priceInvalid = submitted && (Number(basePrice) || 0) <= 0;
+  const nameInvalid = submitted && !name.trim();
 
   async function save() {
-    if (!name.trim() || !category) return toast.error("Nombre y categoría son obligatorios.");
-    if (!templateId) return toast.error("Selecciona una plantilla.");
-    if ((Number(basePrice) || 0) <= 0) return toast.error("Ingresa un precio base válido.");
-    if (isPromo && (Number(compareAtPrice) || 0) <= (Number(basePrice) || 0)) {
-      return toast.error("El precio antes de la oferta debe ser mayor al precio base.");
+    setSubmitted(true);
+    if (!name.trim() || !category || !templateId) return toast.error("Nombre, categoría y plantilla son obligatorios.");
+    // Eliminada la validación estricta de basePrice ya que ahora los precios van en las variantes.
+    let calculatedBasePrice = Number(basePrice) || 0;
+    if (calculatedBasePrice === 0) {
+      // Auto-calcular basePrice buscando el menor precio entre las variantes mapeadas
+      let minPrice = Infinity;
+      Object.values(variantMappings).forEach(m => {
+        if (m.price) minPrice = Math.min(minPrice, m.price);
+        else {
+           // buscar en inventario
+           const skuItem = inventory.find(i => i.sku === m.sku);
+           if (skuItem && skuItem.price) minPrice = Math.min(minPrice, skuItem.price);
+        }
+      });
+      if (minPrice !== Infinity) calculatedBasePrice = minPrice;
     }
 
-    // Advertencia: combinaciones sin mapear quedan deshabilitadas (se ven "Agotado").
-    const combos = enabledCombos();
-    const mapped = combos.filter((c) => variantSkus(variantMappings[c]).length > 0);
-    const unmapped = combos.length - mapped.length;
-    if (combos.length > 0 && mapped.length === 0) {
-      if (!window.confirm("No mapeaste ninguna combinación a bodega. Todas se mostrarán como «Agotado» y no quedarán habilitadas. ¿Guardar de todos modos?")) return;
-    } else if (unmapped > 0) {
-      if (!window.confirm(`${unmapped} de ${combos.length} combinaciones quedaron sin mapear: se mostrarán como «Agotado» y no quedarán habilitadas. ¿Guardar de todos modos?`)) return;
+    // Aviso: combos sin SKU se mostrarán como «Agotado» permanente.
+    const unmapped = allCombos.filter((c) => !variantSku(variantMappings[c])).length;
+    if (unmapped > 0) {
+      const ok = window.confirm(
+        `${unmapped} de ${allCombos.length} variantes no tienen SKU asignado: se mostrarán como «Agotado». ¿Guardar de todos modos?`,
+      );
+      if (!ok) return;
     }
 
-    // Filtrar imagesByColor para que solo guarde las llaves válidas (los colores encendidos, o "General")
     const validImagesByColor: Record<string, string[]> = {};
     for (const color of colorsForImages) {
-      if (imagesByColor[color] && imagesByColor[color].length > 0) {
-        validImagesByColor[color] = imagesByColor[color];
-      }
+      if (imagesByColor[color]?.length) validImagesByColor[color] = imagesByColor[color];
     }
 
     const body = {
       name, description, category, imagesByColor: validImagesByColor, isPromo, published, tiktokUrl,
       compareAtPrice: Number(compareAtPrice) || 0,
       templateId,
-      basePrice: Number(basePrice) || 0,
-      availability,
-      variantMappings,
+      basePrice: calculatedBasePrice,
+      variantMappings, // { "Rojo / M": { sku, price? } }
+      axisOptions,     // qué opciones ofrece este producto por eje
     };
 
     try {
@@ -259,248 +225,159 @@ export function CatalogEditorDrawer({
   }
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm"
-          />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 12 }}
-              transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              className="relative flex w-full max-w-2xl max-h-[85vh] flex-col rounded-card border border-border bg-surface shadow-2xl overflow-hidden pointer-events-auto"
-            >
-              <header className="flex items-center justify-between border-b border-border p-4 bg-surface/50">
-                <h2 className="text-lg font-bold">{editId ? "Editar producto" : "Nuevo producto"}</h2>
-                <button onClick={onClose} aria-label="Cerrar">
-                  <X className="h-5 w-5 text-muted hover:text-text" />
-                </button>
-              </header>
-
-              {/* Indicador de pasos del wizard */}
-              <div className="border-b border-border px-5 py-4 bg-surface/30">
-                <StepIndicator step={step} onStepClick={goToStep} />
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-5">
-                {/* ── Paso 1: Información básica ── */}
-                {step === 1 && (
-                  <div className="mx-auto max-w-xl space-y-6">
-                    <Field label="Categoría">
-                      <select className="input" value={category} onChange={(e) => changeCategory(e.target.value)}>
-                        <option value="">Selecciona…</option>
-                        {config?.categories.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+    <FormDrawerLayout
+      open={open}
+      onClose={onClose}
+      maxWidth="max-w-3xl"
+      title={editId ? "Editar producto" : "Nuevo producto"}
+      headerActions={
+        <button
+          type="button" role="switch" aria-checked={published}
+          onClick={() => setPublished((v) => !v)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-xs font-semibold transition-colors",
+            published ? "border-accent/30 bg-accent/10 text-accent-2" : "border-border bg-surface-2 text-muted",
+          )}
+        >
+          {published ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+          {published ? "Publicado" : "Borrador"}
+        </button>
+      }
+      footer={
+        <div className="flex w-full items-center justify-between gap-3">
+          <p className="text-xs text-muted/60">Los cambios afectarán a todas las versiones del producto.</p>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button onClick={save} loading={creating || updating}>
+              <Check className="mr-2 h-4 w-4" /> {editId ? "Guardar" : "Crear producto"}
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        {/* ── Tarjeta 1: Información general ── */}
+        <SectionCard icon={Info} title="Información general" subtitle="Nombre, categoría y plantilla base.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Categoría">
+              <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+                <option value="">Selecciona…</option>
+                {config?.categories.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Plantilla">
+              <select className="input" value={templateId} onChange={(e) => changeTemplate(e.target.value)}>
+                <option value="">Selecciona una plantilla…</option>
+                {templates.filter((t) => !category || t.category === category).map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
                       </select>
                     </Field>
-                    <Field label="Plantilla">
-                      {templates.length === 0 ? (
-                        <p className="rounded-lg border border-dashed border-border p-3 text-center text-xs text-muted">
-                          Cargando plantillas...
-                        </p>
-                      ) : (
-                        <select className="input" value={templateId} onChange={(e) => changeTemplate(e.target.value)}>
-                          <option value="">Selecciona una plantilla…</option>
-                          {templates.filter(t => !category || t.category === category).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                      )}
-                    </Field>
-                    <Field label="Nombre">
-                      <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-                    </Field>
-                    <Field label="Descripción">
-                      <textarea className="input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Escribe aquí la descripción detallada del producto…" />
-                    </Field>
                   </div>
-                )}
+                  <Field label="Nombre">
+                    <input className={cn("input", nameInvalid && "border-danger focus:border-danger")} value={name} onChange={(e) => setName(e.target.value)} />
+                  </Field>
+                  <Field label="Descripción">
+                    <textarea className="input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Descripción detallada del producto…" />
+                  </Field>
+                </SectionCard>
 
-                {/* ── Paso 2: Precio y disponibilidad ── */}
-                {step === 2 && (
-                  <div className="mx-auto max-w-xl space-y-6">
-                    {templateId && template && (
-                      <>
-                        <Field label="Precio base (C$)">
-                          <input className="input" type="number" min={0} value={basePrice}
-                            onChange={(e) => setBasePrice(e.target.value)} placeholder="Ej: 350" />
-                          <p className="mt-1 text-xs text-muted">El descuento por cantidad se calcula solo en la ficha del producto.</p>
-                        </Field>
-
-                        <div className="space-y-3 rounded-xl border border-border p-3">
-                          <p className="text-sm font-medium">Disponibilidad por opción</p>
-                          {template.axes.map((axis) => (
-                            <div key={axis.key}>
-                              <p className="mb-1 text-xs font-medium text-muted">{axis.label}</p>
-                              <div className="divide-y divide-border/50">
-                                {axis.options.map((opt) => {
-                                  const val = availability[axis.key]?.[opt];
-                                  const on = typeof val === 'object' && val !== null ? val.enabled !== false : val !== false;
-                                  return (
-                                    <div key={opt} className="flex w-full items-center justify-between py-3">
-                                      <span className={cn("text-sm transition-colors", on ? "text-text" : "text-muted")}>
-                                        {opt}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        role="switch"
-                                        aria-checked={on}
-                                        onClick={() => toggleOption(axis.key, opt)}
-                                        className="flex shrink-0"
-                                      >
-                                        <span
-                                          className={cn(
-                                            "relative h-5 w-9 rounded-full transition-colors",
-                                            on ? "bg-gradient-accent" : "bg-border",
-                                          )}
-                                        >
-                                          <span
-                                            className={cn(
-                                              "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all",
-                                              on ? "left-[18px]" : "left-0.5",
-                                            )}
-                                          />
-                                        </span>
-                                      </button>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                {/* ── Tarjeta 2: Opciones que ofrece este producto ── */}
+                {template && (
+                  <SectionCard icon={SlidersHorizontal} title="Opciones del producto" subtitle="Enciende solo lo que este producto ofrece. Lo apagado no existe para el cliente.">
+                    <div className="space-y-3">
+                      {template.axes.map((axis) => {
+                        const included = axisOptions[axis.key] ?? axis.options;
+                        return (
+                          <div key={axis.key}>
+                            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted/90">{axis.label}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {axis.options.map((opt) => {
+                                const on = included.includes(opt);
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={on}
+                                    onClick={() => toggleAxisOption(axis.key, opt, axis.options)}
+                                    className={cn(
+                                      "inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-xs font-semibold transition-all",
+                                      on
+                                        ? "border-transparent bg-gradient-accent text-white shadow-sm shadow-accent/25"
+                                        : "border-border bg-surface-2 text-muted opacity-70 hover:border-accent/40 hover:text-text hover:opacity-100",
+                                    )}
+                                  >
+                                    {on
+                                      ? <Check className="h-3.5 w-3.5 shrink-0" />
+                                      : <span className="h-3 w-3 shrink-0 rounded-full border border-current" />}
+                                    {opt}
+                                  </button>
+                                );
+                              })}
                             </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Paso 3: Mapeo de variantes a bodega ── */}
-                {step === 3 && (
-                  <div className="space-y-6">
-                    {templateId && template ? (
-                      <VariantMappingTable
-                        axes={template.axes}
-                        availability={availability}
-                        variantMappings={variantMappings}
-                        onChange={setVariantMappings}
-                        warehouseProducts={warehouseProducts}
-                        productName={name}
-                        isLoading={loadingWarehouse}
-                      />
-                    ) : (
-                      <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted">
-                        Volvé al paso 2 y elegí una plantilla para mapear las variantes.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Paso 4: Media y publicación ── */}
-                {step === 4 && (
-                  <div className="mx-auto max-w-xl space-y-6">
-                    <div>
-                      <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-muted/90">
-                        {colorAxis ? "Fotos por color encendido (máx 10 c/u)" : "Fotos del producto (máx 10)"}
-                      </span>
-                      <ColorImageManager
-                        colors={colorsForImages}
-                        imagesByColor={imagesByColor}
-                        onChange={setImagesByColor}
-                        upload={uploadFiles}
-                        uploading={uploading}
-                      />
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <Field label="Video de TikTok (URL)">
-                      <input className="input" value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://www.tiktok.com/@.../video/..." />
-                    </Field>
-
-                    <div className="space-y-3 rounded-xl border border-border p-3">
-                      <ToggleRow label="Publicado (visible en el catálogo)" on={published} onToggle={() => setPublished((v) => !v)} />
-                      <ToggleRow label="En promoción" on={isPromo} onToggle={togglePromo} />
-                      {isPromo && (
-                        <Field label="Precio antes de la oferta (C$)">
-                          <input className="input" type="number" min={0} value={compareAtPrice}
-                            onChange={(e) => setCompareAtPrice(e.target.value)} placeholder="Mayor al precio base" />
-                          <p className="mt-1 text-xs text-muted">Se muestra tachado junto al precio base en la ficha.</p>
-                        </Field>
-                      )}
-                    </div>
-                  </div>
+                  </SectionCard>
                 )}
-              </div>
 
-              <footer className="border-t border-border p-4 bg-surface/50 flex items-center justify-between gap-2.5">
-                <Button variant="outline" onClick={onClose} disabled={creating || updating} className="shadow-sm">
-                  Cancelar
-                </Button>
-                <div className="flex gap-2.5">
-                  {step > 1 && (
-                    <Button variant="outline" onClick={goPrev} disabled={creating || updating} className="shadow-sm">
-                      <ChevronLeft className="h-4 w-4" /> Anterior
-                    </Button>
-                  )}
-                  {step < 4 ? (
-                    <Button onClick={goNext} className="shadow-accent-cta">
-                      Siguiente <ChevronRight className="h-4 w-4" />
-                    </Button>
+                {/* ── Tarjeta 3: Multimedia ── */}
+                <SectionCard icon={ImageIcon} title="Multimedia" subtitle={colorAxis ? "Fotos por color (máx 10 c/u) + video." : "Fotos del producto (máx 10) + video."}>
+                  <ColorImageManager
+                    colors={colorsForImages}
+                    imagesByColor={imagesByColor}
+                    onChange={setImagesByColor}
+                    upload={uploadFiles}
+                    uploading={uploading}
+                  />
+                  <Field label="Video de TikTok (URL)">
+                    <input className="input" value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://www.tiktok.com/@.../video/..." />
+                  </Field>
+                </SectionCard>
+
+
+                {/* ── Tarjeta 5: Variantes y SKU ── */}
+                <SectionCard icon={Layers} title="Variantes y SKU" subtitle="Asigna un SKU a cada variante. El stock y la disponibilidad se leen del inventario en vivo.">
+                  {template ? (
+                    <VariantMappingTable
+                      axes={effectiveAxes}
+                      variantMappings={variantMappings}
+                      onChange={setVariantMappings}
+                      inventory={inventory}
+                      basePrice={Number(basePrice) || 0}
+                      isLoading={loadingInv}
+                    />
                   ) : (
-                    <Button onClick={save} loading={creating || updating} className="shadow-accent-cta">
-                      {editId ? "Guardar cambios" : "Crear producto"}
-                    </Button>
+                    <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted">
+                      Elige una plantilla en la Tarjeta 1 para generar las variantes.
+                    </p>
                   )}
-                </div>
-              </footer>
-            </motion.div>
-          </div>
-        </>
-      )}
-    </AnimatePresence>
+                </SectionCard>
+      </div>
+    </FormDrawerLayout>
   );
 }
 
-// Indicador visual de los 4 pasos del wizard, con línea de progreso y check en
-// los completados. Se puede tocar un paso anterior para volver (no saltar adelante).
-const WIZARD_STEPS = ["Info básica", "Opciones", "Mapeo", "Media"];
-function StepIndicator({ step, onStepClick }: { step: number; onStepClick: (n: number) => void }) {
+// ── Tarjeta de sección: header con ícono + cuerpo. Reusa el material glass. ──
+function SectionCard({ icon: Icon, title, subtitle, children }: {
+  icon: React.ElementType; title: string; subtitle?: string; children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-center">
-      {WIZARD_STEPS.map((label, i) => {
-        const n = i + 1;
-        const done = n < step;
-        const active = n === step;
-        const isLast = i === WIZARD_STEPS.length - 1;
-        return (
-          <div key={label} className={cn("flex items-center", !isLast && "flex-1")}>
-            <button
-              type="button"
-              onClick={() => onStepClick(n)}
-              disabled={n >= step}
-              className={cn("flex shrink-0 items-center gap-2", n < step && "cursor-pointer")}
-            >
-              <span
-                className={cn(
-                  "grid h-7 w-7 place-items-center rounded-full text-xs font-bold transition-colors",
-                  active ? "bg-gradient-accent text-white shadow-md shadow-accent/30"
-                    : done ? "bg-accent/20 text-accent"
-                      : "bg-surface-2 text-muted border border-border",
-                )}
-              >
-                {done ? <Check className="h-3.5 w-3.5" /> : n}
-              </span>
-              <span className={cn("hidden text-xs font-medium transition-colors sm:inline", active ? "text-text" : "text-muted")}>
-                {n}. {label}
-              </span>
-            </button>
-            {!isLast && <span className={cn("mx-2 h-[2px] flex-1 transition-colors", done ? "bg-accent/40" : "bg-border")} />}
-          </div>
-        );
-      })}
-    </div>
+    <section className="rounded-card border border-border bg-surface shadow-premium">
+      <header className="flex items-start gap-3 border-b border-border px-5 py-4">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent-2">
+          <Icon className="h-[18px] w-[18px]" />
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-text">{title}</h3>
+          {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
+        </div>
+      </header>
+      <div className="space-y-4 p-5">{children}</div>
+    </section>
   );
 }
 
@@ -513,16 +390,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-// Fila con interruptor deslizante (mismo estilo que la disponibilidad por opción).
 function ToggleRow({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={onToggle}
-      className="flex w-full items-center justify-between text-left"
-    >
+    <button type="button" role="switch" aria-checked={on} onClick={onToggle} className="flex w-full items-center justify-between text-left">
       <span className={cn("text-sm transition-colors", on ? "text-text" : "text-muted")}>{label}</span>
       <span className={cn("relative h-5 w-9 shrink-0 rounded-full transition-colors", on ? "bg-gradient-accent" : "bg-border")}>
         <span className={cn("absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all", on ? "left-[18px]" : "left-0.5")} />

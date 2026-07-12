@@ -36,7 +36,10 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
       const result = await createOrder({
         ...data,
         items: items.map((i) => ({
-          catalogId: i.catalogId,
+          // Línea de combo: manda comboId (el servidor revalida el precio del
+          // paquete). Producto suelto: catalogId + variante.
+          catalogId: i.comboId ? "" : i.catalogId,
+          comboId: i.comboId,
           variantId: i.variantId,
           variantName: i.variantName,
           quantity: i.quantity,

@@ -85,11 +85,11 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
     <div className="relative w-full">
       {/* Degradados de borde: señalan scroll y evitan el corte abrupto. */}
       <div
-        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-surface-2 to-transparent"
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-bg to-transparent"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-surface-2 to-transparent"
+        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-bg to-transparent"
         aria-hidden
       />
 
@@ -106,7 +106,7 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
           type="button"
           onClick={() => dispatch(openPublicSidebar())}
           className={cn(
-            "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium outline-none transition-colors",
+            "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium outline-none transition-colors",
             "text-muted hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-accent",
           )}
         >
@@ -114,7 +114,7 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
           Todo
         </button>
 
-        <span className="mx-1 h-4 w-px shrink-0 bg-border" aria-hidden />
+        <span className="mx-1.5 h-4 w-px shrink-0 bg-border/60" aria-hidden />
 
         {categories.map((c) => {
           const active = activeCategory === c.id;
@@ -126,12 +126,22 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
               key={c.id}
               data-cat-item
               className={cn(
-                "flex shrink-0 items-center rounded-lg transition-colors",
-                active ? "bg-accent/12" : "hover:bg-surface-hover",
+                "relative flex shrink-0 items-center rounded-full transition-colors",
+                !active && "hover:bg-surface-hover/70",
               )}
               onMouseEnter={(e) => hasSub && openMenu(c.id, e.currentTarget)}
               onMouseLeave={hasSub ? closeMenu : undefined}
             >
+              {/* Cápsula del filtro activo: una sola en todo el riel; Framer la
+                  desliza de una categoría a otra por el layoutId compartido. */}
+              {active && (
+                <motion.span
+                  layoutId="activeFilter"
+                  aria-hidden
+                  className="absolute inset-0 rounded-full bg-accent/15 ring-1 ring-accent/30"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              )}
               <button
                 ref={active ? activeRef : null}
                 type="button"
@@ -150,8 +160,8 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
                   }
                 }}
                 className={cn(
-                  "flex items-center gap-1.5 whitespace-nowrap rounded-lg py-1.5 pl-3 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent",
-                  hasSub ? "pr-1" : "pr-3",
+                  "relative z-10 flex items-center gap-1.5 whitespace-nowrap rounded-full py-1.5 pl-3.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent",
+                  hasSub ? "pr-1" : "pr-3.5",
                   active ? "font-semibold text-accent-2" : "font-medium text-muted hover:text-text",
                 )}
               >
@@ -176,7 +186,7 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
                     toggleMenu(c.id, wrap ?? e.currentTarget);
                   }}
                   className={cn(
-                    "grid h-7 w-7 place-items-center rounded-lg outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent",
+                    "relative z-10 mr-0.5 grid h-7 w-7 place-items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent",
                     active ? "text-accent-2" : "text-muted hover:text-text",
                   )}
                 >

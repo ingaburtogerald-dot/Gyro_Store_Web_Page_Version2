@@ -3,7 +3,7 @@
 //   indigo = métrica protagonista · emerald = valor/dinero · amber = migrado/costo ·
 //   rose = alerta (agotados). Counts y montos cuentan hacia arriba al aparecer.
 import { Boxes, PackageCheck, PackageX, Plane, DollarSign, Receipt, Wallet, Truck } from "lucide-react";
-import { StatCard } from "~/components/ui/StatCard";
+import { StatCard } from "~/components/ui/Card";
 import { useGetInventoryKpisQuery, useGetCurrentInventoryQuery, useGetMigratedInventoryQuery } from "~/store/api/inventoryApi";
 import { formatUsd, cordobasFromUsd } from "~/lib/utils";
 

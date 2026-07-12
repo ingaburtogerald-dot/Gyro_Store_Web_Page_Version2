@@ -47,8 +47,9 @@
   --color-tone-purple: #c084fc;
   --color-tone-red: #f87171;
 
-  /* Tipografía (del storefront) */
-  --font-sans: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+  /* Tipografía: body/lectura = Plus Jakarta Sans; headings/UI fuerte = Bricolage.
+     Antes el body heredaba Bricolage (display) → texto denso y cansado. */
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --font-heading: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
 
   /* Radios (del storefront) */
@@ -92,27 +93,30 @@
 
 
 [data-theme="light"] {
-  /* Superficies: Blanco nieve y grises hielo ultra-limpios */
-  --color-bg: #f4f7f6;
-  --color-surface: #ffffff;
-  --color-surface-2: #f0f4f4;
-  --color-surface-hover: #e5ebeb;
-  --color-border: rgba(15, 30, 25, 0.08);
+  /* Superficies — "Alabaster / Frosted Pearl": nunca blanco clínico.
+     El fondo es una perla con tinte teal frío; la superficie es alabastro
+     (off-white cálido) para que separe del fondo SIN sombra dura. Cada nivel
+     sube un peldaño real de luminosidad → profundidad legible. */
+  --color-bg: #e9edf3;            /* perla fría (Editorial Dark → light) */
+  --color-surface: #ffffff;       /* cards blancas (brief) */
+  --color-surface-2: #eef2f7;     /* recesado, tinte frío */
+  --color-surface-hover: #e3e9f1; /* hover un paso más profundo */
+  --color-border: rgba(15, 40, 70, 0.12); /* hairline con alma fría, no negro */
 
-  /* Acentos: Verde pino y esmeralda corporativo (alto contraste) */
-  --color-accent: #0f766e;
-  --color-accent-2: #115e59;
-  --color-accent-hover: #134e4a;
+  /* Acentos: Esmeralda profundo (brief #047857), legible como texto sobre blanco */
+  --color-accent: #047857;
+  --color-accent-2: #065f46;      /* un punto más oscuro → legible como texto sobre blanco */
+  --color-accent-hover: #065f46;
   --color-whatsapp: #059669;
-  
+
   /* Gradiente de botones: Tonos profundos */
   --color-grad-from: #0f766e;
   --color-grad-to: #047857;
 
   /* Texto: Grafito casi negro y gris pizarra */
-  --color-text: #0f172a;
-  --color-muted: #64748b;
-  
+  --color-text: #0f2420;          /* grafito con tinte verde, no azul frío */
+  --color-muted: #5c6b66;         /* pizarra tibia (mejor contraste que #64748b) */
+
   /* Estados semánticos (Oscurecidos para AA/AAA contraste) */
   --color-danger: #e11d48;
   --color-warning: #d97706;
@@ -132,8 +136,13 @@
   --color-tone-purple: #7e22ce;
   --color-tone-red: #b91c1c;
 
-  /* Sombra diurna: Difusa, tinte azulado/grisáceo */
-  --shadow-premium: 0 1px 3px rgba(15, 23, 42, 0.06), 0 12px 24px -12px rgba(15, 23, 42, 0.12);
+  /* Sombra diurna PREMIUM: doble capa con TINTE ESMERALDA (no gris muerto).
+     El hairline ambiental (1px) + contacto corto + halo largo difuso hacen
+     que la tarjeta "flote" sobre la perla en vez de estar pegada. */
+  --shadow-premium:
+    0 0 0 1px rgba(15, 70, 55, 0.05),
+    0 2px 6px -2px rgba(16, 80, 60, 0.10),
+    0 22px 46px -24px rgba(13, 90, 68, 0.22);
   color-scheme: light;
 }
 
@@ -176,6 +185,27 @@
 [data-theme="light"] [data-tone="rose"]    { --stat-accent: #f43f5e; --stat-icon: #e11d48; }
 [data-theme="light"] [data-tone="purple"]  { --stat-accent: #a855f7; --stat-icon: #9333ea; }
 [data-theme="light"] [data-tone="red"]     { --stat-accent: var(--color-danger); --stat-icon: #dc2626; }
+
+/* ── StatusBadge en modo claro ──
+   Los tintes `/10` del catálogo se ven lavados sobre alabastro. Aquí cada
+   estado usa un tinte SÓLIDO (fondo + borde + texto oscuro) con el mismo peso
+   visual que tiene el neón en oscuro. Mismo patrón que StatCard (data-*),
+   así que gana a las utilidades sin !important. El punto pierde el glow y
+   queda como bolita sólida nítida. */
+[data-theme="light"] [data-badge] {
+  background-color: var(--badge-bg);
+  border-color: var(--badge-border);
+  color: var(--badge-fg);
+}
+[data-theme="light"] [data-badge] > .shadow-\[0_0_8px_currentColor\] {
+  box-shadow: none;
+}
+[data-theme="light"] [data-badge="success"]  { --badge-bg: #d8f0e5; --badge-border: #a2d9c3; --badge-fg: #0a6b4f; }
+[data-theme="light"] [data-badge="pending"]  { --badge-bg: #fbeecf; --badge-border: #eecb8c; --badge-fg: #8a5308; }
+[data-theme="light"] [data-badge="error"]    { --badge-bg: #fbdfe4; --badge-border: #f0b3bc; --badge-fg: #ab1d38; }
+[data-theme="light"] [data-badge="info"]     { --badge-bg: #d7e9fa; --badge-border: #a5cbef; --badge-fg: #0a5c9e; }
+[data-theme="light"] [data-badge="whatsapp"] { --badge-bg: #d3f0e6; --badge-border: #97d9c2; --badge-fg: #067050; }
+[data-theme="light"] [data-badge="neutral"]  { --badge-bg: #e9edeb; --badge-border: #cfd8d4; --badge-fg: #4d5a55; }
 
 /* ───────────────────────────────────────────────────────────
    Modo claro — profundidad y color (que no se vea "lavado").
@@ -340,7 +370,7 @@
   /* Cifras alineadas (estados de cuenta, KPIs, tablas) */
   .nums { font-variant-numeric: tabular-nums; }
 
-  /* Iconos lucide con trazo m�s fino = look m�s premium/refinado. */
+  /* Iconos lucide con trazo m�s fino = look m�s premium/refinado. */
   svg.lucide { stroke-width: 1.75; }
 
   /* Scrollbar discreta pero visible en fondos muy oscuros */
@@ -357,7 +387,7 @@
   }
 }
 
-/* Input est�ndar de formularios */
+/* Input est�ndar de formularios */
 @layer components {
   .input {
     width: 100%;
@@ -392,7 +422,7 @@
   }
 }
 
-/* En modo claro el control nativo (n�meros, fecha) debe usar esquema claro */
+/* En modo claro el control nativo (n�meros, fecha) debe usar esquema claro */
 [data-theme="light"] .input {
   color-scheme: light;
 }
@@ -475,10 +505,12 @@
 }
 
 [data-theme="light"] .card-premium {
+  /* Luz cenital (inset blanco) + contacto/halo con tinte esmeralda, no slate. */
+  background-image: linear-gradient(180deg, #ffffff, var(--color-surface));
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
-    0 1px 2px -1px rgba(15, 23, 42, 0.12),
-    0 18px 40px -28px rgba(15, 23, 42, 0.3);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 1px 2px -1px rgba(16, 80, 60, 0.14),
+    0 20px 42px -26px rgba(13, 90, 68, 0.26);
 }
 
 [data-theme="light"] .border-white\/5 { border-color: rgba(15, 23, 42, 0.07); }
@@ -670,10 +702,12 @@
 }
 
 [data-theme="light"] .card-premium {
+  /* Luz cenital (inset blanco) + contacto/halo con tinte esmeralda, no slate. */
+  background-image: linear-gradient(180deg, #ffffff, var(--color-surface));
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
-    0 1px 2px -1px rgba(15, 23, 42, 0.12),
-    0 18px 40px -28px rgba(15, 23, 42, 0.3);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 1px 2px -1px rgba(16, 80, 60, 0.14),
+    0 20px 42px -26px rgba(13, 90, 68, 0.26);
 }
 
 [data-theme="light"] .border-white\/5 { border-color: rgba(15, 23, 42, 0.07); }

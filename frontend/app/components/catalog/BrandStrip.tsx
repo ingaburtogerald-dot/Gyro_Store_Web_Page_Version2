@@ -29,7 +29,7 @@ export const STORE_BRANDS: Brand[] = [
 function BrandPill({ brand, ariaHidden }: { brand: Brand; ariaHidden?: boolean }) {
   return (
     <li className="shrink-0" aria-hidden={ariaHidden}>
-      <div className="pill-glass ease-expo group/pill flex h-12 items-center gap-2 rounded-pill px-6 transition-colors duration-300 hover:border-accent/40">
+      <div className="bg-surface-2 border border-white/5 ease-expo group/pill flex h-12 items-center gap-2 rounded-pill px-6 transition-colors duration-300 hover:border-accent/40">
         {brand.logo ? (
           <img
             src={brand.logo}

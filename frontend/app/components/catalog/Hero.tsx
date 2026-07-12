@@ -1,11 +1,6 @@
-// Hero del catálogo — dirección editorial premium (dark).
-// Composición centrada pero con jerarquía real: eyebrow de vidrio, emblema (mascota
-// Gyro) con anillo cónico y glow contenido, titular display (Bricolage Grotesque)
-// con una palabra en acento, y señales de confianza como pills de vidrio.
-// Un solo gesto de movimiento (el emblema flota). Responsive: compacto en móvil
-// para que la primera fila de productos asome sobre el pliegue.
 import { motion, useReducedMotion } from "framer-motion";
-import { Truck, ShieldCheck, Wallet, Sparkles } from "lucide-react";
+import { Truck, ShieldCheck, Wallet, Sparkles, MessageCircle, ArrowRight } from "lucide-react";
+import { Button } from "~/components/ui/Button";
 
 // Señales de confianza bajo el titular (estáticas).
 const TRUST = [
@@ -18,7 +13,7 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
   const reduce = useReducedMotion();
 
   return (
-    <section className="relative overflow-hidden px-4 pb-10 pt-10 text-center sm:pb-16 sm:pt-16">
+    <section className="relative overflow-hidden px-4 pb-10 pt-6 text-center sm:pb-16 sm:pt-10">
       {/* Ambiente: halo cyan sereno + una línea de horizonte muy tenue detrás. */}
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute left-1/2 top-2 h-[46vh] w-[46vh] -translate-x-1/2 rounded-full bg-accent/10 blur-[130px]" />
@@ -26,12 +21,27 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
       </div>
 
       <div className="relative z-10 mx-auto max-w-3xl">
+        {/* Announcement Bar (Lead Gen WhatsApp) */}
+        <motion.a
+          href="https://wa.me/50585944758?text=Hola,%20es%20mi%20primera%20vez%20en%20Gyro%20Store%20y%20quiero%20mi%20descuento%20VIP"
+          target="_blank"
+          rel="noopener noreferrer"
+          initial={reduce ? false : { opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto mb-8 flex w-fit max-w-full items-center gap-2 rounded-full border border-whatsapp/20 bg-whatsapp/10 px-4 py-1.5 text-[11px] font-medium text-[#25D366] backdrop-blur-md transition-colors hover:bg-whatsapp/20 sm:text-xs"
+        >
+          <MessageCircle className="h-3.5 w-3.5" />
+          <span className="truncate">🎁 ¿Es tu primera vez? Únete a nuestro VIP y recibe C$100 de descuento</span>
+          <ArrowRight className="h-3.5 w-3.5 shrink-0 opacity-70" />
+        </motion.a>
+
         {/* Eyebrow: pill de vidrio con el posicionamiento de la tienda. */}
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-6 inline-flex items-center gap-2 rounded-pill pill-glass px-3.5 py-1.5 text-[12px] font-semibold tracking-wide text-accent-2 sm:mb-8"
+          className="mb-6 inline-flex items-center gap-2 rounded-pill border border-border bg-surface-2 px-3.5 py-1.5 text-[12px] font-semibold tracking-wide text-accent-2 sm:mb-8"
         >
           <Sparkles className="h-3.5 w-3.5" />
           Tienda de tecnología · Managua, Nicaragua
@@ -96,12 +106,25 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
             {TRUST.map(({ icon: Icon, label }) => (
               <span
                 key={label}
-                className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface/60 px-3 py-1.5 text-xs font-medium text-muted backdrop-blur-sm"
+                className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-muted"
               >
                 <Icon className="h-3.5 w-3.5 text-accent-2" /> {label}
               </span>
             ))}
           </div>
+
+          {/* CTA Principal */}
+          <div className="mt-8 flex justify-center">
+            <Button
+              size="lg"
+              onClick={() => window.scrollTo({ top: window.innerHeight * 0.75, behavior: "smooth" })}
+              className="group gap-2 px-8 py-3.5 text-[15px] font-bold"
+            >
+              Ver Ofertas de Hoy
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </Button>
+          </div>
+
 
 
         </motion.div>

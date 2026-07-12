@@ -8,7 +8,7 @@ import { Link } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ShoppingCart, X, ImageOff, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { VariantPicker, type VariantSelection } from "~/components/catalog/VariantPicker";
+import { VariantPicker, type VariantSelection } from "~/components/product/VariantPicker";
 import { useGetCatalogItemQuery, type CatalogProduct } from "~/store/api/catalogApi";
 import { useAppDispatch } from "~/store/hooks";
 import { addItem, openCart } from "~/store/slices/cartSlice";
@@ -168,7 +168,7 @@ export function QuickAddSheet({
                   "ease-expo flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition duration-300 active:scale-[0.97]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
                   variant && inStock
-                    ? "bg-accent text-bg hover:bg-accent-2 hover:shadow-accent-cta"
+                    ? "bg-accent text-bg hover:bg-accent-hover"
                     : "cursor-not-allowed bg-surface-2 text-muted",
                 )}
               >

@@ -61,7 +61,7 @@ export function FilterSheet() {
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 32, stiffness: 320 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="relative w-full max-w-lg rounded-t-3xl border-t border-border bg-surface pb-[max(1rem,env(safe-area-inset-bottom))]"
           >
             {/* Asa de arrastre + título */}

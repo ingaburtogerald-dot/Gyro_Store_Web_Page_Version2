@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight, Search, X, Eye } from "lucide-react";
+import { Trash2, Pencil, Plus, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { SearchInput } from "./TableFilters";
 import { SALE_STATUS_META } from "./saleStatus";
 import { StatusBadge } from "~/components/ui/StatusBadge";
 import { DataTable } from "~/components/ui/DataTable";
@@ -260,20 +261,11 @@ export function AdminSalesHistory({
         <h2 className="font-heading text-lg font-bold tracking-tight text-text">Desglose Detallado de Transacciones</h2>
         <div className="flex flex-wrap items-center gap-3">
           {/* Búsqueda por nombre del producto vendido */}
-          <div className="flex items-center gap-2 rounded-pill border border-border bg-surface-2 px-3 w-full sm:w-64">
-            <Search className="h-4 w-4 shrink-0 text-muted" />
-            <input
-              value={nameQuery}
-              onChange={(e) => setNameQuery(e.target.value)}
-              placeholder="Buscar producto vendido…"
-              className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted"
-            />
-            {nameQuery && (
-              <button onClick={() => setNameQuery("")} aria-label="Limpiar" className="shrink-0 text-muted hover:text-text">
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            value={nameQuery}
+            onChange={setNameQuery}
+            placeholder="Buscar producto vendido…"
+          />
           {displayedSales.length > 0 && (
             <div className="flex items-center gap-4 rounded-xl border border-border/60 bg-surface-2 px-4 py-2 text-xs">
               <div className="flex flex-col">

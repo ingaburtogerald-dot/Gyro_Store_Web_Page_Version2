@@ -159,7 +159,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           En escritorio se oculta con md:hidden cuando está colapsado. */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-border bg-surface p-4 transition-transform",
+          // Glass: superficie translúcida + blur para que el ambiente esmeralda
+          // del body se filtre; wash de acento muy sutil de arriba a abajo.
+          "fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-border bg-surface/70 bg-gradient-to-b from-accent/[0.05] to-transparent p-4 backdrop-blur-xl transition-transform",
           // En escritorio: sticky a la altura del viewport para que siga al usuario al hacer scroll.
           "md:sticky md:top-0 md:bottom-auto md:h-screen md:translate-x-0 md:self-start",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
@@ -190,7 +192,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        <nav className="-mx-1 flex-1 space-y-4 overflow-y-auto px-1 pb-2">
+        <motion.nav 
+          initial="hidden"
+          animate="show"
+          variants={{
+            show: { transition: { staggerChildren: 0.04 } }
+          }}
+          className="-mx-1 flex-1 space-y-4 overflow-y-auto px-1 pb-2"
+        >
           {visibleGroups.map((group) => (
             <div key={group.label}>
               {/* La etiqueta de sección solo aporta si hay más de un grupo visible. */}
@@ -203,45 +212,59 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 {group.items.map(({ to, label, icon: Icon }) => {
                   const badge = badges[to] ?? 0;
                   return (
-                    <NavLink
+                    <motion.div
                       key={to}
-                      to={to}
-                      viewTransition
-                      onClick={() => dispatch(setSidebar(false))}
-                      className={({ isActive }) =>
-                        cn(
-                          "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                          isActive ? "font-medium text-accent-2" : "text-muted hover:bg-surface-2 hover:text-text",
-                        )
-                      }
+                      variants={{
+                        hidden: { opacity: 0, x: -10 },
+                        show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+                      }}
                     >
-                      {({ isActive }) => (
-                        <>
-                          {isActive && (
-                            <motion.span
-                              layoutId="admin-nav-active"
-                              className="absolute inset-0 rounded-lg bg-accent/10"
-                              transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                            >
-                              <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent" />
-                            </motion.span>
-                          )}
-                          <Icon className={cn("relative z-10 h-[18px] w-[18px]", isActive && "text-accent-2")} />
-                          <span className="relative z-10 flex-1 truncate">{label}</span>
-                          {badge > 0 && (
-                            <span className="relative z-10 rounded-pill bg-warning/15 px-1.5 text-[11px] font-semibold leading-4 text-warning">
-                              {badge}
+                      <NavLink
+                        to={to}
+                        viewTransition
+                        onClick={() => dispatch(setSidebar(false))}
+                        className={({ isActive }) =>
+                          cn(
+                            "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-300 ease-out active:scale-[0.97]",
+                            isActive ? "font-medium text-accent-2" : "text-muted hover:bg-surface-2 hover:text-text",
+                          )
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            {isActive && (
+                              <motion.span
+                                layoutId="admin-nav-active"
+                                className="absolute inset-0 rounded-lg bg-accent/10"
+                                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                              >
+                                <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-accent text-accent shadow-[0_0_8px_currentColor]" />
+                              </motion.span>
+                            )}
+                            <Icon 
+                              className={cn(
+                                "relative z-10 h-[18px] w-[18px] transition-all duration-300", 
+                                isActive ? "text-accent-2" : "group-hover:scale-110 group-hover:-rotate-3 group-hover:text-text"
+                              )} 
+                            />
+                            <span className="relative z-10 flex-1 truncate transition-transform duration-300 group-hover:translate-x-0.5">
+                              {label}
                             </span>
-                          )}
-                        </>
-                      )}
-                    </NavLink>
+                            {badge > 0 && (
+                              <span className="relative z-10 rounded-pill bg-warning/15 px-1.5 text-[11px] font-semibold leading-4 text-warning transition-transform duration-300 group-hover:scale-105">
+                                {badge}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    </motion.div>
                   );
                 })}
               </div>
             </div>
           ))}
-        </nav>
+        </motion.nav>
 
         {/* Identidad: quién soy y con qué rol estoy operando. */}
         {user && (
@@ -264,7 +287,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {/* Contenido — min-w-0 deja que las tablas anchas se encojan/scrolleen
           en vez de empujar el layout y deformar el sidebar. */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-[60] flex h-16 items-center justify-between gap-3 border-b border-border bg-bg/80 px-4 backdrop-blur">
+        <header className="sticky top-0 z-[60] flex h-16 items-center justify-between gap-3 border-b border-border bg-surface/60 px-4 backdrop-blur-xl">
           <div className="flex min-w-0 items-center gap-2">
             <button className="md:hidden" onClick={() => dispatch(toggleSidebar())} aria-label="Abrir menú">
               <Menu className="h-5 w-5" />

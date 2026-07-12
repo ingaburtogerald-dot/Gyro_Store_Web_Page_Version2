@@ -242,6 +242,7 @@ router.patch('/purchases/:id/arrival', requireAdmin, asyncHandler(async (req, re
   if (prodQuery.empty) {
     await db.collection(PRODUCTS).add({
       code: p.code,
+      sku: p.code,
       name: p.productName,
       category: category || null,
       stock: p.quantity,
@@ -323,6 +324,7 @@ router.put('/purchases/:id', requireAdmin, asyncHandler(async (req, res) => {
       if (newProdQuery.empty) {
         await db.collection(PRODUCTS).add({
           code: merged.code,
+          sku: merged.code,
           name: merged.productName,
           category: merged.category || null,
           stock: calc.quantity,
@@ -362,6 +364,7 @@ router.put('/purchases/:id', requireAdmin, asyncHandler(async (req, res) => {
         // Por si acaso no existía el producto (consistencia), lo agregamos
         await db.collection(PRODUCTS).add({
           code: merged.code,
+          sku: merged.code,
           name: merged.productName,
           category: merged.category || null,
           stock: calc.quantity,

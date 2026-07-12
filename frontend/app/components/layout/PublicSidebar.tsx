@@ -38,7 +38,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, x: -8 },
-  show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
+  show: { opacity: 1, x: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
 };
 
 export function PublicSidebar({ categories }: Props) {
@@ -99,7 +99,7 @@ export function PublicSidebar({ categories }: Props) {
             initial={reduce ? { opacity: 0 } : { x: "-100%" }}
             animate={reduce ? { opacity: 1 } : { x: 0 }}
             exit={reduce ? { opacity: 0 } : { x: "-100%" }}
-            transition={reduce ? { duration: 0.2 } : { type: "spring", damping: 30, stiffness: 240 }}
+            transition={reduce ? { duration: 0.2 } : { duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-y-0 left-0 z-50 flex w-full max-w-[380px] flex-col bg-bg shadow-[20px_0_60px_-15px_rgba(0,0,0,0.7)]"
           >
             {/* ── Header: identidad ── */}
@@ -141,7 +141,7 @@ export function PublicSidebar({ categories }: Props) {
                 onClick={handleHomeClick}
                 whileHover={reduce ? undefined : { scale: 1.015 }}
                 whileTap={reduce ? undefined : { scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 className="group mb-8 flex w-full items-center justify-between gap-3 rounded-lg bg-accent px-4 py-3.5 text-[15px] font-bold text-bg transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
               >
                 <span className="flex items-center gap-2.5">

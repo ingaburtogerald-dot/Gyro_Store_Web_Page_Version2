@@ -96,6 +96,7 @@ module.exports = {
   collections: {
     catalog: 'catalog',
     templates: 'templates',
+    combos: 'combos',
     products: 'products',
     purchases: 'purchases',
     migratedInventory: 'migrated_inventory',

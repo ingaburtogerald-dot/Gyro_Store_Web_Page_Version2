@@ -11,6 +11,7 @@ const { requireAdmin } = require('../middleware/auth');
 const CATALOG = config.collections.catalog;
 const PRODUCTS = config.collections.products;
 const PUBLIC_ORDERS = config.collections.publicOrders;
+const { getComboEnrichedById } = require('./combos');
 
 const orderSchema = z.object({
   customerName: z.string().min(2).max(80),
@@ -18,10 +19,13 @@ const orderSchema = z.object({
   deliveryMethod: z.enum(['retiro', 'envio']),
   address: z.string().max(200).optional().default(''),
   note: z.string().max(500).optional().default(''),
+  // Cada línea es un producto (catalogId) o un combo (comboId); el loop valida
+  // que traiga uno de los dos.
   items: z
     .array(
       z.object({
-        catalogId: z.string().min(1),
+        catalogId: z.string().optional().default(''),
+        comboId: z.string().optional().default(''),
         variantId: z.string().optional().default(''),
         variantName: z.string().optional().default('Estándar'),
         quantity: z.number().int().positive(),
@@ -50,6 +54,12 @@ function buildWhatsappMessage(order) {
   if (order.note) msg += `📝 ${order.note}\n`;
   msg += '\nProductos:\n';
   order.items.forEach((l) => {
+    if (l.kind === 'combo') {
+      const contenido = (l.products || []).map((p) => p.name).join(' + ');
+      msg += `• 🎁 ${l.name} x${l.quantity} — ${config.currency}${l.lineTotal.toLocaleString('es-NI')}\n`;
+      if (contenido) msg += `   (${contenido})\n`;
+      return;
+    }
     const v = l.variantName && l.variantName !== 'Estándar' ? ` (${l.variantName})` : '';
     msg += `• ${l.name}${v} x${l.quantity} — ${config.currency}${l.lineTotal.toLocaleString('es-NI')}\n`;
   });
@@ -70,15 +80,37 @@ router.post('/public', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'La dirección es obligatoria para envío.' });
   }
 
-  // Recalcula cada línea con el precio real de Firestore.
+  // Recalcula cada línea con el precio real de Firestore (combo o producto).
   const items = [];
-  let subtotal = 0;
+  let comboSubtotal = 0;   // paquetes: su descuento ya viene en el precio
+  let productSubtotal = 0; // productos sueltos: base del descuento por volumen
+  let productQty = 0;
   for (const it of data.items) {
+    if (it.comboId) {
+      const combo = await getComboEnrichedById(it.comboId);
+      if (!combo || !combo.active || combo.broken) continue;
+      const lineTotal = combo.price * it.quantity;
+      comboSubtotal += lineTotal;
+      items.push({
+        kind: 'combo',
+        comboId: combo.id,
+        name: combo.name,
+        products: combo.products.map((p) => ({ id: p.id, name: p.name })),
+        variantName: '',
+        quantity: it.quantity,
+        price: combo.price,
+        lineTotal,
+      });
+      continue;
+    }
+    if (!it.catalogId) continue;
     const resolved = await resolveLinePrice(it);
     if (!resolved) continue;
     const lineTotal = resolved.price * it.quantity;
-    subtotal += lineTotal;
+    productSubtotal += lineTotal;
+    productQty += it.quantity;
     items.push({
+      kind: 'product',
       catalogId: it.catalogId,
       variantId: it.variantId,
       variantName: it.variantName,
@@ -90,8 +122,11 @@ router.post('/public', asyncHandler(async (req, res) => {
   }
   if (items.length === 0) return res.status(400).json({ error: 'Ningún producto es válido.' });
 
-  // Descuento por volumen — tabla multi-nivel desde Firestore o default
-  const totalQty = items.reduce((n, l) => n + l.quantity, 0);
+  const subtotal = productSubtotal + comboSubtotal;
+
+  // Descuento por volumen — SOLO sobre productos sueltos (los combos ya traen su
+  // propio descuento en el precio del paquete; no se encima el de volumen).
+  const totalQty = productQty;
   let discountPercent = 0;
   try {
     const pricingDoc = await db.collection(config.collections.appConfig).doc('pricing').get();
@@ -108,7 +143,7 @@ router.post('/public', asyncHandler(async (req, res) => {
       if (inRange) { discountPercent = tier.discountPercent; break; }
     }
   } catch { /* usa 0% si falla */ }
-  const discount = discountPercent > 0 ? subtotal * (discountPercent / 100) : 0;
+  const discount = discountPercent > 0 ? productSubtotal * (discountPercent / 100) : 0;
   const total = subtotal - discount;
 
   const order = {

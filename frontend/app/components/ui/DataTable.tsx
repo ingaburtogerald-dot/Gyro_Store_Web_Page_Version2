@@ -72,6 +72,11 @@ export function DataTable<T>({
     state: { sorting, globalFilter },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, columnId, filterValue) => {
+      const value = row.getValue(columnId);
+      if (value == null) return false;
+      return String(value).toLowerCase().includes(String(filterValue).toLowerCase());
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

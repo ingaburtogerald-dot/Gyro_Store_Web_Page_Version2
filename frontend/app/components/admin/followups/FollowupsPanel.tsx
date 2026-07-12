@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { DataTable } from "~/components/ui/DataTable";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
-import { StatCard } from "~/components/ui/StatCard";
+import { StatCard } from "~/components/ui/Card";
 import { StatusBadge } from "~/components/ui/StatusBadge";
 import { FollowupModal } from "./FollowupModal";
 import { dueState, DUE_META, TYPE_META, STATUS_META, isDue, waLink } from "./followupUtils";

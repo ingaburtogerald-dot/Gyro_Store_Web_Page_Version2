@@ -187,7 +187,7 @@ export function InvoicesList({
     const pending = inv.status === "unlinked";
 
     return (
-      <Card interactive className="relative p-4">
+      <Card className="relative p-4 transition-colors hover:border-accent/40 cursor-pointer">
         {/* Header: ticket + status */}
         <div className="mb-3 flex items-center justify-between">
           <TicketBadge value={inv.ticketNumber} />

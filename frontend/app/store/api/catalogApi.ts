@@ -2,60 +2,8 @@
 // En esta fase solo expone la config de negocio; los endpoints de productos
 // del catálogo se agregan en la Fase 2.
 import { baseApi } from "./baseApi";
-
-export interface Category {
-  id: string;
-  name: string;
-  /** Emoji o glifo opcional; muchas categorías no lo tienen (look editorial). */
-  icon?: string;
-  subcategories?: { id: string; name: string }[];
-}
-
-// Escalón de descuento por cantidad (compra de más de 1 unidad).
-export interface VolumeDiscount {
-  minQty: number;
-  maxQty: number | null;
-  discountPercent: number;
-}
-
-export interface BusinessConfig {
-  storeName: string;
-  storeAddress: string;
-  whatsapp: string;
-  currency: string;
-  exchangeRate: number;
-  wholesaleDiscounts: VolumeDiscount[];
-  categories: Category[];
-  socialLinks: { instagram: string; facebook: string; tiktok: string };
-}
-
-export interface SpecRow {
-  label: string;
-  value: string;
-}
-
-// Ítem del catálogo tal como llega del backend (precio y stock ya enriquecidos).
-export interface CatalogProduct {
-  id: string;
-  name: string;
-  description?: string;
-  category: string;
-  images: string[];
-  price: number;
-  stock: number;
-  isPromo?: boolean;
-  badges?: string[];
-  compareAtPrice?: number;
-  published?: boolean;
-  order?: number;
-  // Opciones de variantes encendidas (sin colores) para las pills de la card,
-  // p.ej. ["Tipo C", "Jack 3.5mm", "Con mic"]. Lo computa el backend en la lista.
-  axesSummary?: string[];
-  // Combinaciones encendidas (incluye ejes de color): >1 → el quick-add de la
-  // card abre el selector de variante en vez de agregar "Estándar" a ciegas.
-  variantCount?: number;
-}
-
+import type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, Combo as PublicCombo } from "~/types/catalog";
+export type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, PublicCombo };
 // ── Plantillas (molde de características reutilizable por categoría) ──
 export interface TemplateAxis {
   key: string;
@@ -73,22 +21,34 @@ export interface Template {
   specs: SpecRow[];
 }
 
-// Disponibilidad por opción: { [ejeKey]: { [opción]: { enabled: boolean, sku?: string } | boolean } }
-export type Availability = Record<string, Record<string, { enabled: boolean; sku?: string } | boolean>>;
-
-// Mapeo de combinaciones a SKUs de bodega. Una combinación puede apuntar a VARIOS
-// códigos de bodega que son la misma variante en distintas tandas (ej: IN13 e IN98
-// = "KZ EDX Pro X / Jack 3.5mm / Negro"); el stock del catálogo es la suma de todos.
-// Formato nuevo: { skus: ["IN13","IN98"] }. Se mantiene compat con el viejo { sku: "IN13" }.
-export type VariantMapping = { sku?: string; skus?: string[] };
+// Mapeo 1-a-1: cada combinación de variante → UN SKU canónico del inventario
+// (que agrupa lotes) + un precio override opcional. El stock lo suma el backend
+// por `sku`; el catálogo nunca vuelve a ver "tandas".
+export interface VariantMapping {
+  sku?: string;
+  skus?: string[];
+  price?: number;
+}
 export type VariantMappings = Record<string, VariantMapping>;
 
-// Normaliza una entrada de mapeo a la lista de códigos (lee ambos formatos).
-export function variantSkus(entry?: VariantMapping): string[] {
+// Lectura tolerante con datos viejos ({ skus:[...] } | { sku }) durante la migración.
+export function variantSku(entry?: VariantMapping | { sku?: string; skus?: string[] }): string {
+  if (!entry) return "";
+  if (typeof entry.sku === "string" && entry.sku) return entry.sku;
+  const legacy = (entry as { skus?: string[] }).skus;
+  if (Array.isArray(legacy)) return legacy[0] ?? "";
+  return "";
+}
+
+export function variantSkus(entry?: VariantMapping | { sku?: string; skus?: string[] }): string[] {
   if (!entry) return [];
-  if (Array.isArray(entry.skus)) return entry.skus.filter(Boolean);
-  if (entry.sku) return [entry.sku];
+  const legacy = (entry as { skus?: string[] }).skus;
+  if (Array.isArray(legacy) && legacy.length > 0) return legacy;
+  if (typeof entry.sku === "string" && entry.sku) return [entry.sku];
   return [];
+}
+export function variantPrice(entry?: VariantMapping): number | undefined {
+  return typeof entry?.price === "number" && entry.price > 0 ? entry.price : undefined;
 }
 
 export interface CatalogVariant {
@@ -105,6 +65,7 @@ export interface CatalogVariant {
 export interface CatalogDetail extends CatalogProduct {
   variants: CatalogVariant[];
   axisLabels: string[];
+  colorAxisIndex?: number;
   imagesByColor: Record<string, string[]>;
   badges: string[];
   tiktokUrl?: string;
@@ -113,8 +74,10 @@ export interface CatalogDetail extends CatalogProduct {
   // Modo plantilla
   templateId?: string;
   basePrice?: number;
-  availability?: Availability;
   variantMappings?: VariantMappings;
+  // Opciones que ESTE producto ofrece por eje (poda estructural, no stock).
+  // Si un eje no aparece, se asumen todas sus opciones. { conector: ["Tipo C"], color: ["Negro","Azul"] }
+  axisOptions?: Record<string, string[]>;
 }
 
 export const catalogApi = baseApi.injectEndpoints({
@@ -192,13 +155,85 @@ export const catalogApi = baseApi.injectEndpoints({
       invalidatesTags: ["Template"],
     }),
 
-    // ── Productos de bodega (para combobox del admin) ──
-    getWarehouseProducts: build.query<WarehouseProduct[], void>({
-      query: () => "/catalog/warehouse-products",
+    // ── SKUs de inventario con stock agregado (para el autocomplete del editor) ──
+    getInventorySkus: build.query<InventorySku[], void>({
+      query: () => "/catalog/inventory-skus",
       providesTags: ["Product"],
+    }),
+
+    // ── Combos ("Comprados juntos frecuentemente") ──
+    // Admin: todos los combos, incluidos inactivos y "rotos" (con producto borrado).
+    getAdminCombos: build.query<Combo[], void>({
+      query: () => "/combos/all",
+      providesTags: ["Combo"],
+    }),
+    // Público: todos los combos activos (sección "Combos" del storefront).
+    getCombos: build.query<Combo[], void>({
+      query: () => "/combos",
+      providesTags: ["Combo"],
+    }),
+    // Público: un combo por id (página de detalle /combo/:id).
+    getCombo: build.query<Combo, string>({
+      query: (id) => `/combos/${id}`,
+      providesTags: (_r, _e, id) => [{ type: "Combo", id }],
+    }),
+    // Público: combos activos que contienen un producto dado (detalle del producto).
+    getCombosByProduct: build.query<Combo[], string>({
+      query: (productId) => `/combos?productId=${encodeURIComponent(productId)}`,
+      providesTags: (_r, _e, productId) => [{ type: "Combo", id: productId }],
+    }),
+    createCombo: build.mutation<Combo, ComboInput>({
+      query: (body) => ({ url: "/combos", method: "POST", body }),
+      invalidatesTags: ["Combo"],
+    }),
+    updateCombo: build.mutation<Combo, { id: string; body: ComboInput }>({
+      query: ({ id, body }) => ({ url: `/combos/${id}`, method: "PUT", body }),
+      invalidatesTags: ["Combo"],
+    }),
+    toggleComboActive: build.mutation<{ ok: boolean }, { id: string; active: boolean }>({
+      query: ({ id, active }) => ({ url: `/combos/${id}/active`, method: "PATCH", body: { active } }),
+      invalidatesTags: ["Combo"],
+    }),
+    deleteCombo: build.mutation<{ ok: boolean }, string>({
+      query: (id) => ({ url: `/combos/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Combo"],
     }),
   }),
 });
+
+// ── Combos ──
+// Producto de un combo, ya resuelto por el backend (nombre/imagen/precio actuales).
+export interface ComboProduct {
+  id: string;
+  name: string;
+  description?: string;
+  image: string;
+  price: number;
+}
+
+export interface Combo {
+  id: string;
+  /** Nombre del combo; si no se definió, el backend lo arma como "A + B". */
+  name: string;
+  productIds: string[];
+  /** Precio del paquete (con el descuento ya incorporado). */
+  price: number;
+  active: boolean;
+  products: ComboProduct[];
+  /** Suma de los precios normales de los productos. */
+  normalTotal: number;
+  /** normalTotal − price (nunca negativo). */
+  savings: number;
+  /** true si algún producto referenciado ya no existe en el catálogo. */
+  broken: boolean;
+}
+
+export interface ComboInput {
+  name?: string;
+  productIds: string[];
+  price: number;
+  active?: boolean;
+}
 
 export interface TemplateInput {
   name: string;
@@ -208,11 +243,12 @@ export interface TemplateInput {
   specs: SpecRow[];
 }
 
-export interface WarehouseProduct {
-  id: string;
-  code: string;
+// SKU canónico del inventario con su stock ya sumado (todos los lotes que lo comparten).
+export interface InventorySku {
+  sku: string;
   name: string;
   stock: number;
+  price?: number;
 }
 
 export interface CatalogItemInput {
@@ -228,8 +264,10 @@ export interface CatalogItemInput {
   // Modo plantilla
   templateId?: string;
   basePrice?: number;
-  availability?: Availability;
   variantMappings?: VariantMappings;
+  // Opciones que ESTE producto ofrece por eje (poda estructural, no stock).
+  // Si un eje no aparece, se asumen todas sus opciones. { conector: ["Tipo C"], color: ["Negro","Azul"] }
+  axisOptions?: Record<string, string[]>;
 }
 
 export const {
@@ -248,5 +286,13 @@ export const {
   useCreateTemplateMutation,
   useUpdateTemplateMutation,
   useDeleteTemplateMutation,
-  useGetWarehouseProductsQuery,
+  useGetInventorySkusQuery,
+  useGetAdminCombosQuery,
+  useGetCombosQuery,
+  useGetComboQuery,
+  useGetCombosByProductQuery,
+  useCreateComboMutation,
+  useUpdateComboMutation,
+  useToggleComboActiveMutation,
+  useDeleteComboMutation,
 } = catalogApi;

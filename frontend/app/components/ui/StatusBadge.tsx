@@ -39,6 +39,7 @@ export function StatusBadge({
 }) {
   return (
     <span
+      data-badge={status}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
         VARIANTS[status],
@@ -48,6 +49,8 @@ export function StatusBadge({
     >
       <span
         className={cn(
+          // El glow del punto solo aplica en oscuro; en claro degrada a un
+          // punto sólido nítido (ver override [data-theme="light"] en la CSS).
           "size-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]",
           pulse && "animate-badge-pulse",
         )}

@@ -3,6 +3,8 @@ import { baseApi } from "./baseApi";
 
 export interface PublicOrderItem {
   catalogId: string;
+  /** Presente cuando la línea es un combo; el servidor revalida su precio. */
+  comboId?: string;
   variantId?: string;
   variantName?: string;
   quantity: number;

@@ -9,7 +9,7 @@
 // siempre (retrocompatible con reportes y demás consumidores).
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
-import { StatCard, type StatCardColor } from "~/components/ui/StatCard";
+import { StatCard, type StatCardColor } from "~/components/ui/Card";
 import { CountUp } from "~/components/ui/CountUp";
 import { formatCordobas, usdFromCordobas, cn } from "~/lib/utils";
 

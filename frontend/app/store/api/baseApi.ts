@@ -19,6 +19,7 @@ export const baseApi = createApi({
     "Config",
     "Catalog",
     "Template",
+    "Combo",
     "Product",
     "Purchase",
     "Migrated",

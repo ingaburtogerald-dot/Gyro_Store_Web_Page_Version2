@@ -48,6 +48,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/config', require('./routes/config'));
 app.use('/api/catalog', require('./routes/catalog'));
 app.use('/api/templates', require('./routes/templates'));
+app.use('/api/combos', require('./routes/combos'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/inventory', require('./routes/inventory'));

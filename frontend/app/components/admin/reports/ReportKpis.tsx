@@ -3,7 +3,7 @@
 // Jerarquía en dos niveles: fila "hero" con el resultado (orden de P&L) y
 // debajo el desglose agrupado en Capital y Deducciones.
 import { TrendingUp, DollarSign, Receipt, Truck, Coins, Wallet, AlertTriangle, Percent, Landmark, PiggyBank, ReceiptText, Banknote } from "lucide-react";
-import { StatCard } from "~/components/ui/StatCard";
+import { StatCard } from "~/components/ui/Card";
 import type { ReportKpisData } from "~/store/api/reportsApi";
 import { formatCordobas, formatUsd } from "~/lib/utils";
 import { EXCHANGE_RATE } from "~/lib/constants";

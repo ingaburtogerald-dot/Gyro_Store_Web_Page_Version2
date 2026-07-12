@@ -114,7 +114,7 @@ export default function Login() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="glass relative z-10 w-full max-w-md rounded-card p-8"
+        className="bg-surface-2 border border-white/5 relative z-10 w-full max-w-md rounded-card p-8"
       >
         <a href="/" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted hover:text-text">
           <ArrowLeft className="h-4 w-4" /> Volver al catálogo

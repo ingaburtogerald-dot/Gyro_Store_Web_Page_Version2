@@ -2,18 +2,21 @@ import { useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
+import { PageShell } from "~/components/layout/PageShell";
+import { Container } from "~/components/layout/Container";
 import { PublicHeader } from "~/components/layout/PublicHeader";
-import { PublicFooter } from "~/components/layout/PublicFooter";
 import { Hero } from "~/components/catalog/Hero";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
-import { ProductCarousel } from "~/components/catalog/ProductCarousel";
+import { ProductCarousel } from "~/components/product/ProductCarousel";
+import { ComboSection } from "~/components/catalog/ComboSection";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
-import { CategoryChips } from "~/components/catalog/CategoryChips";
-import { CatalogToolbar } from "~/components/catalog/CatalogToolbar";
+import { CategoryChips } from "~/components/filters/CategoryChips";
+import { FilterBar } from "~/components/filters/FilterBar";
+import { ActiveFilters } from "~/components/filters/ActiveFilters";
 import { FilterFab } from "~/components/catalog/FilterFab";
-import { FilterSheet } from "~/components/catalog/FilterSheet";
+import { FilterSheet } from "~/components/filters/FilterSheet";
 import { PublicSidebar } from "~/components/layout/PublicSidebar";
-import type { CatalogProduct, Category } from "~/store/api/catalogApi";
+import type { CatalogProduct, Category, Combo } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectEditMode, selectIsAdmin, setEditMode } from "~/store/slices/authSlice";
 
@@ -32,13 +35,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const origin = new URL(request.url).origin;
   let products: CatalogProduct[] = [];
   let categories: Category[] = [];
+  let combos: Combo[] = [];
   try {
-    const [pRes, cRes] = await Promise.all([
+    const [pRes, cRes, comboRes] = await Promise.all([
       fetch(`${origin}/api/catalog`),
       fetch(`${origin}/api/config`),
+      fetch(`${origin}/api/combos`),
     ]);
     if (pRes.ok) products = (await pRes.json()) as CatalogProduct[];
     if (cRes.ok) categories = ((await cRes.json()) as { categories?: Category[] }).categories ?? [];
+    if (comboRes.ok) combos = (await comboRes.json()) as Combo[];
     
     // Categorías de la tienda. FUENTE ÚNICA DE VERDAD: el `id` de cada categoría
     // DEBE ser el valor real de `product.category` que devuelve la API. Así el chip
@@ -69,7 +75,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   } catch {
     // Si la API falla, la página igual renderiza (grilla vacía con su estado vacío).
   }
-  return { origin, products, categories };
+  return { origin, products, categories, combos };
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -94,7 +100,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export default function Index() {
-  const { products, categories } = useLoaderData<typeof loader>();
+  const { products, categories, combos } = useLoaderData<typeof loader>();
   const dispatch = useAppDispatch();
   const isAdmin = useAppSelector(selectIsAdmin);
   const editMode = useAppSelector(selectEditMode);
@@ -117,6 +123,17 @@ export default function Index() {
     style: { overflow: "hidden" as const },
   };
 
+  // "Seguir comprando" desde el carrito navega a /#catalogo: al montar la home
+  // (viniendo de una ficha de producto) saltamos directo a la grilla.
+  useEffect(() => {
+    if (typeof window === "undefined" || window.location.hash !== "#catalogo") return;
+    const t = setTimeout(
+      () => document.getElementById("catalogo")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      80,
+    );
+    return () => clearTimeout(t);
+  }, []);
+
   // Deep-link desde el menú del admin: /?edit=1 activa el modo edición UNA vez y
   // limpia el query param. Es Redux (no la URL) la fuente de verdad del modo edición,
   // porque el botón del header también lo alterna; por eso sincronizamos el deep-link
@@ -132,11 +149,12 @@ export default function Index() {
   }, [isAdmin, searchParams, setSearchParams, dispatch]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-bg font-sans text-text">
-      <PublicHeader 
-        bottomBar={
+    <PageShell
+      header={
+        <PublicHeader
+          bottomBar={
           !editing ? (
-            <div className="w-full bg-surface-2/80 border-b border-border/50 backdrop-blur-md">
+            <div className="w-full border-b border-border/40 bg-bg/60 backdrop-blur-xl">
               <div className="flex w-full items-center px-4 md:px-8">
                 <CategoryChips categories={categories} />
               </div>
@@ -144,7 +162,17 @@ export default function Index() {
           ) : null
         }
       />
-
+      }
+      sidebar={
+        !editing ? (
+          <>
+            <FilterFab />
+            <FilterSheet />
+            <PublicSidebar categories={categories} />
+          </>
+        ) : null
+      }
+    >
       <AnimatePresence initial={false}>
         {!hasFilters && (
           <motion.div key="hero" {...collapse}>
@@ -153,7 +181,7 @@ export default function Index() {
         )}
       </AnimatePresence>
 
-      <main className="w-full flex-1 px-4 md:px-8">
+      <Container as="main" className="flex-1 py-0">
         {/* Marcas y Carrusel destacado (solo en la vista por defecto, sin filtros). */}
         <AnimatePresence initial={false}>
           {!editing && !hasFilters && (
@@ -164,6 +192,7 @@ export default function Index() {
                 products={products.filter((p) => p.images?.[0]).slice(0, 12)}
                 categories={categories}
               />
+              <ComboSection combos={combos} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -171,23 +200,13 @@ export default function Index() {
         {editing ? (
           <SortableCatalogGrid />
         ) : (
-          <div className="pt-3 lg:pt-5">
-            <CatalogToolbar products={products} />
+          <div id="catalogo" className="scroll-mt-20 pt-3 lg:pt-5">
+            <FilterBar products={products} />
+            <ActiveFilters categories={categories} />
             <ProductGrid products={products} categories={categories} />
           </div>
         )}
-      </main>
-
-      <PublicFooter />
-
-      {/* Filtros móviles: FAB + bottom sheet (ocultos en modo edición) */}
-      {!editing && (
-        <>
-          <FilterFab />
-          <FilterSheet />
-          <PublicSidebar categories={categories} />
-        </>
-      )}
-    </div>
+      </Container>
+    </PageShell>
   );
 }

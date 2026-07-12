@@ -3,10 +3,11 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, X, ImageOff } from "lucide-react";
 import { toast } from "sonner";
-import { VariantPicker, type VariantSelection } from "~/components/catalog/VariantPicker";
+import { VariantPicker, type VariantSelection } from "~/components/product/VariantPicker";
 import { useGetCatalogItemQuery } from "~/store/api/catalogApi";
 import { useAppDispatch } from "~/store/hooks";
-import { updateItem, type CartItem } from "~/store/slices/cartSlice";
+import { updateItem } from "~/store/slices/cartSlice";
+import type { CartItem } from "~/types/cart";
 import { formatCordobas, cn } from "~/lib/utils";
 
 function lineKey(i: Pick<CartItem, "catalogId" | "variantName">) {
@@ -167,7 +168,7 @@ export function EditCartItemSheet({
                   "ease-expo flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition duration-300 active:scale-[0.97]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
                   variant && inStock
-                    ? "bg-accent text-bg hover:bg-accent-2 hover:shadow-accent-cta"
+                    ? "bg-accent text-bg hover:bg-accent-hover"
                     : "cursor-not-allowed bg-surface-2 text-muted",
                 )}
               >

@@ -1,16 +1,7 @@
 // Carrito de compras del catálogo público. Persiste en localStorage para
 // sobrevivir refrescos. El checkout final se hace por WhatsApp (Fase 2).
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-
-export interface CartItem {
-  catalogId: string;
-  variantId?: string; // id del producto físico (para recalcular precio en el servidor)
-  name: string;
-  variantName: string;
-  price: number; // precio unitario en C$ (solo para mostrar; el servidor recalcula)
-  image: string;
-  quantity: number;
-}
+import type { CartItem } from "~/types/cart";
 
 interface CartState {
   items: CartItem[];
@@ -34,7 +25,9 @@ function persist(items: CartItem[]) {
 
 const initialState: CartState = { items: [], isOpen: false };
 
-function lineKey(i: Pick<CartItem, "catalogId" | "variantName">) {
+function lineKey(i: Pick<CartItem, "catalogId" | "variantName" | "comboId">) {
+  // Un combo es su propia línea atómica (no se fusiona con productos sueltos).
+  if (i.comboId) return `combo::${i.comboId}`;
   return `${i.catalogId}::${i.variantName}`;
 }
 

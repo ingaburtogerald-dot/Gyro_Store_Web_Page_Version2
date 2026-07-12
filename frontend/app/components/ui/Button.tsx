@@ -11,10 +11,10 @@ const VARIANTS: Record<Variant, string> = {
   // Primaria — acento sólido brillante con texto oscuro (una sola convención en
   // toda la app: mismo look que tarjetas, buscador y toolbar). Con esmeralda el
   // texto oscuro da contraste ≈9:1 (AA holgado) donde el texto blanco fallaba.
-  primary: "bg-accent text-bg font-semibold hover:bg-accent-hover shadow-lg shadow-accent/25",
+  primary: "bg-accent text-bg font-semibold hover:bg-accent-hover",
   // Sólido — submits dentro de modales y formularios (idéntico a primary para
   // que no haya dos "botones principales" distintos).
-  submit: "bg-accent text-bg font-semibold hover:bg-accent-hover shadow-md shadow-accent/20",
+  submit: "bg-accent text-bg font-semibold hover:bg-accent-hover",
   // Destructivo — eliminar, rechazar
   destructive: "bg-danger/10 text-danger hover:bg-danger hover:text-white",
   // WhatsApp — solo para botones que abren un chat de WhatsApp real
@@ -42,11 +42,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   return (
     <motion.button
       ref={ref}
-      whileTap={{ scale: 0.97 }}
-      whileHover={{ scale: disabled || loading ? 1 : 1.02 }}
+      whileTap={disabled || loading ? {} : { scale: 0.98, y: 1 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-pill font-medium transition-colors",
+        "ease-expo inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         VARIANTS[variant],

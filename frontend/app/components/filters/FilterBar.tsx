@@ -29,7 +29,7 @@ const SORTS: Array<{ value: CatalogSort; label: string; short: string }> = [
   { value: "price-desc", label: "Precio: mayor a menor", short: "Precio ↓" },
 ];
 
-export function CatalogToolbar({ products }: { products: CatalogProduct[] }) {
+export function FilterBar({ products }: { products: CatalogProduct[] }) {
   const dispatch = useAppDispatch();
   const sort = useAppSelector((s) => s.ui.sort);
   const activeFilters = useAppSelector(selectActiveFilterCount);
@@ -66,13 +66,13 @@ export function CatalogToolbar({ products }: { products: CatalogProduct[] }) {
         {/* Filtros integrados (solo en escritorio) - Izquierda en escritorio */}
         <div className="hidden lg:flex items-center gap-4 mr-auto">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold uppercase tracking-wider bg-gradient-to-r from-accent to-accent-2 bg-clip-text text-transparent">Precio C$</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted">Precio C$</span>
             <input
               type="number"
               placeholder="Mín"
               value={priceMin ?? ""}
               onChange={(e) => dispatch(setPriceMin(e.target.value ? Number(e.target.value) : null))}
-              className="w-[72px] rounded-lg bg-surface-2 border border-border px-2 py-1 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/40 transition-all duration-300"
+              className="w-[72px] rounded-lg bg-surface-2 border border-border px-2 py-1 text-sm text-text outline-none focus:border-accent focus:ring-2 focus:ring-accent/40 transition-all duration-300"
             />
             <span className="text-muted font-medium">—</span>
             <input
@@ -80,35 +80,21 @@ export function CatalogToolbar({ products }: { products: CatalogProduct[] }) {
               placeholder="Máx"
               value={priceMax ?? ""}
               onChange={(e) => dispatch(setPriceMax(e.target.value ? Number(e.target.value) : null))}
-              className="w-[72px] rounded-lg bg-surface-2 border border-border px-2 py-1 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/40 transition-all duration-300"
+              className="w-[72px] rounded-lg bg-surface-2 border border-border px-2 py-1 text-sm text-text outline-none focus:border-accent focus:ring-2 focus:ring-accent/40 transition-all duration-300"
             />
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <FilterChip
+            active={onlyOnSale}
             onClick={() => dispatch(setOnlyOnSale(!onlyOnSale))}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-all duration-300 border shadow-sm",
-              onlyOnSale
-                ? "border-transparent bg-gradient-to-r from-accent to-accent-2 text-bg shadow-accent/20"
-                : "border-border text-muted hover:text-text hover:border-accent/40 bg-surface-2/60 hover:bg-surface-2"
-            )}
-          >
-            <Tag className="w-4 h-4" /> Ofertas
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            icon={<Tag className="h-4 w-4" />}
+            label="Ofertas"
+          />
+          <FilterChip
+            active={onlyInStock}
             onClick={() => dispatch(setOnlyInStock(!onlyInStock))}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-all duration-300 border shadow-sm",
-              onlyInStock
-                ? "border-transparent bg-gradient-to-r from-accent to-accent-2 text-bg shadow-accent/20"
-                : "border-border text-muted hover:text-text hover:border-accent/40 bg-surface-2/60 hover:bg-surface-2"
-            )}
-          >
-            <PackageCheck className="w-4 h-4" /> Disp.
-          </motion.button>
+            icon={<PackageCheck className="h-4 w-4" />}
+            label="Disponible"
+          />
 
           {/* Separador visual */}
           <div className="h-6 w-px bg-border mx-1"></div>
@@ -133,6 +119,40 @@ export function CatalogToolbar({ products }: { products: CatalogProduct[] }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Chip de filtro binario (activo/inactivo). Estética editorial: un solo acento
+// plano cuando está activo (sin gradiente), hairline + muted cuando no. El estado
+// activo es inequívoco por color de fondo, no por un matiz sutil.
+function FilterChip({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.96 }}
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "ease-expo flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors duration-300",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+        active
+          ? "border-transparent bg-accent text-bg"
+          : "border-border bg-surface-2/60 text-muted hover:border-accent/40 hover:text-text",
+      )}
+    >
+      {icon}
+      {label}
+    </motion.button>
   );
 }
 

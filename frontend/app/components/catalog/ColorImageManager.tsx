@@ -27,8 +27,8 @@ export function ColorImageManager({
   upload: (files: FileList) => Promise<string[]>;
   uploading: boolean;
 }) {
-  const [active, setActive] = useState<string>(colors[0] ?? "");
-  const current = active || colors[0] || "";
+  const [active, setActive] = useState<string>("");
+  const current = colors.includes(active) ? active : (colors[0] || "");
   const list = imagesByColor[current] ?? [];
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));

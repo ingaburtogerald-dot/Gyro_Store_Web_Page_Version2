@@ -13,7 +13,8 @@ export interface VariantSelection {
   inStock: boolean; // el combo resuelto tiene stock > 0
 }
 
-function val(v: CatalogVariant, i: number): string | null {
+function val(v: CatalogVariant | undefined | null, i: number): string | null {
+  if (!v) return null;
   return v.axisValues?.[i] ?? null;
 }
 
@@ -24,6 +25,8 @@ const COLOR_MAP: Record<string, string> = {
   white: "#ffffff",
   turquesa: "#00d4aa",
   turquoise: "#00d4aa",
+  cyan: "#00d4aa",
+  cian: "#00d4aa",
   gris: "#717a9c", // matching our muted color
   grey: "#717a9c",
   gray: "#717a9c",
@@ -48,18 +51,26 @@ const COLOR_MAP: Record<string, string> = {
   plata: "#cbd5e1",
   plateado: "#cbd5e1",
   silver: "#cbd5e1",
+  harman: "#717a9c", // gris
+  "bass enhanced": "#121212", // negro
 };
 
 export function VariantPicker({
   variants,
   axisLabels,
+  colorAxisIndex,
   onChange,
 }: {
   variants: CatalogVariant[];
-  axisLabels: string[];
+  axisLabels?: string[];
+  colorAxisIndex?: number;
   onChange: (s: VariantSelection) => void;
 }) {
-  const axisCount = axisLabels.length;
+  const safeAxisLabels = axisLabels || [];
+  const axisCount = safeAxisLabels.length;
+  // If not provided by backend, assume the last axis is the color axis if its label is 'Color' (fallback)
+  const effectiveColorAxisIndex = colorAxisIndex ?? 
+    (safeAxisLabels[axisCount - 1]?.toLowerCase().trim() === "color" ? axisCount - 1 : -1);
 
   // Opciones distintas por eje, en orden de aparición.
   const options = useMemo(() => {
@@ -104,7 +115,7 @@ export function VariantPicker({
       variants.find((v) => sel.every((s, i) => s == null || val(v, i) === s)) ?? null;
     return {
       variant,
-      color: sel[axisCount - 1] ?? null,
+      color: effectiveColorAxisIndex >= 0 ? (sel[effectiveColorAxisIndex] ?? null) : null,
       inStock: !!variant && (variant.stock || 0) > 0,
     };
   }
@@ -132,9 +143,9 @@ export function VariantPicker({
 
   return (
     <div className="mt-5 space-y-5">
-      {axisLabels.map((label, axis) => {
-        if (options[axis].length === 0) return null;
-        const isColorAxis = label.toLowerCase().trim() === "color";
+      {safeAxisLabels.map((label, axis) => {
+        if (!options[axis] || options[axis].length === 0) return null;
+        const isColorAxis = axis === effectiveColorAxisIndex;
         const selectedLabel = selected[axis];
 
         return (

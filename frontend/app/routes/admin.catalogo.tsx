@@ -3,6 +3,7 @@ import { useState } from "react";
 import { RequireRole } from "~/components/admin/RequireRole";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
 import { TemplateGrid } from "~/components/catalog/TemplateGrid";
+import { ComboGrid } from "~/components/catalog/ComboGrid";
 import { AnimatedTabs } from "~/components/ui/AnimatedTabs";
 
 export default function AdminCatalogo() {
@@ -23,11 +24,14 @@ export default function AdminCatalogo() {
             items={[
               { id: "catalog", label: "Artículos" },
               { id: "templates", label: "Templates" },
+              { id: "combos", label: "Combos" },
             ]}
           />
         </div>
 
-        {activeTab === "catalog" ? <SortableCatalogGrid /> : <TemplateGrid />}
+        {activeTab === "catalog" && <SortableCatalogGrid />}
+        {activeTab === "templates" && <TemplateGrid />}
+        {activeTab === "combos" && <ComboGrid />}
       </div>
     </RequireRole>
   );

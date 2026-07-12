@@ -100,7 +100,7 @@ export function AboutUsModal({ open, onClose }: AboutUsModalProps) {
               </a>
               <a 
                 href="mailto:ingaburtogerald@gmail.com" 
-                className="flex items-center gap-1.5 bg-blue-500/15 text-blue-500 hover:bg-blue-500/25 transition-colors px-4 py-2 rounded-full font-semibold shadow-sm"
+                className="flex items-center gap-1.5 bg-accent/15 text-accent hover:bg-accent/25 transition-colors px-4 py-2 rounded-full font-semibold shadow-sm"
               >
                 <Mail className="h-4 w-4" />
                 ingaburtogerald@gmail.com

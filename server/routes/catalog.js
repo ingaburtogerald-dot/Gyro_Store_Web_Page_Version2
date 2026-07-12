@@ -23,40 +23,33 @@ function clearCatalogCache() {
   catalogCache = null;
 }
 
-// ¿Está encendida una opción en el mapa de disponibilidad? (misma semántica que
-// buildTemplateVariants: ausente = encendida; objeto = enabled !== false).
-function optionEnabled(availability, key, opt) {
-  const val = availability?.[key]?.[opt];
-  if (val === undefined) return true;
-  if (typeof val === 'object' && val !== null) return val.enabled !== false;
-  return val !== false;
+// Opciones que ESTE producto ofrece por eje (poda estructural). Si no hay lista
+// guardada (o quedó vacía), se asumen TODAS — compat con datos previos.
+function includedOptions(item, axis) {
+  const sel = item.axisOptions && item.axisOptions[axis.key];
+  if (Array.isArray(sel) && sel.length) return (axis.options || []).filter((o) => sel.includes(o));
+  return axis.options || [];
 }
 
 // Resumen compacto de variantes para las pills de la card en la lista pública:
-// opciones ENCENDIDAS de los ejes de la plantilla, en orden, sin ejes de color
-// (los colores ya se ven en las fotos). Ej: ["Tipo C", "Jack 3.5mm", "Con mic"].
+// opciones no-color OFRECIDAS por el producto (los colores ya se ven en las fotos).
 function buildAxesSummary(item, template) {
   if (!template) return [];
   const out = [];
   for (const axis of template.axes || []) {
     if (axis.isColor) continue;
-    for (const opt of axis.options || []) {
-      if (optionEnabled(item.availability, axis.key, opt)) out.push(opt);
-    }
+    for (const opt of includedOptions(item, axis)) out.push(opt);
   }
   return out.slice(0, 6);
 }
 
-// Cantidad de combinaciones ENCENDIDAS (producto cartesiano de opciones activas,
-// incluyendo ejes de color). La card lo usa para decidir si el quick-add necesita
-// selector de variante (>1) o puede agregar directo (<=1).
-function countEnabledCombos(item, template) {
+// Cantidad de combinaciones = producto cartesiano de las opciones OFRECIDAS. La
+// card lo usa para decidir si el quick-add necesita selector de variante (>1) o
+// puede agregar directo (<=1).
+function countCombos(item, template) {
   if (!template) return 0;
   let total = 1;
-  for (const axis of template.axes || []) {
-    const enabled = (axis.options || []).filter((o) => optionEnabled(item.availability, axis.key, o)).length;
-    total *= enabled;
-  }
+  for (const axis of template.axes || []) total *= includedOptions(item, axis).length || 1;
   return total;
 }
 
@@ -74,33 +67,38 @@ function enrich(item, templatesById = {}) {
       stock: 1,
       price: item.basePrice || 0,
       axesSummary: buildAxesSummary(item, template),
-      variantCount: countEnabledCombos(item, template),
+      variantCount: countCombos(item, template),
     };
   }
   // Ítem sin plantilla (dato antiguo): se muestra solo en admin, sin stock.
   return { ...item, images, stock: 0, price: item.price || 0, axesSummary: [], variantCount: 0 };
 }
 
-// Normaliza una entrada de variantMappings a la lista de códigos. Soporta el
-// formato nuevo { skus: [...] } y el viejo { sku: "X" }.
+// ── Lectores 1-a-1 (toleran datos viejos { skus:[...] } durante la migración) ──
+function mappingSku(entry) {
+  if (!entry) return '';
+  if (typeof entry.sku === 'string' && entry.sku) return entry.sku;
+  if (Array.isArray(entry.skus) && entry.skus[0]) return entry.skus[0];
+  return '';
+}
 function mappingSkus(entry) {
   if (!entry) return [];
-  if (Array.isArray(entry.skus)) return entry.skus.filter(Boolean);
-  if (entry.sku) return [entry.sku];
+  if (Array.isArray(entry.skus) && entry.skus.length > 0) return entry.skus;
+  if (typeof entry.sku === 'string' && entry.sku) return [entry.sku];
   return [];
 }
+function mappingPrice(entry) {
+  const p = Number(entry && entry.price);
+  return p > 0 ? p : null;
+}
 
-// Genera variantes "virtuales" (producto cartesiano de los ejes de la plantilla).
-// Los SKU de cada combinación se resuelven desde `variantMappings` (puede haber
-// VARIOS códigos por combinación: la misma variante en distintas tandas). Si no hay
-// `variantMappings`, se usa un fallback legacy desde availability SKUs.
-// Una combinación tiene stock preliminar=1 si TODAS sus opciones están encendidas
-// en `availability`; si alguna está apagada, stock=0. El stock real se resuelve
-// después consultando la colección `products` y SUMANDO el stock de todos sus SKU.
+// Genera variantes "virtuales" (producto cartesiano de TODAS las opciones de la
+// plantilla — todas existen). Cada combinación resuelve UN SKU canónico y un
+// precio (override de la variante, o el basePrice del padre). El stock se resuelve
+// después sumando, por `sku`, todos los lotes de la colección `products`.
 function buildTemplateVariants(template, item) {
   const axes = template.axes || [];
   const axisLabels = axes.map((a) => a.label);
-  const availability = item.availability || {};
   const variantMappings = item.variantMappings || {};
   const basePrice = item.basePrice || 0;
 
@@ -108,7 +106,7 @@ function buildTemplateVariants(template, item) {
   for (const axis of axes) {
     const next = [];
     for (const combo of combos) {
-      for (const opt of axis.options) next.push([...combo, { key: axis.key, opt }]);
+      for (const opt of includedOptions(item, axis)) next.push([...combo, { key: axis.key, opt }]);
     }
     combos = next;
   }
@@ -116,43 +114,25 @@ function buildTemplateVariants(template, item) {
   const variants = combos.map((combo, idx) => {
     const axisValues = combo.map((c) => c.opt);
     const variantName = axisValues.join(' / ');
-
-    // Determinar si todas las opciones están encendidas
-    const allOn = combo.every((c) => {
-      const m = availability[c.key];
-      if (!m || m[c.opt] === undefined) return true;
-      const val = m[c.opt];
-      if (typeof val === 'object' && val !== null) return val.enabled !== false;
-      return val !== false;
-    });
-
-    // Resolver SKU(s): primero desde variantMappings (puede ser varios), fallback a legacy.
-    let skus = mappingSkus(variantMappings[variantName]);
-    if (skus.length === 0) {
-      // Fallback legacy: tomar el primer SKU encontrado en los ejes del availability
-      for (const c of combo) {
-        const val = availability[c.key]?.[c.opt];
-        if (typeof val === 'object' && val !== null && val.sku) {
-          skus = [val.sku];
-          break;
-        }
-      }
-    }
+    const entry = variantMappings[variantName];
+    const sku = mappingSku(entry);
+    const skus = mappingSkus(entry);
 
     return {
       id: `tpl-${idx}`,
       name: item.name,
       variantName,
       axisValues,
-      price: basePrice,
-      sku: skus[0] || null, // representativo (compat)
-      skus,
-      stock: allOn ? 1 : 0,
+      price: mappingPrice(entry) ?? basePrice, // override por variante
+      sku: sku || null,
+      skus: skus.length > 0 ? skus : (sku ? [sku] : []),
+      stock: 0, // se resuelve por `sku` en el detalle
       specs: [],
     };
   });
 
-  return { variants, axisLabels };
+  const colorAxisIndex = axes.findIndex((a) => a.isColor);
+  return { variants, axisLabels, colorAxisIndex: colorAxisIndex >= 0 ? colorAxisIndex : undefined };
 }
 
 // GET /api/catalog?category=&promo= — lista pública del catálogo (con caché en memoria).
@@ -191,17 +171,48 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // ── Endpoints de administración (modo edición del catálogo) ──
 
-// GET /api/catalog/warehouse-products — productos de bodega para el combobox del admin.
-// Devuelve la lista completa de productos (code, name, stock) sin requerir rol seller.
-router.get('/warehouse-products', requireAdmin, asyncHandler(async (req, res) => {
-  const snap = await db.collection(PRODUCTS).get();
-  const items = snap.docs
-    .map((d) => {
-      const p = d.data();
-      return { id: d.id, code: p.code, name: p.name, stock: p.stock || 0 };
-    })
-    .filter((p) => !p.deletedAt)
-    .sort((a, b) => String(a.code || '').localeCompare(String(b.code || ''), undefined, { numeric: true }));
+router.get('/inventory-skus', requireAdmin, asyncHandler(async (req, res) => {
+  const [snapNative, snapMigrated] = await Promise.all([
+    db.collection(PRODUCTS).get(),
+    db.collection(config.collections.migratedInventory).get()
+  ]);
+  
+  const bySku = new Map();
+  
+  snapNative.docs.forEach((d) => {
+    const p = d.data();
+    if (p.deletedAt) return;
+    const sku = p.sku || p.code; // fallback defensivo pre-migración
+    if (!sku) return;
+    const cur = bySku.get(sku) || { sku, name: p.name || '', stock: 0 };
+    cur.stock += p.stock || 0;
+    if (!cur.name && p.name) cur.name = p.name;
+    if (p.price != null && (!cur.price || p.price > cur.price)) cur.price = p.price;
+    bySku.set(sku, cur);
+  });
+
+  snapMigrated.docs.forEach((d) => {
+    const p = d.data();
+    if (p.deletedAt) return;
+    const sku = p.code;
+    if (!sku) return;
+    const quantity = Math.max(0, parseInt(p.quantity, 10) || 0);
+    const quantitySold = Math.max(0, parseInt(p.quantitySold, 10) || 0);
+    const quantityReserved = Math.max(0, parseInt(p.quantityReserved, 10) || 0);
+    const stock = Math.max(0, quantity - quantitySold - quantityReserved);
+    
+    // Solo mostramos migrados que tengan stock real disponible para evitar basura.
+    if (stock > 0) {
+      const cur = bySku.get(sku) || { sku, name: p.productName || '', stock: 0 };
+      cur.stock += stock;
+      if (!cur.name && p.productName) cur.name = p.productName;
+      if (p.price != null && (!cur.price || p.price > cur.price)) cur.price = p.price;
+      bySku.set(sku, cur);
+    }
+  });
+
+  const items = [...bySku.values()].sort((a, b) =>
+    String(a.sku).localeCompare(String(b.sku), undefined, { numeric: true }));
   res.json(items);
 }));
 
@@ -210,8 +221,12 @@ router.post('/upload', requireAdmin, upload.array('images', 10), asyncHandler(as
   if (!req.files?.length) return res.status(400).json({ error: 'No se enviaron imágenes.' });
   const urls = [];
   for (const file of req.files) {
-    const ext = (file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
-    urls.push(await storage.uploadFile(file.buffer, 'catalog-images', `${Date.now()}-${Math.floor(Math.random() * 1000)}${ext}`, file.mimetype));
+    // Optimiza (resize + WebP) para que toda imagen subida pese/luzca igual que
+    // el resto. Si sharp no está, cae al archivo original sin romper la subida.
+    const opt = await storage.optimizeImageBuffer(file.buffer);
+    const ext = opt.ext ?? (file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
+    const contentType = opt.contentType ?? file.mimetype;
+    urls.push(await storage.uploadFile(opt.buffer, 'catalog-images', `${Date.now()}-${Math.floor(Math.random() * 1000)}${ext}`, contentType));
   }
   res.status(201).json({ urls });
 }));
@@ -235,7 +250,40 @@ router.patch('/reorder', requireAdmin, asyncHandler(async (req, res) => {
 function buildCatalogFields(body) {
   const { name, description, category, images, isPromo,
     imagesByColor, badges, tiktokUrl, compareAtPrice, specs, published,
-    templateId, basePrice, availability, variantMappings } = body;
+    templateId, basePrice, variantMappings, axisOptions } = body;
+
+  // axisOptions: qué opciones ofrece el producto por eje. { conector: ["Tipo C"], color: [...] }
+  const cleanAxisOptions = (() => {
+    if (!axisOptions || typeof axisOptions !== 'object') return {};
+    const out = {};
+    for (const [key, opts] of Object.entries(axisOptions)) {
+      if (Array.isArray(opts)) out[key] = opts.map((s) => String(s)).filter(Boolean);
+    }
+    return out;
+  })();
+
+  // variantMappings nuevo: { "opt / opt": { skus, price? } }.
+  const cleanMappings = (() => {
+    if (!variantMappings || typeof variantMappings !== 'object') return {};
+    const out = {};
+    for (const [combo, entry] of Object.entries(variantMappings)) {
+      if (!entry) continue;
+      
+      let skus = [];
+      if (Array.isArray(entry.skus)) {
+        skus = entry.skus.map(s => String(s || '').trim()).filter(Boolean);
+      } else if (typeof entry.sku === 'string' && entry.sku.trim()) {
+        skus = [entry.sku.trim()];
+      }
+      
+      if (skus.length === 0) continue;
+      
+      const price = Number(entry.price);
+      out[combo] = price > 0 ? { skus, sku: skus[0], price } : { skus, sku: skus[0] };
+    }
+    return out;
+  })();
+
   return {
     name: String(name).trim(),
     description: String(description || '').trim(),
@@ -258,9 +306,10 @@ function buildCatalogFields(body) {
     // ── Plantilla ──
     templateId: String(templateId || '').trim(),
     basePrice: Number(basePrice) || 0,
-    availability: availability && typeof availability === 'object' ? availability : {},
-    // Mapeo de combinaciones a SKUs de bodega: { "opt1 / opt2 / opt3": { sku: "CODE" } }
-    variantMappings: variantMappings && typeof variantMappings === 'object' ? variantMappings : {},
+    // Mapeo 1-a-1: { "opt1 / opt2 / opt3": { sku: "SKU", price?: 390 } }. `availability`
+    // ya no se persiste (la disponibilidad se deriva del stock del SKU mapeado).
+    variantMappings: cleanMappings,
+    axisOptions: cleanAxisOptions,
   };
 }
 
@@ -295,9 +344,11 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const update = {
     ...fields,
     price: fields.basePrice,
+    // Borra el residuo legacy de disponibilidad manual en docs ya guardados.
+    availability: FieldValue.delete(),
     updatedAt: FieldValue.serverTimestamp(),
   };
-  
+
   await ref.update(update);
   clearCatalogCache();
 
@@ -343,32 +394,50 @@ router.get('/:id', asyncHandler(async (req, res) => {
   if (item.templateId) {
     const tplDoc = await db.collection(TEMPLATES).doc(item.templateId).get();
     const template = tplDoc.exists ? { id: tplDoc.id, ...tplDoc.data() } : { axes: [], specs: [] };
-    let { variants, axisLabels } = buildTemplateVariants(template, item);
+    let { variants, axisLabels, colorAxisIndex } = buildTemplateVariants(template, item);
 
-    // Consulta de stock real en bodega por SKU (juntando todos los códigos de todas las variantes)
-    const skusToFetch = [...new Set(variants.flatMap(v => v.skus || []).filter(Boolean))];
+    // Stock real por SKU canónico: SUMA de todos los lotes que comparten ese `sku`.
+    const skusToFetch = [...new Set(variants.flatMap((v) => v.skus || (v.sku ? [v.sku] : [])).filter(Boolean))];
     const stockBySku = {};
 
     if (skusToFetch.length > 0) {
-      const batches = [];
+      const batchesNative = [];
+      const batchesMigrated = [];
       for (let i = 0; i < skusToFetch.length; i += 10) {
-        const batch = skusToFetch.slice(i, i + 10);
-        batches.push(db.collection(config.collections.products).where('code', 'in', batch).get());
+        const slice = skusToFetch.slice(i, i + 10);
+        batchesNative.push(db.collection(PRODUCTS).where('sku', 'in', slice).get());
+        batchesMigrated.push(db.collection(config.collections.migratedInventory).where('code', 'in', slice).get());
       }
-      const snaps = await Promise.all(batches);
-      snaps.forEach(snap => {
-        snap.docs.forEach(d => {
-          const prodData = d.data();
-          stockBySku[prodData.code] = prodData.stock || 0;
+      
+      const snaps = await Promise.all([...batchesNative, ...batchesMigrated]);
+      
+      // Native snaps are the first half
+      for (let i = 0; i < batchesNative.length; i++) {
+        snaps[i].docs.forEach((d) => {
+          const p = d.data();
+          if (p.deletedAt) return;
+          stockBySku[p.sku] = (stockBySku[p.sku] || 0) + (p.stock || 0); // suma lotes
         });
-      });
+      }
+      
+      // Migrated snaps are the second half
+      for (let i = batchesNative.length; i < snaps.length; i++) {
+        snaps[i].docs.forEach((d) => {
+          const p = d.data();
+          if (p.deletedAt) return;
+          const quantity = Math.max(0, parseInt(p.quantity, 10) || 0);
+          const quantitySold = Math.max(0, parseInt(p.quantitySold, 10) || 0);
+          const quantityReserved = Math.max(0, parseInt(p.quantityReserved, 10) || 0);
+          const stock = Math.max(0, quantity - quantitySold - quantityReserved);
+          stockBySku[p.code] = (stockBySku[p.code] || 0) + stock; // migrated uses p.code
+        });
+      }
     }
 
-    variants = variants.map(v => {
-      if (v.stock === 0) return v; // si ya estaba apagada, sigue 0
-      // Stock de la variante = SUMA del stock de todos sus códigos de bodega.
-      v.stock = (v.skus || []).reduce((sum, code) => sum + (stockBySku[code] || 0), 0);
-      return v;
+    variants = variants.map((v) => {
+      const variantSkus = v.skus?.length ? v.skus : (v.sku ? [v.sku] : []);
+      const stock = variantSkus.reduce((acc, s) => acc + (stockBySku[s] || 0), 0);
+      return { ...v, stock };
     });
 
     const inStock = variants.some((v) => v.stock > 0);
@@ -379,6 +448,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
       images,
       variants,
       axisLabels,
+      colorAxisIndex,
       imagesByColor: item.imagesByColor || {},
       badges: Array.isArray(item.badges) ? item.badges : [],
       tiktokUrl: item.tiktokUrl || '',

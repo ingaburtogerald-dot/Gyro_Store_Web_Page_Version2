@@ -44,7 +44,7 @@ export function AnimatedTabs({
               <motion.span
                 layoutId={layoutId}
                 className={cn("absolute inset-0 rounded-pill", indicatorClassName)}
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               />
             )}
             <span className="relative z-10">{it.label}</span>

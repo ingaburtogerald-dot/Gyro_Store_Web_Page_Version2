@@ -1,7 +1,7 @@
 // Panel de Seguimientos: KPIs + filtros (vendedor / origen / etiqueta) + board por urgencia.
 import { useMemo, useState } from "react";
 import { Plus, Users, AlarmClock, Inbox, CheckCircle2, X } from "lucide-react";
-import { StatCard } from "~/components/ui/StatCard";
+import { StatCard } from "~/components/ui/Card";
 import { FilterSelect } from "~/components/ui/FilterSelect";
 import { useAppSelector } from "~/store/hooks";
 import { selectIsAdmin } from "~/store/slices/authSlice";

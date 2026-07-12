@@ -14,7 +14,7 @@ import { store } from "~/store/store";
 import { useAuthBootstrap } from "~/hooks/useAuth";
 import { useTheme } from "~/hooks/useTheme";
 import { ForcePasswordChangeGate } from "~/components/auth/ForcePasswordChangeGate";
-import tailwind from "~/tailwind.css?url";
+import tailwind from "~/styles/globals.css?url";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: tailwind },
@@ -23,8 +23,11 @@ export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
   {
+    // Solo 2 familias: Bricolage Grotesque (headings/UI fuerte) + Plus Jakarta
+    // Sans (body/lectura). Se eliminaron Inter y Sora — eran carga muerta y
+    // rompían la unidad admin↔catálogo. `display=swap` evita el bloqueo de render.
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap",
+    href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
   },
 ];
 
@@ -44,31 +47,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             su función meta() — homepage y página de producto — con URL absoluta. */}
         <Meta />
         <Links />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              document.addEventListener("click", function(e) {
-                var el = e.target;
-                var info = el.tagName + (el.className ? "." + el.className.split(" ").join(".") : "") + (el.id ? "#" + el.id : "");
-                var div = document.getElementById("debug-click");
-                if (!div) {
-                  div = document.createElement("div");
-                  div.id = "debug-click";
-                  div.style.position = "fixed";
-                  div.style.bottom = "0";
-                  div.style.right = "0";
-                  div.style.zIndex = "999999";
-                  div.style.background = "rgba(0,0,0,0.8)";
-                  div.style.color = "white";
-                  div.style.padding = "10px";
-                  div.style.pointerEvents = "none";
-                  document.body.appendChild(div);
-                }
-                div.textContent = info;
-              }, true);
-            `,
-          }}
-        />
         {/* Aplica el tema guardado antes del primer paint para evitar parpadeo */}
         <script
           dangerouslySetInnerHTML={{
@@ -85,7 +63,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </ForcePasswordChangeGate>
           {/* Colores vía tokens: el toast sigue al tema activo (oscuro/claro) */}
           <Toaster
-            position="top-right"
+            position="top-left"
             duration={5000}
             theme="dark"
             closeButton
@@ -123,12 +101,18 @@ export function ErrorBoundary() {
   const error = useRouteError();
   const message = isRouteErrorResponse(error)
     ? `${error.status} — ${error.statusText}`
-    : "Ocurrió un error inesperado.";
+    : error instanceof Error ? error.message : "Ocurrió un error inesperado.";
+  const stack = error instanceof Error ? error.stack : "";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
-      <h1 className="text-2xl font-bold text-accent-2">Gyro Store</h1>
-      <p className="text-muted">{message}</p>
+      <h1 className="text-2xl font-bold text-accent-2">Gyro Store (Debug Error)</h1>
+      <p className="text-danger max-w-3xl font-mono text-sm">{message}</p>
+      {stack && (
+        <pre className="max-w-3xl overflow-auto text-left text-xs bg-surface-2 p-4 text-muted rounded-xl">
+          {stack}
+        </pre>
+      )}
       <a href="/" className="rounded-pill bg-gradient-accent px-6 py-2.5 text-sm font-medium text-white">
         Volver al inicio
       </a>
