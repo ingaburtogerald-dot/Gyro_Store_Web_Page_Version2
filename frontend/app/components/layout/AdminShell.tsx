@@ -159,9 +159,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           En escritorio se oculta con md:hidden cuando está colapsado. */}
       <aside
         className={cn(
-          // Glass: superficie translúcida + blur para que el ambiente esmeralda
-          // del body se filtre; wash de acento muy sutil de arriba a abajo.
-          "fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-border bg-surface/70 bg-gradient-to-b from-accent/[0.05] to-transparent p-4 backdrop-blur-xl transition-transform",
+          // Glass SOLO en escritorio: en móvil el sidebar es un drawer sobre un overlay
+          // oscuro, así que va sólido (backdrop-blur persistente cuesta repaint en gama baja).
+          // El glass (blur + translucidez) se activa en md+ para dejar filtrar el ambiente.
+          "fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-border bg-surface bg-gradient-to-b from-accent/[0.05] to-transparent p-4 transition-transform md:bg-surface/70 md:backdrop-blur-xl",
           // En escritorio: sticky a la altura del viewport para que siga al usuario al hacer scroll.
           "md:sticky md:top-0 md:bottom-auto md:h-screen md:translate-x-0 md:self-start",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
@@ -179,11 +180,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           >
             <Logo size={44} withText textClassName="text-lg" />
           </Link>
-          <button className="md:hidden" onClick={() => dispatch(setSidebar(false))} aria-label="Cerrar menú">
-            <X className="h-5 w-5 text-muted" />
+          <button
+            className="-mr-2 grid h-11 w-11 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 md:hidden"
+            onClick={() => dispatch(setSidebar(false))}
+            aria-label="Cerrar menú"
+          >
+            <X className="h-5 w-5" />
           </button>
           <button
-            className="hidden text-muted transition-colors hover:text-text md:inline-flex"
+            className="-mr-2 hidden h-11 w-11 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 md:grid"
             onClick={() => dispatch(toggleSidebarCollapsed())}
             title="Ocultar menú"
             aria-label="Ocultar menú"
@@ -287,9 +292,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {/* Contenido — min-w-0 deja que las tablas anchas se encojan/scrolleen
           en vez de empujar el layout y deformar el sidebar. */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-[60] flex h-16 items-center justify-between gap-3 border-b border-border bg-surface/60 px-4 backdrop-blur-xl">
+        {/* Header sticky: sólido en móvil (blur persistente sobre contenido en scroll
+            es el efecto más caro), glass en escritorio. */}
+        <header className="sticky top-0 z-[60] flex h-16 items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 md:bg-surface/60 md:backdrop-blur-xl">
           <div className="flex min-w-0 items-center gap-2">
-            <button className="md:hidden" onClick={() => dispatch(toggleSidebar())} aria-label="Abrir menú">
+            <button
+              className="-ml-2 grid h-11 w-11 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 md:hidden"
+              onClick={() => dispatch(toggleSidebar())}
+              aria-label="Abrir menú"
+            >
               <Menu className="h-5 w-5" />
             </button>
             {/* Mostrar el menú en escritorio cuando está colapsado */}

@@ -28,7 +28,7 @@ export default function Usuarios() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="gradient-text text-2xl font-bold">Gestión de Usuarios</h1>
+            <h1 className="text-2xl font-bold text-text">Gestión de Usuarios</h1>
             <p className="text-muted">Crea, invita y administra los roles del equipo.</p>
           </div>
           <Button onClick={openCreate}>

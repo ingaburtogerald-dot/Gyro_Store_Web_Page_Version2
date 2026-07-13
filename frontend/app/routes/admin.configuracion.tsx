@@ -30,7 +30,7 @@ function Section({
   return (
     <section className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-8">
       <div>
-        <h2 className="section-accent-border text-base font-semibold text-text">{title}</h2>
+        <h2 className="text-base font-semibold text-text">{title}</h2>
         {description && <p className="mt-2 text-sm leading-relaxed text-muted">{description}</p>}
       </div>
       <Card className="space-y-4 p-5">{children}</Card>
@@ -185,7 +185,7 @@ export default function Configuracion() {
     <RequireRole allowed={["admin"]}>
       <div className="max-w-5xl space-y-8">
         <div>
-          <h1 className="gradient-text text-2xl font-bold tracking-tight sm:text-3xl">Configuración</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-text sm:text-3xl">Configuración</h1>
           <p className="mt-1 text-sm text-muted">Parámetros del negocio editables desde la UI</p>
         </div>
 

@@ -14,7 +14,7 @@ export default function AdminCatalogo() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="gradient-text text-2xl font-bold">Gestión de Catálogo</h1>
+            <h1 className="text-2xl font-bold text-text">Gestión de Catálogo</h1>
             <p className="text-muted">Arrastra productos para reordenar, edítalos, o administra las plantillas.</p>
           </div>
           <AnimatedTabs

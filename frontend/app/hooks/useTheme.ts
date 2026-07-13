@@ -13,6 +13,9 @@ export const THEMES: { id: ThemeId; label: string; dark: boolean; swatch: [strin
 const STORAGE_KEY = "gyro-theme";
 const DEFAULT_THEME: ThemeId = "dark";
 
+// Timer compartido para quitar la clase .theme-switching tras el flip.
+let themeSwitchTimer: number | undefined;
+
 function readStored(): ThemeId {
   // localStorage es la fuente de verdad DURABLE. Se lee primero porque el atributo
   // `data-theme` es transitorio: React puede borrarlo durante la hidratación, y en ese
@@ -46,7 +49,17 @@ export function useTheme() {
   const setTheme = useCallback((next: ThemeId) => {
     setThemeState(next);
     if (typeof document !== "undefined") {
-      document.documentElement.setAttribute("data-theme", next);
+      const el = document.documentElement;
+      // Activa la transición de color SOLO durante el flip (ver globals.css
+      // → .theme-switching). Se limpia tras 320ms para no dejar la transición
+      // colgada en cada hover/reflow posterior.
+      el.classList.add("theme-switching");
+      el.setAttribute("data-theme", next);
+      window.clearTimeout(themeSwitchTimer);
+      themeSwitchTimer = window.setTimeout(
+        () => el.classList.remove("theme-switching"),
+        320,
+      );
     }
     try {
       localStorage.setItem(STORAGE_KEY, next);

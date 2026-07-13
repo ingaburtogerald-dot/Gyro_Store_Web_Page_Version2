@@ -61,6 +61,7 @@ export function ProductAutocomplete({
       <div
         className={cn(
           "input flex items-center justify-between cursor-text overflow-hidden min-h-[42px]",
+          "focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15",
           invalid && "border-danger focus:border-danger",
           open && "ring-2 ring-accent border-accent"
         )}

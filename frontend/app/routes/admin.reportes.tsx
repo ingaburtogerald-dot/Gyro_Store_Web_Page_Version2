@@ -34,7 +34,7 @@ export default function Reportes() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="gradient-text text-2xl font-bold">Reportería</h1>
+            <h1 className="text-2xl font-bold text-text">Reportería</h1>
             <p className="text-muted">
               KPIs, gráficos y pérdidas — <span className="font-semibold text-text">{periodLabel}</span>.
             </p>

@@ -3,9 +3,9 @@
 // desktop y en una segunda fila full-width en móvil. El carrito vive aquí (antes
 // era un FAB): este header también HIDRATA el carrito desde localStorage al montar.
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "@remix-run/react";
+import { Link, useLocation } from "@remix-run/react";
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Sparkles } from "lucide-react";
 import { Logo } from "~/components/ui/Logo";
 import { SearchBar } from "~/components/filters/SearchBar";
 import { CartDrawer } from "~/components/cart/CartDrawer";
@@ -38,7 +38,7 @@ function CartButton() {
       whileTap={{ scale: 0.92 }}
       onClick={() => dispatch(openCart())}
       aria-label={count > 0 ? `Abrir carrito, ${count} artículo${count === 1 ? "" : "s"}` : "Abrir carrito"}
-      className="relative grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="relative grid h-11 w-11 place-items-center rounded-full border border-border bg-surface-2/70 text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-accent/40 hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <ShoppingCart className="h-5 w-5" />
       <AnimatePresence>
@@ -77,13 +77,15 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
     <>
     <header className="sticky top-0 z-40 border-b border-border/40 bg-bg/70 backdrop-blur-xl">
       <div className="flex w-full items-center gap-3 px-4 py-3 md:px-8 lg:gap-6">
-        <button
-          onClick={() => setIsAboutOpen(true)}
+        {/* El logo ahora solo lleva al inicio; la historia de la marca vive en el
+            botón "¿Quiénes Somos?" del cluster derecho. */}
+        <Link
+          to="/"
           className="group -ml-1 shrink-0 rounded-xl px-2 py-1 text-left transition-all duration-300 hover:bg-surface-hover active:scale-95"
-          aria-label="Acerca de Gyro Store"
+          aria-label="Ir al inicio de Gyro Store"
         >
           <Logo size={32} withText textClassName="text-xl transition-all group-hover:brightness-125" />
-        </button>
+        </Link>
 
         {/* Búsqueda integrada (desktop, centro). En móvil va en la 2ª fila. */}
         {showSearch && (
@@ -99,7 +101,17 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
           </div>
         )}
 
-        <div className={cn("flex items-center gap-1 sm:gap-2", !showSearch && "ml-auto")}>
+        <div className={cn("flex items-center gap-1.5 sm:gap-2", !showSearch && "ml-auto")}>
+          {/* "¿Quiénes Somos?": hereda el modal que antes abría el logo. Icono-solo
+              en móvil, con texto en pantallas ≥ sm. */}
+          <button
+            onClick={() => setIsAboutOpen(true)}
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-surface-2/70 px-3 text-sm font-medium text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-accent/40 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:px-4"
+            aria-label="¿Quiénes somos?"
+          >
+            <Sparkles className="h-4 w-4 text-accent" />
+            <span className="hidden sm:inline">¿Quiénes Somos?</span>
+          </button>
           <CartButton />
           <HeaderSettingsMenu />
         </div>

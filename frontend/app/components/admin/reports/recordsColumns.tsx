@@ -48,17 +48,18 @@ export function createRecordColumns(
       cell: ({ row }) => {
         const r = row.original;
         if (r.kind === "expense") {
+          const groupName = groupLabel[r.group ?? ""] ?? r.group ?? "—";
           return (
-            <div className="min-w-0">
-              <div className="truncate font-medium text-text">{groupLabel[r.group ?? ""] ?? r.group ?? "—"}</div>
-              {r.subcategory && <div className="truncate text-xs text-muted">{r.subcategory}</div>}
+            <div className="min-w-0 max-w-[22ch]">
+              <div className="truncate font-medium text-text" title={groupName}>{groupName}</div>
+              {r.subcategory && <div className="truncate text-xs text-muted" title={r.subcategory}>{r.subcategory}</div>}
             </div>
           );
         }
         return (
-          <div className="min-w-0">
-            <div className="truncate font-medium text-text">{r.productName ?? "—"}</div>
-            {r.productCode && <div className="truncate text-xs font-mono text-muted">{r.productCode}</div>}
+          <div className="min-w-0 max-w-[22ch]">
+            <div className="truncate font-medium text-text" title={r.productName ?? undefined}>{r.productName ?? "—"}</div>
+            {r.productCode && <div className="truncate text-xs font-mono text-muted" title={r.productCode}>{r.productCode}</div>}
           </div>
         );
       },
@@ -71,16 +72,30 @@ export function createRecordColumns(
       cell: ({ row }) => (row.original.kind === "expense" ? "—" : row.original.quantity ?? "—"),
     },
     { accessorKey: "amount", header: "Monto", meta: { align: "right" }, cell: ({ row }) => <span className="nums font-semibold text-text">{money(row.original)}</span> },
-    { accessorKey: "reason", header: "Nota", cell: ({ getValue }) => <span className="text-muted">{(getValue() as string) || "—"}</span> },
+    {
+      accessorKey: "reason",
+      header: "Nota",
+      cell: ({ getValue }) => {
+        const note = (getValue() as string) || "";
+        return (
+          <span className="block max-w-[26ch] truncate text-muted" title={note || undefined}>
+            {note || "—"}
+          </span>
+        );
+      },
+    },
     {
       id: "actions",
       header: "",
       enableSorting: false,
+      meta: { align: "right" },
       cell: ({ row }) => (
+        // Reposo discreto en escritorio; se revela al hover de la fila o al enfocar
+        // con teclado (focus-visible), para que la tabla respire sin esconder la acción.
         <button
           type="button"
           onClick={() => onEdit(row.original)}
-          className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-text"
+          className="rounded-lg p-1.5 text-muted transition-all hover:bg-surface-hover hover:text-text focus-visible:opacity-100 md:opacity-0 md:group-hover/row:opacity-100"
           title="Editar"
         >
           <Pencil className="h-4 w-4" />

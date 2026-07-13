@@ -69,14 +69,6 @@
   background-image: linear-gradient(135deg, var(--color-grad-from), var(--color-grad-to));
 }
 
-/* Texto con gradiente de acento — para títulos de página en el admin */
-@utility gradient-text {
-  background-image: linear-gradient(135deg, var(--color-text) 20%, var(--color-accent-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
 /* Separador con fade — ideal para dividir secciones del sidebar */
 @utility divider-fade {
   height: 1px;
@@ -216,7 +208,11 @@
   background-image:
     radial-gradient(circle at 12% 14%, rgba(16, 185, 129, 0.08) 0%, transparent 44%),
     radial-gradient(circle at 88% 86%, rgba(5, 150, 105, 0.07) 0%, transparent 46%);
-  background-attachment: fixed;
+}
+/* `background-attachment: fixed` fuerza repaint del fondo en cada scroll → caro en
+   móvil. El efecto parallax solo aporta en pantallas grandes; ahí lo activamos. */
+@media (min-width: 768px) {
+  [data-theme="light"] body { background-attachment: fixed; }
 }
 
 /* Cards y paneles con elevación real para que floten sobre el fondo tintado. */
@@ -323,12 +319,6 @@
 }
 @utility animate-badge-pulse {
   animation: badge-pulse 2.5s ease-in-out infinite;
-}
-
-/* ── Borde izquierdo de acento para secciones de formulario ── */
-@utility section-accent-border {
-  border-left: 3px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
-  padding-left: 0.75rem;
 }
 
 @layer base {
@@ -608,201 +598,18 @@
   box-shadow: 0 24px 60px -28px color-mix(in srgb, var(--color-accent) 40%, transparent);
 }
 
-/* Respeta a quien pidió menos movimiento (accesibilidad + buena práctica). */
-@media (prefers-reduced-motion: reduce) {
-  .skeleton::after,
-  .animate-aurora,
-  .animate-glow,
-  .animate-twinkle,
-  .animate-marquee {
-}
-  .input:focus {
-    border-color: var(--color-accent);
-  }
-}
-
-/* En modo claro el control nativo (números, fecha) debe usar esquema claro */
-[data-theme="light"] .input {
-  color-scheme: light;
-}
-
-/* ── Date picker propio (react-day-picker) tematizado con los tokens ── */
-.app-daypicker {
-  --rdp-accent-color: var(--color-accent);
-  --rdp-accent-background-color: color-mix(in srgb, var(--color-accent) 18%, transparent);
-  --rdp-today-color: var(--color-accent-2);
-  --rdp-day-width: 2.25rem;
-  --rdp-day-height: 2.25rem;
-  --rdp-day_button-width: 2.25rem;
-  --rdp-day_button-height: 2.25rem;
-  --rdp-day_button-border-radius: 10px;
-  --rdp-selected-border: none;
-  --rdp-disabled-opacity: 0.35;
-  --rdp-outside-opacity: 0.4;
-  margin: 0;
-  color: var(--color-text);
-  font-size: 0.85rem;
-}
-.app-daypicker .rdp-caption_label,
-.app-daypicker .rdp-month_caption {
-  font-weight: 700;
-  color: var(--color-text);
-}
-.app-daypicker .rdp-weekday {
-  color: var(--color-muted);
-  font-weight: 600;
-  text-transform: capitalize;
-}
-.app-daypicker .rdp-day_button:hover {
-  background-color: var(--color-surface-2, color-mix(in srgb, var(--color-accent) 12%, transparent));
-}
-.app-daypicker .rdp-selected .rdp-day_button {
-  background-color: var(--rdp-accent-color);
-  color: #fff;
-  font-weight: 700;
-}
-.app-daypicker .rdp-today:not(.rdp-selected) .rdp-day_button {
-  color: var(--color-accent-2);
-  font-weight: 700;
-}
-.app-daypicker .rdp-chevron {
-  fill: var(--color-accent);
-}
-.app-daypicker .rdp-button_previous:hover,
-.app-daypicker .rdp-button_next:hover {
-  background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
-}
-
-/* Aurora animada para el hero */
-@keyframes aurora {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(3%, -3%) scale(1.1); }
-  66% { transform: translate(-3%, 3%) scale(0.95); }
-}
-.animate-aurora {
-  animation: aurora 18s ease-in-out infinite;
-}
-
-/* Glow neón pulsante para el emblema del hero */
-@keyframes glowPulse {
-  0%, 100% { filter: drop-shadow(0 0 18px color-mix(in srgb, var(--color-accent) 55%, transparent)) drop-shadow(0 0 45px color-mix(in srgb, var(--color-accent-2) 35%, transparent)); }
-  50% { filter: drop-shadow(0 0 30px color-mix(in srgb, var(--color-accent) 80%, transparent)) drop-shadow(0 0 70px color-mix(in srgb, var(--color-accent-2) 55%, transparent)); }
-}
-.animate-glow {
-  animation: glowPulse 3.5s ease-in-out infinite;
-}
-
-/* Destellos titilantes */
-@keyframes twinkle {
-  0%, 100% { opacity: 0.25; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.15); }
-}
-.animate-twinkle {
-  animation: twinkle 2.8s ease-in-out infinite;
-}
-
-[data-theme="light"] .card-premium {
-  /* Luz cenital (inset blanco) + contacto/halo con tinte esmeralda, no slate. */
-  background-image: linear-gradient(180deg, #ffffff, var(--color-surface));
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
-    0 1px 2px -1px rgba(16, 80, 60, 0.14),
-    0 20px 42px -26px rgba(13, 90, 68, 0.26);
-}
-
-[data-theme="light"] .border-white\/5 { border-color: rgba(15, 23, 42, 0.07); }
-[data-theme="light"] .border-white\/10 { border-color: rgba(15, 23, 42, 0.11); }
-[data-theme="light"] .border-white\/20 { border-color: rgba(15, 23, 42, 0.16); }
-[data-theme="light"] .border-white\/25 { border-color: rgba(15, 23, 42, 0.2); }
-[data-theme="light"] .ring-white\/10 { --tw-ring-color: rgba(15, 23, 42, 0.11); }
-[data-theme="light"] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.04); }
-[data-theme="light"] .bg-white\/10 { background-color: rgba(15, 23, 42, 0.06); }
-[data-theme="light"] .bg-white\/\[0\.03\] { background-color: rgba(15, 23, 42, 0.035); }
-[data-theme="light"] .bg-white\/\[0\.06\] { background-color: rgba(15, 23, 42, 0.05); }
-[data-theme="light"] .hover\:bg-white\/5:hover { background-color: rgba(15, 23, 42, 0.05); }
-[data-theme="light"] .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 42, 0.07); }
-[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover { background-color: rgba(15, 23, 42, 0.05); }
-
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background-color: var(--color-surface-2);
-}
-.skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background-image: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-text) 7%, transparent),
-    transparent
-  );
-  animation: shimmer 1.5s infinite;
-}
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
-}
-
-.table-sticky-head { position: sticky; top: 4rem; z-index: 10; }
-
-
-
-
-/* Material de tarjeta premium: superficie con degradado sutil (luz cenital),
-   hairline superior encendido y sombra profunda. Un solo lugar → todas las
-   tarjetas del store lo heredan. */
-@utility card-premium {
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-surface) 100%, transparent),
-    color-mix(in srgb, var(--color-bg) 55%, var(--color-surface))
-  );
-  border: 1px solid var(--color-border);
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
-    0 1px 2px -1px rgba(0, 0, 0, 0.6),
-    0 18px 40px -28px rgba(0, 0, 0, 0.8);
-}
-
-/* Chip/eyebrow de vidrio con borde de acento — para etiquetas editoriales. */
-@utility pill-glass {
-  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
-  backdrop-filter: blur(8px);
-}
-
-/* Marquee horizontal infinito (tira de marcas). El contenido se duplica en el DOM;
-   animamos -50% para que el loop sea perfecto y sin saltos. Pausa al hover. */
-@keyframes marquee-x {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-@utility animate-marquee {
-  animation: marquee-x var(--marquee-duration, 38s) linear infinite;
-}
-.group\/marquee:hover .animate-marquee {
-  animation-play-state: paused;
-}
-/* Máscara de desvanecido en ambos bordes del marquee. */
-@utility marquee-mask {
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent,
-    #000 8%,
-    #000 92%,
-    transparent
-  );
-  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-}
-
-  /* Glows de acento contenidos para el storefront (heredan --color-accent) */
-@utility shadow-accent-cta {
-  box-shadow: 0 12px 30px -10px color-mix(in srgb, var(--color-accent) 55%, transparent);
-}
-@utility shadow-accent-soft {
-  box-shadow: 0 24px 60px -28px color-mix(in srgb, var(--color-accent) 40%, transparent);
+/* ── Entrada del login (split-screen) · CSS puro ──
+   A prueba de blanco: el contenido queda VISIBLE por defecto, así un fallo de
+   hidratación o JS deshabilitado nunca lo esconden. Sin parpadeo: con `backwards`
+   el primer paint ya arranca desde el estado oculto (no pinta visible y luego salta).
+   `backwards` (no `forwards`) → al terminar revierte al estado base visible, dejando
+   la propiedad libre para que Framer anime la SALIDA. Solo bajo no-preference. */
+@keyframes login-enter-rise { from { opacity: 0; transform: translateY(28px); } }
+@keyframes login-enter-slide { from { opacity: 0; transform: translateX(-48px); } }
+@media (prefers-reduced-motion: no-preference) {
+  .login-enter-slide { animation: login-enter-slide 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+  .login-enter-rise { animation: login-enter-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.12s backwards; }
+  .login-enter-item { animation: login-enter-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 }
 
 /* Respeta a quien pidió menos movimiento (accesibilidad + buena práctica). */
@@ -815,4 +622,32 @@
     animation: none !important;
   }
   * { scroll-behavior: auto !important; }
+}
+
+/* ───────────────────────────────────────────────────────────
+   Transición de tema (claro ↔ oscuro).
+   Solo se anima color/superficie/borde/sombra, y SOLO mientras la clase
+   .theme-switching vive en <html> (~320ms, la pone useTheme). Así el flip
+   es suave sin que cada hover o cambio de layout herede una transición cara.
+   ─────────────────────────────────────────────────────────── */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    fill 0.3s ease,
+    stroke 0.3s ease,
+    box-shadow 0.3s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-switching,
+  html.theme-switching *,
+  html.theme-switching *::before,
+  html.theme-switching *::after {
+    transition: none !important;
+  }
 }

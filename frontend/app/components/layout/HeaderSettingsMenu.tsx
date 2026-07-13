@@ -6,12 +6,13 @@ import {
   User,
   Moon,
   Sun,
-  ShieldCheck,
+  LayoutDashboard,
   Pencil,
   LogOut,
-  MapPin,
-  HelpCircle,
-  KeyRound
+  Truck,
+  LifeBuoy,
+  KeyRound,
+  ChevronRight,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectStatus, selectIsAdmin, selectEditMode, selectRoles, toggleEditMode } from "~/store/slices/authSlice";
@@ -19,6 +20,51 @@ import { useAuth } from "~/hooks/useAuth";
 import { useTheme } from "~/hooks/useTheme";
 import { cn } from "~/lib/utils";
 import { roleLandingPath, ROLE_LABELS, ADMIN_ROLES, type Role } from "~/lib/constants";
+
+// Fila estándar del menú: icono dentro de un "chip" con superficie propia para que
+// no se vea plano ni aburrido. `tone` cambia el color del chip (acento / peligro).
+const ROW =
+  "group flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors";
+const CHIP = "grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors";
+
+/** Interruptor accesible (role="switch") para el tema. Unificado: se usa tanto en
+ *  la vista de invitado como en la autenticada (antes había dos botones distintos). */
+function ThemeSwitch({ isDark, onToggle }: { isDark: boolean; onToggle: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl px-2.5 py-2">
+      <span className="flex items-center gap-3 text-sm font-medium text-text">
+        <span className={cn(CHIP, "bg-surface-hover text-accent")}>
+          {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        </span>
+        Apariencia
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isDark}
+        aria-label={`Cambiar a tema ${isDark ? "claro" : "oscuro"}`}
+        onClick={onToggle}
+        className={cn(
+          "relative h-6 w-11 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+          isDark ? "border-accent bg-accent" : "border-border bg-surface-hover",
+        )}
+      >
+        <motion.span
+          aria-hidden
+          animate={{ x: isDark ? 20 : 0 }}
+          transition={{ type: "spring", stiffness: 500, damping: 32 }}
+          className="absolute left-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-white shadow"
+        >
+          {isDark ? (
+            <Moon className="h-3 w-3 text-accent" />
+          ) : (
+            <Sun className="h-3 w-3 text-warning" />
+          )}
+        </motion.span>
+      </button>
+    </div>
+  );
+}
 
 export function HeaderSettingsMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,11 +80,14 @@ export function HeaderSettingsMenu() {
   const location = useLocation();
 
   const isHome = location.pathname === "/";
+  const isAuthed = status === "authenticated";
+  const isDark = theme === "dark";
   const loginTo = `/login?redirectTo=${encodeURIComponent(location.pathname + location.search)}`;
 
   // Nombre corto y etiqueta del rol para el encabezado del menú autenticado.
   // Priorizamos un rol de admin si lo tiene; si no, el primer rol conocido.
   const firstName = user?.name?.split(" ")[0] || "Colaborador";
+  const initial = firstName.charAt(0).toUpperCase();
   const primaryRole =
     (roles as Role[]).find((r) => ADMIN_ROLES.includes(r)) ??
     (roles as Role[]).find((r) => ROLE_LABELS[r]);
@@ -55,32 +104,42 @@ export function HeaderSettingsMenu() {
     toast("Próximamente disponible.");
   }
 
-  // Cierra el menú al hacer clic afuera
+  const toggleTheme = () => setTheme(isDark ? "light" : "dark");
+
+  // Cierra el menú al hacer clic afuera.
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-
   return (
     <div className="relative" ref={menuRef}>
+      {/* Disparador premium: píldora con borde; muestra la INICIAL del colaborador
+          cuando hay sesión (avatar), o el icono de usuario cuando es invitado. */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative grid h-11 w-11 place-items-center rounded-pill text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        aria-label="Menú de configuración"
+        className={cn(
+          "relative grid h-11 w-11 place-items-center rounded-full border shadow-sm backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+          isAuthed
+            ? "border-accent/30 bg-accent/10 hover:bg-accent/15"
+            : "border-border bg-surface-2/70 text-muted hover:border-accent/40 hover:text-text",
+        )}
+        aria-label="Menú de cuenta y configuración"
         aria-expanded={isOpen}
+        aria-haspopup="menu"
       >
-        <User className="h-5 w-5" />
+        {isAuthed ? (
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/20 text-sm font-bold text-accent ring-1 ring-accent/30">
+            {initial}
+          </span>
+        ) : (
+          <User className="h-5 w-5" />
+        )}
       </button>
 
       <AnimatePresence>
@@ -90,69 +149,88 @@ export function HeaderSettingsMenu() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute right-0 top-full mt-2 w-64 origin-top-right overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-[0_10px_40px_rgba(0,0,0,0.2)] backdrop-blur-xl z-50"
+            role="menu"
+            className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right overflow-hidden rounded-card border border-border bg-surface-2 shadow-premium backdrop-blur-xl"
           >
             <div className="flex flex-col p-2">
-              
-              {/* VISTA USUARIO NO AUTENTICADO */}
-              {status !== "authenticated" && (
+              {/* ── VISTA INVITADO ── */}
+              {!isAuthed && (
                 <>
-                  <div className="mb-2 border-b border-border/50 px-3 pb-3 pt-2">
-                    <p className="text-sm font-semibold text-text">Configuración</p>
+                  <div className="px-2.5 pb-2 pt-1">
+                    <p className="text-sm font-semibold text-text">Tu cuenta</p>
+                    <p className="text-xs text-muted">Ajustes y pedidos</p>
                   </div>
-                  
-                  <button
-                    onClick={toggleTheme}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-text"
-                  >
-                    {theme === "dark" ? <Sun className="h-4 w-4 text-accent" /> : <Moon className="h-4 w-4 text-accent" />}
-                    Tema {theme === "dark" ? "Claro" : "Oscuro"}
-                  </button>
-                  
-                  {/* TODO: enlazar a /rastrear y /faqs cuando existan esas rutas. */}
+
+                  {/* Bloque destacado: seguimiento de pedido, con jerarquía visual
+                      propia (borde + fondo acentuado) para que no se sienta plano. */}
                   <button
                     onClick={comingSoon}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-text"
+                    className="group mb-1 flex items-center gap-3 rounded-xl border border-border bg-accent/[0.06] px-2.5 py-3 text-left transition-colors hover:border-accent/40 hover:bg-accent/10"
+                    role="menuitem"
                   >
-                    <MapPin className="h-4 w-4" />
-                    Rastrear mi pedido
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
+                      <Truck className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-text">Rastrear mi pedido</span>
+                      <span className="block text-xs text-muted">Consulta el estado de tu envío</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
                   </button>
 
                   <button
                     onClick={comingSoon}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-text"
+                    className={cn(ROW, "text-muted hover:bg-surface-hover hover:text-text")}
+                    role="menuitem"
                   >
-                    <HelpCircle className="h-4 w-4" />
+                    <span className={cn(CHIP, "bg-surface-hover text-muted group-hover:text-text")}>
+                      <LifeBuoy className="h-4 w-4" />
+                    </span>
                     Ayuda y FAQs
                   </button>
 
-                  <div className="my-1 border-t border-border/50" />
-                  
+                  <ThemeSwitch isDark={isDark} onToggle={toggleTheme} />
+
+                  <div className="my-1 h-px bg-border" />
+
                   <Link
                     to={loginTo}
                     onClick={() => setIsOpen(false)}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-accent/10"
+                    className={cn(ROW, "text-accent hover:bg-accent/10")}
+                    role="menuitem"
                   >
-                    <KeyRound className="h-4 w-4" />
+                    <span className={cn(CHIP, "bg-accent/15 text-accent")}>
+                      <KeyRound className="h-4 w-4" />
+                    </span>
                     Acceso Colaboradores
                   </Link>
                 </>
               )}
 
-              {/* VISTA ADMINISTRADOR / COLABORADOR */}
-              {status === "authenticated" && (
+              {/* ── VISTA ADMINISTRADOR / COLABORADOR ── */}
+              {isAuthed && (
                 <>
-                  <div className="mb-2 border-b border-border/50 px-3 pb-3 pt-2">
-                    <p className="text-sm font-semibold text-text">Hola, {firstName} {isAdmin && "👑"}</p>
-                    <p className="text-xs text-muted">{roleLabel}</p>
+                  <div className="mb-1 flex items-center gap-3 rounded-xl bg-gradient-to-br from-accent/10 to-transparent px-2.5 py-3">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/20 text-base font-bold text-accent ring-1 ring-accent/30">
+                      {initial}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-text">
+                        Hola, {firstName} {isAdmin && "👑"}
+                      </span>
+                      <span className="block truncate text-xs text-muted">{roleLabel}</span>
+                    </span>
                   </div>
 
                   <Link
                     to={roleLandingPath(roles)}
                     onClick={() => setIsOpen(false)}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text transition-colors hover:bg-accent/10 hover:text-accent"
+                    className={cn(ROW, "text-text hover:bg-surface-hover")}
+                    role="menuitem"
                   >
-                    <ShieldCheck className="h-4 w-4" />
+                    <span className={cn(CHIP, "bg-accent/15 text-accent")}>
+                      <LayoutDashboard className="h-4 w-4" />
+                    </span>
                     Centro de Administración
                   </Link>
 
@@ -162,36 +240,37 @@ export function HeaderSettingsMenu() {
                         dispatch(toggleEditMode());
                         setIsOpen(false);
                       }}
-                      className={cn(
-                        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors hover:bg-surface-hover",
-                        editMode ? "text-accent bg-accent/5" : "text-text"
-                      )}
+                      className={cn(ROW, "hover:bg-surface-hover", editMode ? "text-accent" : "text-text")}
+                      role="menuitem"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <span
+                        className={cn(
+                          CHIP,
+                          editMode ? "bg-accent/15 text-accent" : "bg-surface-hover text-muted group-hover:text-text",
+                        )}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </span>
                       Modo Edición {editMode && "(Activo)"}
                     </button>
                   )}
 
-                  <button
-                    onClick={toggleTheme}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text transition-colors hover:bg-surface-hover"
-                  >
-                    {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    Apariencia: {theme === "dark" ? "Oscuro" : "Claro"}
-                  </button>
+                  <ThemeSwitch isDark={isDark} onToggle={toggleTheme} />
 
-                  <div className="my-1 border-t border-border/50" />
-                  
+                  <div className="my-1 h-px bg-border" />
+
                   <button
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-danger transition-colors hover:bg-danger/10"
+                    className={cn(ROW, "text-danger hover:bg-danger/10")}
+                    role="menuitem"
                   >
-                    <LogOut className="h-4 w-4" />
+                    <span className={cn(CHIP, "bg-danger/12 text-danger")}>
+                      <LogOut className="h-4 w-4" />
+                    </span>
                     Cerrar Sesión
                   </button>
                 </>
               )}
-
             </div>
           </motion.div>
         )}

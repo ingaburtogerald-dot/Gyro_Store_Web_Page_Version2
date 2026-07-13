@@ -3,9 +3,12 @@ import { useNavigate, useSearchParams } from "@remix-run/react";
 import type { MetaFunction } from "@remix-run/node";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { toast } from "sonner";
-import { Mail, Lock, ArrowLeft, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertTriangle, KeyRound, MessageCircle } from "lucide-react";
+import {
+  Mail, Lock, ArrowLeft, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertTriangle,
+  KeyRound, MessageCircle, Gauge, LifeBuoy,
+} from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { Logo } from "~/components/ui/Logo";
 import { cn, buildWhatsappUrl } from "~/lib/utils";
@@ -16,26 +19,43 @@ import { roleLandingPath, type Role, WHATSAPP_NUMBER } from "~/lib/constants";
 
 export const meta: MetaFunction = () => [{ title: "Acceso Colaboradores · Gyro Store" }];
 
+// Curva de salida exponencial (mismo lenguaje de motion que el resto de la app).
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+const EASE_IN = [0.7, 0, 0.84, 0] as const;
+// Duración de la animación de salida antes de navegar al dashboard.
+const EXIT_MS = 520;
+
+// Beneficios del pie del panel de marca.
+const BENEFITS = [
+  { icon: ShieldCheck, label: "Conexión segura" },
+  { icon: Gauge, label: "Gestión rápida" },
+  { icon: LifeBuoy, label: "Soporte directo" },
+];
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const reduce = useReducedMotion();
   // Página desde donde se inició el login (la dejó el header/footer o RequireRole).
   const redirectTo = searchParams.get("redirectTo");
   const [busy, setBusy] = useState<null | "google" | "microsoft" | "email">(null);
   const [showPassword, setShowPassword] = useState(false);
   const [capsOn, setCapsOn] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
+  // `exiting` dispara la animación de transición hacia el dashboard.
+  const [exiting, setExiting] = useState(false);
   // Saludo según la hora. Se calcula tras montar para no chocar con el SSR
   // (la hora del servidor puede diferir de la del navegador → hydration mismatch).
   const [greeting, setGreeting] = useState<{ text: string; emoji: string } | null>(null);
   useEffect(() => setGreeting(getGreeting()), []);
 
-  // Pre-cargar Firebase Auth para evitar que el navegador (Edge/Safari) 
+  // Pre-cargar Firebase Auth para evitar que el navegador (Edge/Safari)
   // bloquee el popup por culpa del delay del "fetch" asíncrono.
   useEffect(() => {
     import("~/lib/firebase.client").then((m) => m.getFirebaseAuth().catch(console.error));
   }, []);
+
 
   const {
     register,
@@ -59,19 +79,18 @@ export default function Login() {
     } ¿Me pueden ayudar a restablecerla?`,
   );
 
-  // Tras un login exitoso: si venimos de una página concreta, regresa ahí;
-  // de lo contrario, redirige según los roles del usuario.
-  function redirectAfterLogin(roles: string[]) {
-    // Respeta el origen, pero solo rutas internas (evita open-redirect) y nunca /login.
+  // Ruta destino tras un login exitoso: respeta el origen (solo rutas internas,
+  // evita open-redirect y nunca /login); si no, según los roles del usuario.
+  function resolveTarget(roles: string[]): string {
     if (
       redirectTo &&
       redirectTo.startsWith("/") &&
       !redirectTo.startsWith("//") &&
       !redirectTo.startsWith("/login")
     ) {
-      return navigate(redirectTo);
+      return redirectTo;
     }
-    return navigate(roleLandingPath(roles as Role[]));
+    return roleLandingPath(roles as Role[]);
   }
 
   async function run(kind: "google" | "microsoft" | "email", input?: LoginInput) {
@@ -85,194 +104,295 @@ export default function Login() {
             : new EmailStrategy(input!.email, input!.password);
       const user = await login(strategy);
       toast.success(`Bienvenido, ${user.name}`);
-      redirectAfterLogin(user.roles);
+      const target = resolveTarget(user.roles);
+      // Con motion reducido no hay animación de salida: navega directo.
+      if (reduce) {
+        navigate(target);
+        return;
+      }
+      // Reproduce la transición de salida (variants "exit" vía `exiting`) y navega
+      // al terminar. `viewTransition` deja que el navegador haga el morph entre rutas.
+      setExiting(true);
+      window.setTimeout(() => navigate(target, { viewTransition: true }), EXIT_MS);
+      // Mantenemos `busy` durante la salida (el panel se está yendo).
     } catch (err: any) {
       toast.error(err?.message || "No se pudo iniciar sesión.");
-    } finally {
       setBusy(null);
     }
   }
 
+  // ── Variants de SALIDA (Framer) ────────────────────────────────────────
+  // La ENTRADA es CSS puro (clases login-enter-*, ver globals.css): robusta ante
+  // fallo de JS y sin parpadeo. Framer solo orquesta la salida al dashboard.
+  const brandVariants: Variants = {
+    exit: { scale: reduce ? 1 : 1.08, transition: { duration: 0.5, ease: EASE_OUT } },
+  };
+  const cardVariants: Variants = {
+    exit: { opacity: 0, x: reduce ? 0 : 96, transition: { duration: 0.42, ease: EASE_IN } },
+  };
+  // Delay escalonado para los items del panel de marca (entrada CSS).
+  const itemDelay = (i: number): React.CSSProperties =>
+    reduce ? {} : { animationDelay: `${0.15 + i * 0.08}s` };
+
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      {/* Fondo aurora */}
-      <div className="pointer-events-none absolute inset-0 opacity-40">
-        <div className="animate-aurora absolute -left-1/4 top-0 h-[60vh] w-[60vh] rounded-full bg-accent blur-[120px]" />
-        <div className="animate-aurora absolute -right-1/4 bottom-0 h-[50vh] w-[50vh] rounded-full bg-accent-2 blur-[120px]" />
-      </div>
-
-      {/* Marca de agua: wordmark repetido para que la pantalla se sienta "de Gyro" y no genérica. */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute -inset-1/4 flex flex-wrap content-center justify-center gap-x-12 gap-y-10 rotate-[-20deg] select-none text-3xl font-extrabold uppercase tracking-[0.3em] text-text opacity-[0.025]">
-          {Array.from({ length: 80 }).map((_, i) => (
-            <span key={i}>Gyro Store</span>
-          ))}
-        </div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="bg-surface-2 border border-white/5 relative z-10 w-full max-w-md rounded-card p-8"
+    <main className="relative min-h-screen w-full overflow-hidden bg-bg lg:grid lg:grid-cols-[minmax(0,44%)_1fr]">
+      {/* ── PANEL IZQUIERDO · Marca (oculto en móvil) ─────────────────────── */}
+      {/* Panel de marca SIEMPRE oscuro-esmeralda (colores fijos deliberados, como los
+          logos): en modo claro sigue siendo el lado oscuro del split. Blanco sobre
+          #050c0f ≈ 18:1, #5eead4 sobre el fondo ≈ 12:1 → contraste garantizado. */}
+      <motion.aside
+        variants={brandVariants}
+        initial={false}
+        animate={exiting ? "exit" : undefined}
+        className="login-enter-slide relative hidden overflow-hidden bg-[#050c0f] text-white lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16"
       >
-        <a href="/" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted hover:text-text">
-          <ArrowLeft className="h-4 w-4" /> Volver al catálogo
-        </a>
-
-        <div className="mb-5 flex flex-col items-center text-center">
-          <div className="relative mb-3">
-            <span className="pointer-events-none absolute inset-0 -z-10 animate-pulse rounded-full bg-accent/20 blur-2xl" />
-            <Logo size={88} className="drop-shadow-[0_0_25px_rgba(124,131,255,0.35)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#10b981]/25 via-transparent to-[#5eead4]/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="animate-aurora absolute -left-1/4 top-0 h-[55vh] w-[55vh] rounded-full bg-[#10b981] opacity-30 blur-[120px]" />
+          <div className="animate-aurora absolute -right-1/4 bottom-0 h-[45vh] w-[45vh] rounded-full bg-[#5eead4] opacity-20 blur-[120px]" />
+          {/* Glow central que ancla el emblema y llena el vacío con luz de marca. */}
+          <div className="absolute left-1/3 top-2/5 h-[50vh] w-[50vh] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#10b981]/20 blur-[110px]" />
+          {/* Wordmark tenue en diagonal para que se sienta "de Gyro". */}
+          <div className="absolute -inset-1/4 flex flex-wrap content-center justify-center gap-x-12 gap-y-10 rotate-[-20deg] select-none text-3xl font-extrabold uppercase tracking-[0.3em] text-white opacity-[0.04]">
+            {Array.from({ length: 60 }).map((_, i) => (
+              <span key={i}>Gyro Store</span>
+            ))}
           </div>
-          {greeting && (
-            <p className="mb-0.5 text-sm font-medium text-muted animate-in fade-in duration-500">
-              {greeting.text} <span className="align-middle">{greeting.emoji}</span>
+        </div>
+
+        <div className="flex flex-1 flex-col">
+          {/* Lockup de marca arriba */}
+          <div className="login-enter-item flex items-center gap-3" style={itemDelay(0)}>
+            <Logo size={48} withText textClassName="text-xl" />
+          </div>
+
+          {/* Centro: emblema grande (ancla visual) + propuesta de valor */}
+          <div className="flex flex-1 flex-col justify-center">
+            {/* Emblema: llena el vacío y da foco de marca; halo esmeralda + anillo. */}
+            <div className="login-enter-item relative mb-8 w-fit" style={itemDelay(1)}>
+              <span aria-hidden="true" className="absolute -inset-6 rounded-full bg-[#10b981]/30 blur-2xl" />
+              <img
+                src="/logo.jpg"
+                alt=""
+                width={128}
+                height={128}
+                className="relative rounded-full object-cover shadow-2xl ring-1 ring-white/20"
+                style={{ width: 128, height: 128 }}
+              />
+            </div>
+            <p
+              className="login-enter-item inline-flex w-fit items-center gap-1.5 rounded-pill border border-[#5eead4]/25 bg-[#5eead4]/10 px-3 py-1 text-xs font-medium text-[#5eead4]"
+              style={itemDelay(2)}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" /> Panel interno · Gyro Store
             </p>
+            {/* Título decorativo grande (el <h1> semántico vive en la tarjeta). */}
+            <p
+              aria-hidden="true"
+              className="login-enter-item mt-5 text-balance font-heading text-4xl font-extrabold leading-[1.1] text-white xl:text-5xl"
+              style={itemDelay(3)}
+            >
+              Acceso<br />Colaboradores
+            </p>
+            <p
+              className="login-enter-item mt-4 max-w-sm text-pretty text-base leading-relaxed text-white/60"
+              style={itemDelay(4)}
+            >
+              Inicia sesión para gestionar Gyro Store: inventario, ventas, reportería y logística en un solo lugar.
+            </p>
+          </div>
+
+          {/* Pie: 3 beneficios minimalistas */}
+          <ul className="login-enter-item flex flex-wrap gap-x-8 gap-y-4" style={itemDelay(5)}>
+            {BENEFITS.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-2.5 text-sm text-white/70">
+                <span className="grid h-9 w-9 place-items-center rounded-xl border border-[#5eead4]/15 bg-[#5eead4]/10 text-[#5eead4]">
+                  <Icon className="h-4 w-4" />
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </motion.aside>
+
+      {/* ── PANEL DERECHO · Formulario ────────────────────────────────────── */}
+      <div className="relative flex min-h-screen items-center justify-center p-6 sm:p-10">
+        {/* Aura tenue detrás de la tarjeta en desktop (da profundidad al panel). */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 hidden lg:block">
+          <div className="absolute left-1/2 top-1/2 h-[70vh] w-[70vh] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/5 blur-[140px]" />
+        </div>
+
+        <motion.div
+          variants={cardVariants}
+          initial={false}
+          animate={exiting ? "exit" : undefined}
+          aria-busy={exiting}
+          className={cn(
+            "login-enter-rise relative z-10 w-full max-w-md rounded-card border border-white/10 bg-surface/70 p-7 shadow-premium backdrop-blur-xl sm:p-8",
+            exiting && "pointer-events-none",
           )}
-          <h1 className="bg-gradient-accent bg-clip-text text-2xl font-bold text-transparent">
+        >
+          <a
+            href="/"
+            className="mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm text-muted transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          >
+            <ArrowLeft className="h-4 w-4" /> Volver al catálogo
+          </a>
+
+          {/* Cabecera de marca COMPACTA — protagonista en móvil, sr-only en desktop
+              (allí el panel izquierdo ya muestra la identidad en grande). */}
+          <div className="mb-6 flex flex-col items-center text-center lg:hidden">
+            <div className="relative mb-3">
+              <span aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 animate-pulse rounded-full bg-accent/20 blur-2xl" />
+              <Logo size={72} />
+            </div>
+          </div>
+          <h1 className="text-center font-heading text-2xl font-bold text-text lg:sr-only">
             Acceso Colaboradores
           </h1>
-          <p className="mt-1 text-sm text-muted">Inicia sesión para gestionar Gyro Store.</p>
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface/60 px-2.5 py-1 text-xs text-muted">
-            <ShieldCheck className="h-3.5 w-3.5 text-accent-2" /> Conexión cifrada y segura
-          </span>
-        </div>
-
-        {/* Email + contraseña */}
-        <form onSubmit={handleSubmit((d) => run("email", d))} className="mt-6 space-y-4">
-          <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
-              Correo
-            </label>
-            <div
-              className={cn(
-                "flex items-center gap-2 rounded-xl border bg-surface px-3 transition-colors",
-                emailValid
-                  ? "border-accent/60 focus-within:border-accent"
-                  : "border-border focus-within:border-accent",
-              )}
-            >
-              <Mail className={cn("h-4 w-4 transition-colors", emailValid ? "text-accent" : "text-muted")} />
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="tu@gyrostore.com"
-                className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-muted"
-                {...register("email")}
-              />
-              {emailValid && (
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-accent animate-in fade-in zoom-in duration-200" />
-              )}
-            </div>
-            {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
-          </div>
-
-          <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
-              Contraseña
-            </label>
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 focus-within:border-accent">
-              <Lock className="h-4 w-4 text-muted" />
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                onKeyUp={(e) => setCapsOn(e.getModifierState?.("CapsLock") ?? false)}
-                className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-muted"
-                {...register("password")}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                className="shrink-0 p-1 text-muted transition-colors hover:text-text"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {errors.password && (
-              <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
-            )}
-            {capsOn && (
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-warning animate-in fade-in duration-200">
-                <AlertTriangle className="h-3.5 w-3.5" /> Bloq Mayús está activado
-              </p>
-            )}
-            <div className="mt-1.5 text-right">
-              <button
-                type="button"
-                onClick={() => setShowRecovery((v) => !v)}
-                className="text-xs text-muted transition-colors hover:text-accent-2"
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-            </div>
-          </div>
-
-          {/* Panel de recuperación: sin correo, vía WhatsApp con el admin. */}
-          {showRecovery && (
-            <div className="rounded-xl border border-accent-2/30 bg-accent-2/5 p-4 animate-in fade-in slide-in-from-top-1 duration-200">
-              <div className="mb-2 flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-accent-2" />
-                <span className="text-sm font-medium">Restablecer contraseña</span>
-              </div>
-              <p className="text-xs leading-relaxed text-muted">
-                Escríbele al administrador por WhatsApp. Él te asignará una clave temporal y, al
-                entrar, el sistema te pedirá crear una nueva.
-              </p>
-              <a
-                href={recoveryUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-whatsapp py-2.5 text-sm font-semibold text-[#04201a] transition-transform hover:scale-[1.02]"
-              >
-                <MessageCircle className="h-4 w-4" /> Escribir al administrador
-              </a>
-            </div>
+          {greeting && (
+            <p className="mt-1 text-center text-sm text-muted lg:hidden">
+              {greeting.text} <span className="align-middle">{greeting.emoji}</span> — inicia sesión para gestionar Gyro Store.
+            </p>
           )}
 
-          <Button type="submit" className="w-full" loading={busy === "email"}>
-            Iniciar sesión
-          </Button>
-        </form>
+          {/* Email + contraseña */}
+          <form onSubmit={handleSubmit((d) => run("email", d))} className="mt-7 space-y-4">
+            <div>
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
+                Correo
+              </label>
+              <div
+                className={cn(
+                  "flex items-center gap-2 rounded-xl border bg-surface px-3 transition-colors focus-within:ring-2 focus-within:ring-accent/15",
+                  emailValid
+                    ? "border-accent/60 focus-within:border-accent"
+                    : "border-border focus-within:border-accent",
+                )}
+              >
+                <Mail className={cn("h-4 w-4 transition-colors", emailValid ? "text-accent" : "text-muted")} />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="tu@gyrostore.com"
+                  className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-muted"
+                  {...register("email")}
+                />
+                {emailValid && (
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-accent animate-in fade-in zoom-in duration-200" />
+                )}
+              </div>
+              {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
+            </div>
 
-        {/* Separador */}
-        <div className="my-6 flex items-center gap-3 text-xs text-muted">
-          <span className="h-px flex-1 bg-border" /> o continúa con <span className="h-px flex-1 bg-border" />
-        </div>
+            <div>
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
+                Contraseña
+              </label>
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15">
+                <Lock className="h-4 w-4 text-muted" />
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  onKeyUp={(e) => setCapsOn(e.getModifierState?.("CapsLock") ?? false)}
+                  className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-muted"
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  className="shrink-0 rounded-md p-1 text-muted transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
+              )}
+              {capsOn && (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-warning animate-in fade-in duration-200">
+                  <AlertTriangle className="h-3.5 w-3.5" /> Bloq Mayús está activado
+                </p>
+              )}
+              <div className="mt-1.5 text-right">
+                <button
+                  type="button"
+                  onClick={() => setShowRecovery((v) => !v)}
+                  className="rounded text-xs text-muted transition-colors hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+            </div>
 
-        {/* Proveedores externos */}
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="outline"
-            loading={busy === "google"}
-            onClick={() => run("google")}
-            className="hover:border-[#4285F4]/70 hover:bg-[#4285F4]/5"
-          >
-            {busy !== "google" && <GoogleIcon className="h-4 w-4" />}
-            Google
-          </Button>
-          {/* Hotmail/Outlook usa la estrategia de Microsoft por debajo (mismo OAuth que valida @hotmail/@outlook). */}
-          <Button
-            variant="outline"
-            loading={busy === "microsoft"}
-            onClick={() => run("microsoft")}
-            className="hover:border-[#0078D4]/70 hover:bg-[#0078D4]/5"
-          >
-            {busy !== "microsoft" && <OutlookIcon className="h-4 w-4" />}
-            Hotmail
-          </Button>
-        </div>
+            {/* Panel de recuperación: sin correo, vía WhatsApp con el admin. */}
+            {showRecovery && (
+              <div className="rounded-xl border border-accent-2/30 bg-accent-2/5 p-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="mb-2 flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-accent-2" />
+                  <span className="text-sm font-medium">Restablecer contraseña</span>
+                </div>
+                <p className="text-xs leading-relaxed text-muted">
+                  Escríbele al administrador por WhatsApp. Él te asignará una clave temporal y, al
+                  entrar, el sistema te pedirá crear una nueva.
+                </p>
+                <a
+                  href={recoveryUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-whatsapp py-2.5 text-sm font-semibold text-[#04201a] transition-transform hover:scale-[1.02]"
+                >
+                  <MessageCircle className="h-4 w-4" /> Escribir al administrador
+                </a>
+              </div>
+            )}
 
-        <p className="mt-4 text-center text-xs text-muted">
-          Aceptamos cuentas <span className="text-text">@gmail</span>,{" "}
-          <span className="text-text">@hotmail</span> y <span className="text-text">@outlook</span>.
-        </p>
-      </motion.div>
+            <Button type="submit" className="w-full" loading={busy === "email"}>
+              Iniciar sesión
+            </Button>
+          </form>
+
+          {/* Separador */}
+          <div className="my-6 flex items-center gap-3 text-xs text-muted">
+            <span className="h-px flex-1 bg-border" /> o continúa con <span className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* Proveedores externos */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              loading={busy === "google"}
+              onClick={() => run("google")}
+              className="hover:border-[#4285F4]/70 hover:bg-[#4285F4]/5"
+            >
+              {busy !== "google" && <GoogleIcon className="h-4 w-4" />}
+              Google
+            </Button>
+            {/* Hotmail/Outlook usa la estrategia de Microsoft por debajo (mismo OAuth que valida @hotmail/@outlook). */}
+            <Button
+              variant="outline"
+              loading={busy === "microsoft"}
+              onClick={() => run("microsoft")}
+              className="hover:border-[#0078D4]/70 hover:bg-[#0078D4]/5"
+            >
+              {busy !== "microsoft" && <OutlookIcon className="h-4 w-4" />}
+              Hotmail
+            </Button>
+          </div>
+
+          <p className="mt-4 text-center text-xs text-muted">
+            Aceptamos cuentas <span className="text-text">@gmail</span>,{" "}
+            <span className="text-text">@hotmail</span> y <span className="text-text">@outlook</span>.
+          </p>
+        </motion.div>
+      </div>
     </main>
   );
 }

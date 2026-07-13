@@ -137,7 +137,7 @@ export function OrderLineItemsTable({
                       return (
                         <div className="flex items-center gap-2">
                           {discountPercent > 0 && (
-                            <span className="rounded-pill bg-emerald-500/15 px-1.5 py-0.5 font-semibold text-emerald-400">
+                            <span className="rounded-pill bg-accent/15 px-1.5 py-0.5 font-semibold text-accent-2">
                               −{discountPercent}% mayoreo
                             </span>
                           )}

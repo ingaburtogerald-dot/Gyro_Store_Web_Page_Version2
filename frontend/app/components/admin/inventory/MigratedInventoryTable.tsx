@@ -103,7 +103,7 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
       <div className="sticky top-[116px] z-10 -mx-4 bg-bg/90 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           
-          <div className="flex items-center gap-2 rounded-pill border border-border bg-surface px-3 py-1.5 sm:w-80">
+          <div className="flex items-center gap-2 rounded-pill border border-border bg-surface px-3 py-1.5 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15 sm:w-80">
             <Search className="h-4 w-4 shrink-0 text-muted" />
             <input
               value={globalFilter}
@@ -179,6 +179,8 @@ export function MigratedInventoryTable({ onOpenForm, period = "all" }: { onOpenF
         hideSearch
         globalFilterValue={globalFilter}
         onGlobalFilterChange={setGlobalFilter}
+        paginated
+        pageSize={50}
       />
       <Modal open={!!editFor} onClose={() => setEditFor(null)} title="Editar ítem migrado" maxWidth="max-w-3xl">
         {editFor && <MigratedInventoryForm item={editFor} onDone={() => setEditFor(null)} />}

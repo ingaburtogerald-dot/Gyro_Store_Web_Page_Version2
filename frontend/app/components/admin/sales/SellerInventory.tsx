@@ -28,7 +28,7 @@ export function SellerInventory() {
   return (
     <div className="space-y-4 rounded-card border border-border bg-surface shadow-premium p-4">
       {/* Búsqueda */}
-      <div className="flex items-center gap-2 rounded-pill border border-border bg-bg/40 px-3">
+      <div className="flex items-center gap-2 rounded-pill border border-border bg-bg/40 px-3 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15">
         <Search className="h-4 w-4 text-muted" />
         <input
           value={search}
