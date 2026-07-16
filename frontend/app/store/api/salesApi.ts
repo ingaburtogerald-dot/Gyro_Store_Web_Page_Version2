@@ -207,6 +207,8 @@ export interface PublicOrder {
   contacted: boolean;
   contactedAt: string | null;
   contactedBy: string | null;
+  contactAttempts: number;
+  archived: boolean;
   createdAt: string | null;
 }
 
@@ -481,6 +483,14 @@ export const salesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["PublicOrder"],
     }),
+    logOrderFollowUp: build.mutation<{ ok: boolean; contactAttempts: number; archived: boolean }, string>({
+      query: (id) => ({ url: `/orders/public/${id}/follow-up`, method: "PATCH" }),
+      invalidatesTags: ["PublicOrder"],
+    }),
+    deletePublicOrder: build.mutation<{ ok: boolean }, string>({
+      query: (id) => ({ url: `/orders/public/${id}`, method: "DELETE" }),
+      invalidatesTags: ["PublicOrder"],
+    }),
   }),
 });
 
@@ -516,5 +526,7 @@ export const {
   useUpdateCostosFijosMutation,
   useUpdateBusinessConfigMutation,
   useMarkContactedMutation,
+  useLogOrderFollowUpMutation,
+  useDeletePublicOrderMutation,
 } = salesApi;
 

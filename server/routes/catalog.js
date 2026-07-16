@@ -5,6 +5,7 @@
 // El detalle genera variantes "virtuales" desde la plantilla y consulta el stock
 // real de cada SKU en la colección `products` (bodega).
 const router = require('express').Router();
+const crypto = require('crypto');
 const multer = require('multer');
 const { db, FieldValue } = require('../firebase');
 const config = require('../config');
@@ -226,7 +227,12 @@ router.post('/upload', requireAdmin, upload.array('images', 10), asyncHandler(as
     const opt = await storage.optimizeImageBuffer(file.buffer);
     const ext = opt.ext ?? (file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
     const contentType = opt.contentType ?? file.mimetype;
-    urls.push(await storage.uploadFile(opt.buffer, 'catalog-images', `${Date.now()}-${Math.floor(Math.random() * 1000)}${ext}`, contentType));
+    // Nombre por CONTENIDO (hash del archivo original): la subida es idempotente.
+    // Si el usuario reintenta tras un error de red (la foto ya llegó a R2), la key
+    // es la misma → se sobrescribe en vez de duplicar, y la URL idéntica se
+    // deduplica sola en la galería. Evita huérfanos y fotos repetidas.
+    const hash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+    urls.push(await storage.uploadFile(opt.buffer, 'catalog-images', `${hash}${ext}`, contentType));
   }
   res.status(201).json({ urls });
 }));

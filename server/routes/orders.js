@@ -18,6 +18,7 @@ const orderSchema = z.object({
   customerPhone: z.string().min(7).max(20),
   deliveryMethod: z.enum(['retiro', 'envio']),
   address: z.string().max(200).optional().default(''),
+  locationUrl: z.string().max(300).optional().default(''),
   note: z.string().max(500).optional().default(''),
   // Cada línea es un producto (catalogId) o un combo (comboId); el loop valida
   // que traiga uno de los dos.
@@ -48,24 +49,46 @@ async function resolveLinePrice(item) {
 }
 
 function buildWhatsappMessage(order) {
-  let msg = '¡Hola Gyro Store! 👋 Quiero confirmar este pedido:\n\n';
-  msg += `👤 ${order.customerName}\n📞 ${order.customerPhone}\n`;
-  msg += order.deliveryMethod === 'envio' ? `🚚 Envío a: ${order.address}\n` : '🏬 Retiro en tienda\n';
-  if (order.note) msg += `📝 ${order.note}\n`;
-  msg += '\nProductos:\n';
+  // WhatsApp no soporta color de fuente; el "color" se logra con emojis + *negrita*
+  // + _cursiva_ + separadores para dar jerarquía visual al pedido.
+  const money = (n) => `${config.currency}${Number(n || 0).toLocaleString('es-NI')}`;
+  const div = '━━━━━━━━━━━━━━━';
+
+  let msg = '🛒 *NUEVO PEDIDO — Gyro Store*\n';
+  msg += `${div}\n`;
+  msg += `👤 *${order.customerName}*\n`;
+  msg += `📞 ${order.customerPhone}\n`;
+  if (order.deliveryMethod === 'envio') {
+    msg += '🚚 *Envío a domicilio*\n';
+    if (order.address) msg += `📍 ${order.address}\n`;
+    if (order.locationUrl) msg += `🗺️ Ubicación: ${order.locationUrl}\n`;
+  } else {
+    msg += '🏬 *Retiro en tienda*\n';
+  }
+  if (order.note) msg += `📝 _${order.note}_\n`;
+
+  msg += `${div}\n`;
+  msg += '🛍️ *Mi pedido*\n\n';
   order.items.forEach((l) => {
     if (l.kind === 'combo') {
       const contenido = (l.products || []).map((p) => p.name).join(' + ');
-      msg += `• 🎁 ${l.name} x${l.quantity} — ${config.currency}${l.lineTotal.toLocaleString('es-NI')}\n`;
-      if (contenido) msg += `   (${contenido})\n`;
+      msg += `🎁 *${l.name}*  ×${l.quantity}\n`;
+      if (contenido) msg += `   _${contenido}_\n`;
+      msg += `   💵 ${money(l.lineTotal)}\n\n`;
       return;
     }
-    const v = l.variantName && l.variantName !== 'Estándar' ? ` (${l.variantName})` : '';
-    msg += `• ${l.name}${v} x${l.quantity} — ${config.currency}${l.lineTotal.toLocaleString('es-NI')}\n`;
+    const v = l.variantName && l.variantName !== 'Estándar' ? `  _(${l.variantName})_` : '';
+    msg += `🔹 *${l.name}*${v}  ×${l.quantity}\n`;
+    msg += `   💵 ${money(l.lineTotal)}\n\n`;
   });
-  msg += `\nSubtotal: ${config.currency}${order.subtotal.toLocaleString('es-NI')}`;
-  if (order.discount > 0) msg += `\nDescuento: -${config.currency}${order.discount.toLocaleString('es-NI')}`;
-  msg += `\n*Total: ${config.currency}${order.total.toLocaleString('es-NI')}*`;
+
+  msg += `${div}\n`;
+  msg += `Subtotal:  ${money(order.subtotal)}\n`;
+  if (order.discount > 0) msg += `🏷️ Descuento:  -${money(order.discount)}\n`;
+  msg += `💰 *TOTAL:  ${money(order.total)}*\n`;
+  msg += `${div}\n`;
+  msg += '_¡Gracias! Quedo atento(a) para coordinar el pago._ 🙌';
+
   return `https://wa.me/${config.whatsapp}?text=${encodeURIComponent(msg)}`;
 }
 
@@ -76,8 +99,8 @@ router.post('/public', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Datos inválidos.' });
   }
   const data = parsed.data;
-  if (data.deliveryMethod === 'envio' && data.address.trim().length < 5) {
-    return res.status(400).json({ error: 'La dirección es obligatoria para envío.' });
+  if (data.deliveryMethod === 'envio' && data.address.trim().length < 5 && !data.locationUrl) {
+    return res.status(400).json({ error: 'Agrega tu dirección o comparte tu ubicación para el envío.' });
   }
 
   // Recalcula cada línea con el precio real de Firestore (combo o producto).
@@ -151,6 +174,7 @@ router.post('/public', asyncHandler(async (req, res) => {
     customerPhone: data.customerPhone,
     deliveryMethod: data.deliveryMethod,
     address: data.address,
+    locationUrl: data.locationUrl,
     note: data.note,
     items,
     subtotal,
@@ -176,6 +200,7 @@ router.get('/public', requireAdmin, asyncHandler(async (req, res) => {
       customerPhone: o.customerPhone,
       deliveryMethod: o.deliveryMethod,
       address: o.address || '',
+      locationUrl: o.locationUrl || '',
       note: o.note || '',
       items: o.items || [],
       subtotal: o.subtotal || 0,
@@ -184,6 +209,8 @@ router.get('/public', requireAdmin, asyncHandler(async (req, res) => {
       contacted: o.contacted || false,
       contactedAt: o.contactedAt?.toDate?.()?.toISOString() || null,
       contactedBy: o.contactedBy || null,
+      contactAttempts: o.contactAttempts || 0,
+      archived: o.archived || false,
       createdAt: o.createdAt?.toDate?.()?.toISOString() || null,
     };
   });
@@ -200,6 +227,34 @@ router.patch('/public/:id/contacted', requireAdmin, asyncHandler(async (req, res
     contactedAt: contacted ? FieldValue.serverTimestamp() : null,
     contactedBy: contacted ? req.user?.email || null : null,
   });
+  res.json({ ok: true });
+}));
+
+// PATCH /api/orders/public/:id/follow-up — registrar un intento de seguimiento.
+router.patch('/public/:id/follow-up', requireAdmin, asyncHandler(async (req, res) => {
+  const ref = db.collection(PUBLIC_ORDERS).doc(req.params.id);
+  const doc = await ref.get();
+  if (!doc.exists) return res.status(404).json({ error: 'Pedido no encontrado.' });
+  
+  const currentAttempts = doc.data().contactAttempts || 0;
+  const newAttempts = currentAttempts + 1;
+  const isArchived = newAttempts >= 3;
+
+  await ref.update({
+    contactAttempts: newAttempts,
+    archived: isArchived,
+    lastFollowUpAt: FieldValue.serverTimestamp(),
+    lastFollowUpBy: req.user?.email || null,
+  });
+
+  res.json({ ok: true, contactAttempts: newAttempts, archived: isArchived });
+}));
+
+// DELETE /api/orders/public/:id — eliminar un pedido (ej. pruebas).
+router.delete('/public/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const ref = db.collection(PUBLIC_ORDERS).doc(req.params.id);
+  if (!(await ref.get()).exists) return res.status(404).json({ error: 'Pedido no encontrado.' });
+  await ref.delete();
   res.json({ ok: true });
 }));
 

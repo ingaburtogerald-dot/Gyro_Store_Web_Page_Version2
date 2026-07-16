@@ -9,9 +9,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@remix-run/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Bell, CheckCircle2, Banknote, XCircle, Package, PackageCheck } from "lucide-react";
+import { Bell, CheckCircle2, Banknote, XCircle, Package, PackageCheck, MessageCircle } from "lucide-react";
 import { useGetAgendaQuery } from "~/store/api/contactsApi";
-import { useGetSalesQuery, useGetSalesPaginatedQuery } from "~/store/api/salesApi";
+import { useGetSalesQuery, useGetSalesPaginatedQuery, useGetPublicOrdersQuery } from "~/store/api/salesApi";
 import { useGetShipmentsQuery } from "~/store/api/logisticsApi";
 import { useGetUsersQuery } from "~/store/api/usersApi";
 import { useAppSelector } from "~/store/hooks";
@@ -65,6 +65,8 @@ export function NotificationsBell() {
     { page: 1, limit: 50, status: "pending_approval", sellerEmail: "all", date: "all" },
     { skip: !isAdmin, pollingInterval: 15000 },
   );
+  const { data: publicOrders = [] } = useGetPublicOrdersQuery(undefined, { skip: !isAdmin });
+  const pendingWhatsApp = useMemo(() => publicOrders.filter(o => !o.contacted && !o.archived), [publicOrders]);
   // Fotos de los vendedores (mapa email→foto). La query ya la usa el admin, así
   // que RTK reutiliza la caché: cero red extra.
   const { data: users = [] } = useGetUsersQuery(undefined, { skip: !isAdmin });
@@ -150,8 +152,8 @@ export function NotificationsBell() {
   const unseenCount = allIds.filter((id) => !seen.has(id)).length;
 
   // El badge rojo cuenta solo lo ACCIONABLE: ventas de otros por aprobar (tus propias
-  // no te las apruebas → no inflan la alarma) + avisos + seguimientos.
-  const badge = due.length + unseenCount + (isAdmin ? othersPending : 0);
+  // no te las apruebas → no inflan la alarma) + avisos + seguimientos + pedidos whatsapp.
+  const badge = due.length + unseenCount + (isAdmin ? othersPending + pendingWhatsApp.length : 0);
   const headerCount = badge + (isAdmin ? mine.count : 0);
 
   function handleToggle() {
@@ -189,6 +191,7 @@ export function NotificationsBell() {
     groups.length === 0 &&
     logistics.length === 0 &&
     othersPending === 0 &&
+    pendingWhatsApp.length === 0 &&
     mine.count === 0;
 
   return (
@@ -293,6 +296,25 @@ export function NotificationsBell() {
                           />
                         );
                       })}
+                    </>
+                  )}
+
+                  {/* ── Pedidos por WhatsApp ── */}
+                  {isAdmin && pendingWhatsApp.length > 0 && (
+                    <>
+                      <SectionLabel>Catálogo (WhatsApp)</SectionLabel>
+                      <NotifRow
+                        onClick={() => { setOpen(false); navigate("/admin/pedidos"); }}
+                        avatar={
+                          <Avatar
+                            label={<MessageCircle className="h-4 w-4" />}
+                            className="bg-warning/15 text-warning"
+                          />
+                        }
+                        title={`${pendingWhatsApp.length} ${pendingWhatsApp.length === 1 ? "pedido" : "pedidos"} por WhatsApp`}
+                        titleClass="text-warning"
+                        subtitle="Esperando seguimiento o contacto"
+                      />
                     </>
                   )}
 

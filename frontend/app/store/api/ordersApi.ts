@@ -15,6 +15,8 @@ export interface PublicOrderPayload {
   customerPhone: string;
   deliveryMethod: "retiro" | "envio";
   address?: string;
+  /** Link de Google Maps con el pin GPS del cliente (opcional). */
+  locationUrl?: string;
   note?: string;
   items: PublicOrderItem[];
 }

@@ -23,7 +23,7 @@ function init() {
     }
   } else if (fs.existsSync(keyPath)) {
     const serviceAccount = require(keyPath);
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount), storageBucket });
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     console.log(`🔑 Firebase Admin inicializado (archivo): ${serviceAccount.project_id}`);
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     admin.initializeApp();

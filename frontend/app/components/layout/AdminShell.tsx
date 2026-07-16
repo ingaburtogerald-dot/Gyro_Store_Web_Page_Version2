@@ -36,7 +36,7 @@ import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectRoles } from "~/store/slices/authSlice";
 import { setSidebar, toggleSidebar, toggleSidebarCollapsed, setSidebarCollapsed } from "~/store/slices/uiSlice";
 import { useGetAgendaQuery } from "~/store/api/contactsApi";
-import { useGetSalesPaginatedQuery } from "~/store/api/salesApi";
+import { useGetSalesPaginatedQuery, useGetPublicOrdersQuery } from "~/store/api/salesApi";
 import { isDue } from "~/components/admin/crm/crmMeta";
 import { cn } from "~/lib/utils";
 import type { Role } from "~/lib/constants";
@@ -108,9 +108,12 @@ function useNavBadges(roles: Role[]): Record<string, number> {
     { page: 1, limit: 50, status: "pending_approval", sellerEmail: "all", date: "all" },
     { skip: !isAdmin, pollingInterval: 15000 },
   );
+  const { data: publicOrders = [] } = useGetPublicOrdersQuery(undefined, { skip: !isAdmin, pollingInterval: 30000 });
+  
   return {
     "/admin/ventas": isAdmin ? pending?.total ?? 0 : 0,
     "/admin/crm": agenda.filter(isDue).length,
+    "/admin/pedidos": isAdmin ? publicOrders.filter(o => !o.contacted && !o.archived).length : 0,
   };
 }
 

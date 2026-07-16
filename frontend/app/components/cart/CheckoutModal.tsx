@@ -1,9 +1,10 @@
 // Modal de checkout. Valida con Zod, crea la orden en el backend (que recalcula
 // el total) y abre WhatsApp con el mensaje formateado del pedido.
+import { forwardRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X } from "lucide-react";
+import { X, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { checkoutSchema, type CheckoutInput } from "~/lib/validators";
@@ -23,6 +24,7 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CheckoutInput>({
     resolver: zodResolver(checkoutSchema),
@@ -31,7 +33,48 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
 
   const deliveryMethod = watch("deliveryMethod");
 
+  const [geo, setGeo] = useState<{ status: "idle" | "loading" | "ok"; url?: string }>({ status: "idle" });
+
+  // Captura la ubicación GPS puntual del cliente y la adjunta como link de Google
+  // Maps (para el repartidor). Es opcional: si niega el permiso, queda la dirección.
+  function captureLocation() {
+    if (!("geolocation" in navigator)) {
+      toast.error("Tu dispositivo no permite compartir ubicación.");
+      return;
+    }
+    setGeo({ status: "loading" });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        setValue("locationUrl", url, { shouldValidate: true });
+        setGeo({ status: "ok", url });
+        toast.success("Ubicación agregada 📍");
+      },
+      (err) => {
+        setGeo({ status: "idle" });
+        toast.error(
+          err.code === err.PERMISSION_DENIED
+            ? "Permiso denegado. Podés escribir la dirección abajo."
+            : "No se pudo obtener tu ubicación. Escribí la dirección.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  }
+
+  // Si la validación falla, RHF no llama a onSubmit y el botón parecía "no hacer
+  // nada". Con onInvalid avisamos qué campo falta en vez de fallar en silencio.
+  function onInvalid(errs: typeof errors) {
+    const first: any = Object.values(errs).find(Boolean);
+    toast.error(first?.message || "Revisa los datos del formulario.");
+  }
+
   async function onSubmit(data: CheckoutInput) {
+    if (items.length === 0) {
+      toast.error("Tu carrito está vacío.");
+      return;
+    }
     try {
       const result = await createOrder({
         ...data,
@@ -50,7 +93,10 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
       dispatch(clearCart());
       dispatch(closeCart());
       onClose();
-      window.open(result.whatsappUrl, "_blank");
+      // En móvil el navegador puede bloquear window.open tras un await; si pasa,
+      // navegamos en la misma pestaña para que WhatsApp igual abra.
+      const opened = window.open(result.whatsappUrl, "_blank");
+      if (!opened) window.location.href = result.whatsappUrl;
       toast.success("Pedido enviado. Te redirigimos a WhatsApp.");
     } catch (err: any) {
       toast.error(err?.data?.error || "No se pudo enviar el pedido.");
@@ -84,7 +130,7 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
               </button>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+            <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-3">
               <Field label="Nombre completo *" error={errors.customerName?.message}>
                 <input className="input" autoComplete="name" placeholder="Ej. Juan Pérez" {...register("customerName")} />
               </Field>
@@ -102,9 +148,43 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
               </fieldset>
 
               {deliveryMethod === "envio" && (
-                <Field label="Dirección de entrega *" error={errors.address?.message}>
-                  <textarea className="input" rows={2} placeholder="Barrio, calle, referencias…" {...register("address")} />
-                </Field>
+                <div className="space-y-2">
+                  <input type="hidden" {...register("locationUrl")} />
+                  <button
+                    type="button"
+                    onClick={captureLocation}
+                    disabled={geo.status === "loading"}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-accent/20 disabled:opacity-60"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    {geo.status === "loading"
+                      ? "Obteniendo ubicación…"
+                      : geo.status === "ok"
+                        ? "Ubicación agregada ✓"
+                        : "Usar mi ubicación actual"}
+                  </button>
+                  {geo.status === "ok" && geo.url && (
+                    <a
+                      href={geo.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-center text-xs text-accent underline"
+                    >
+                      Ver el pin en el mapa
+                    </a>
+                  )}
+                  <Field label="Dirección / referencias" error={errors.address?.message}>
+                    <textarea
+                      className="input"
+                      rows={2}
+                      placeholder="Barrio, calle, señas (portón negro, casa esquinera…)"
+                      {...register("address")}
+                    />
+                  </Field>
+                  <p className="text-xs text-muted">
+                    Compartí tu ubicación <span className="font-medium">o</span> escribí la dirección (idealmente las dos).
+                  </p>
+                </div>
               )}
 
               <Field label="Nota (opcional)">
@@ -145,11 +225,17 @@ function Field({
   );
 }
 
-const Radio = (
-  { label, value, ...props }: { label: string; value: string } & React.InputHTMLAttributes<HTMLInputElement>,
-) => (
-  <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-bg px-3 py-2.5 text-sm has-[:checked]:border-accent">
-    <input type="radio" value={value} className="accent-accent" {...props} />
-    {label}
-  </label>
-);
+// forwardRef es imprescindible: react-hook-form pasa un ref para registrar el
+// grupo de radios. Sin esto el ref se pierde, `deliveryMethod` se lee vacío y el
+// checkout no envía (validación falla en silencio).
+const Radio = forwardRef<
+  HTMLInputElement,
+  { label: string; value: string } & React.InputHTMLAttributes<HTMLInputElement>
+>(function Radio({ label, value, ...props }, ref) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-bg px-3 py-2.5 text-sm has-[:checked]:border-accent">
+      <input ref={ref} type="radio" value={value} className="accent-accent" {...props} />
+      {label}
+    </label>
+  );
+});
