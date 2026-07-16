@@ -137,14 +137,12 @@ export default function Login() {
   return (
     <main className="relative min-h-screen w-full overflow-hidden bg-bg lg:grid lg:grid-cols-[minmax(0,44%)_1fr]">
       {/* ── PANEL IZQUIERDO · Marca (oculto en móvil) ─────────────────────── */}
-      {/* Panel de marca SIEMPRE oscuro-esmeralda (colores fijos deliberados, como los
-          logos): en modo claro sigue siendo el lado oscuro del split. Blanco sobre
-          #050c0f ≈ 18:1, #5eead4 sobre el fondo ≈ 12:1 → contraste garantizado. */}
+      {/* Panel de marca: fondo más luminoso y gradiente sutil */}
       <motion.aside
         variants={brandVariants}
         initial={false}
         animate={exiting ? "exit" : undefined}
-        className="login-enter-slide relative hidden overflow-hidden bg-[#050c0f] text-white lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16"
+        className="login-enter-slide relative hidden overflow-hidden bg-surface-2 text-white lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16"
       >
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
           <div className="absolute inset-0 bg-gradient-to-br from-[#10b981]/25 via-transparent to-[#5eead4]/10" />
@@ -243,12 +241,6 @@ export default function Login() {
 
           {/* Cabecera de marca COMPACTA — protagonista en móvil, sr-only en desktop
               (allí el panel izquierdo ya muestra la identidad en grande). */}
-          <div className="mb-6 flex flex-col items-center text-center lg:hidden">
-            <div className="relative mb-3">
-              <span aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 animate-pulse rounded-full bg-accent/20 blur-2xl" />
-              <Logo size={72} />
-            </div>
-          </div>
           <h1 className="text-center font-heading text-2xl font-bold text-text lg:sr-only">
             Acceso Colaboradores
           </h1>
