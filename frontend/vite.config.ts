@@ -29,6 +29,7 @@ export default defineConfig({
     dedupe: ["zod"],
   },
   server: {
+    host: true,
     // PORT permite levantar una segunda instancia (p.ej. preview de Claude)
     // sin chocar con el dev server habitual en 5173.
     port: Number(process.env.PORT) || 5173,
