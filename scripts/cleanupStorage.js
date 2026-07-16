@@ -1,16 +1,24 @@
+// Mantenimiento del catálogo:
+//   1. Desduplica las URLs de imágenes en Firestore (images[] e imagesByColor{}).
+//   2. Busca archivos huérfanos en Cloudflare R2 (subidos pero ya no referenciados
+//      por ningún producto) y los borra para no pagar/acumular basura.
+//
+// USO
+//   node scripts/cleanupStorage.js
 const path = require('path');
 process.chdir(path.join(__dirname, '..'));
 
-const { admin, db } = require('../server/firebase');
+const { db } = require('../server/firebase');
 const config = require('../server/config');
+const storage = require('../server/services/storage');
 
 async function run() {
-  console.log('🔍 Iniciando limpieza de Storage y optimización de base de datos...');
+  console.log('🔍 Iniciando limpieza de R2 y optimización de base de datos...');
 
   // 1. Obtener todos los productos del catálogo
   const catalogRef = db.collection(config.collections.catalog);
   const snap = await catalogRef.get();
-  
+
   const usedUrls = new Set();
   const batch = db.batch();
   let updatedDocsCount = 0;
@@ -29,7 +37,7 @@ async function run() {
           const uniqueUrls = [...new Set(urls)];
           newImagesByColor[color] = uniqueUrls;
           uniqueUrls.forEach(url => usedUrls.add(url));
-          
+
           if (uniqueUrls.length !== urls.length) {
             needsUpdate = true;
           }
@@ -44,7 +52,7 @@ async function run() {
     if (Array.isArray(data.images)) {
       const uniqueImages = [...new Set(data.images)];
       uniqueImages.forEach(url => usedUrls.add(url));
-      
+
       if (uniqueImages.length !== data.images.length) {
         updateData.images = uniqueImages;
         needsUpdate = true;
@@ -64,27 +72,21 @@ async function run() {
     console.log('✅ No se encontraron fotos duplicadas en los productos.');
   }
 
-  // 2. Revisar Firebase Storage para buscar huérfanos
-  const bucket = admin.storage().bucket();
-  const [files] = await bucket.getFiles({ prefix: 'catalog-images/' });
-  
+  // 2. Revisar Cloudflare R2 para buscar huérfanos
+  const files = await storage.listFiles('catalog-images/');
+
   let deletedFilesCount = 0;
   let totalBytesDeleted = 0;
 
-  console.log(`\n📦 Analizando ${files.length} archivos en Storage...`);
+  console.log(`\n📦 Analizando ${files.length} archivos en R2...`);
 
   for (const file of files) {
-    // Generar la misma URL que se guarda en la base de datos
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${encodeURI(file.name)}`;
-    
-    if (!usedUrls.has(publicUrl)) {
-      const [metadata] = await file.getMetadata();
-      const size = Number(metadata.size) || 0;
-      
-      await file.delete();
+    // file.url es la misma URL pública que se guarda en la base de datos.
+    if (!usedUrls.has(file.url)) {
+      await storage.deleteFileByUrl(file.url);
       deletedFilesCount++;
-      totalBytesDeleted += size;
-      console.log(`🗑️ Eliminado huérfano: ${file.name}`);
+      totalBytesDeleted += file.size;
+      console.log(`🗑️ Eliminado huérfano: ${file.key}`);
     }
   }
 

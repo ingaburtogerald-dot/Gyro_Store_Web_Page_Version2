@@ -2,7 +2,7 @@
 // fotos de paquetes de logística). Devuelve una URL pública de larga duración.
 // R2 es compatible con la API de S3, así que usamos el SDK @aws-sdk/client-s3.
 // (Firebase Auth y Firestore siguen en el plan gratuito; aquí SOLO cambió el Storage.)
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 
 // sharp es opcional: si no está instalado, la subida sigue funcionando sin
 // optimizar (así el server no truena antes de correr `npm install sharp`).
@@ -104,10 +104,32 @@ async function deleteFileByUrl(publicUrl) {
   }
 }
 
+// Lista objetos del bucket bajo un prefijo (maneja paginación). Devuelve
+// [{ key, size, url }]. Pensado para scripts de mantenimiento (buscar huérfanos).
+async function listFiles(prefix = '') {
+  const out = [];
+  let ContinuationToken;
+  do {
+    const res = await getClient().send(
+      new ListObjectsV2Command({ Bucket: R2_BUCKET_NAME, Prefix: prefix, ContinuationToken })
+    );
+    for (const obj of res.Contents || []) {
+      out.push({
+        key: obj.Key,
+        size: Number(obj.Size) || 0,
+        url: `${R2_PUBLIC_URL}/${encodeURI(obj.Key)}`,
+      });
+    }
+    ContinuationToken = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (ContinuationToken);
+  return out;
+}
+
 module.exports = {
   sanitizePathSegment,
   uploadFile,
   deleteFileByUrl,
+  listFiles,
   optimizeImageBuffer,
   isSharpAvailable: () => !!sharp,
 };

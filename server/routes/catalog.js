@@ -352,7 +352,7 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   await ref.update(update);
   clearCatalogCache();
 
-  // Eliminar físicamente las imágenes removidas de Firebase Storage
+  // Eliminar físicamente las imágenes removidas de Cloudflare R2
   const oldData = oldDoc.data();
   const oldImages = [...new Set([...(oldData.images || []), ...Object.values(oldData.imagesByColor || {}).flat()])];
   const newImages = [...new Set([...(update.images || []), ...Object.values(update.imagesByColor || {}).flat()])];

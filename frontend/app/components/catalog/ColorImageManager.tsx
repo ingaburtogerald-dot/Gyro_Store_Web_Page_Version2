@@ -1,5 +1,5 @@
 // Galería de fotos por color (máx 10 c/u). Los colores se detectan solos de las
-// variantes vinculadas (último segmento del nombre). Sube a Firebase Storage.
+// variantes vinculadas (último segmento del nombre). Sube a Cloudflare R2 (vía API).
 // Las miniaturas se reordenan con drag & drop (dnd-kit); la 1ª es la principal.
 import { useState } from "react";
 import { Upload, Loader2, X, ImageOff } from "lucide-react";

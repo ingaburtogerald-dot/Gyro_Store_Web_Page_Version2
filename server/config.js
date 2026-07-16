@@ -46,7 +46,6 @@ module.exports = {
       apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyBLY5gl79jcWKtWfRzXqeuuNnySfBkHW-w',
       authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'gyro-store.firebaseapp.com',
       projectId: process.env.FIREBASE_PROJECT_ID || 'gyro-store',
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'gyro-store.firebasestorage.app',
       messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '581518711166',
       appId: process.env.FIREBASE_APP_ID || '1:581518711166:web:8bc771155186c8c222fb2f',
       measurementId: 'G-KW3ZG01D8R'

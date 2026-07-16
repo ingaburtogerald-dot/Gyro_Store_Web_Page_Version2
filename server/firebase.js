@@ -10,13 +10,12 @@ const config = require('./config');
 function init() {
   if (getApps().length) return admin;
 
-  const storageBucket = config.firebaseWeb.storageBucket || undefined;
   const keyPath = path.resolve(__dirname, config.serviceAccountPath);
 
   if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     try {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-      admin.initializeApp({ credential: admin.credential.cert(serviceAccount), storageBucket });
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
       console.log(`🔑 Firebase Admin inicializado (env): ${serviceAccount.project_id}`);
     } catch (e) {
       console.error('❌ Error al parsear FIREBASE_SERVICE_ACCOUNT_JSON:', e.message);
@@ -27,7 +26,7 @@ function init() {
     admin.initializeApp({ credential: admin.credential.cert(serviceAccount), storageBucket });
     console.log(`🔑 Firebase Admin inicializado (archivo): ${serviceAccount.project_id}`);
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    admin.initializeApp({ storageBucket });
+    admin.initializeApp();
     console.log('🔑 Firebase Admin inicializado con GOOGLE_APPLICATION_CREDENTIALS');
   } else {
     console.error('\n❌ No se encontró el archivo de credenciales de Firebase.');

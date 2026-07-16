@@ -10,7 +10,7 @@ reportes, logística y usuarios.
 | ----------- | ------------------------------------------------------- |
 | Frontend    | Remix (React) · Tailwind CSS v4 · Redux Toolkit + RTK Query · Framer Motion · Lucide · TanStack Table · React Hook Form + Zod · dnd-kit · Recharts · Sonner |
 | Backend     | Node.js · Express (CommonJS) · Zod                       |
-| Datos       | Firebase Firestore · Firebase Auth (Google/Email/Microsoft) · Firebase Storage |
+| Datos       | Firebase Firestore · Firebase Auth (Google/Email/Microsoft) · Cloudflare R2 (imágenes) |
 | Email       | Nodemailer (SMTP Gmail)                                  |
 | Hosting     | Render (un Web Service sirve API + frontend buildeado)   |
 
