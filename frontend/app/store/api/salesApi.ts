@@ -199,6 +199,7 @@ export interface PublicOrder {
   customerPhone: string;
   deliveryMethod: "retiro" | "envio";
   address: string;
+  locationUrl?: string;
   note: string;
   items: { name: string; quantity: number; price: number; lineTotal: number; variantName?: string }[];
   subtotal: number;
@@ -220,6 +221,7 @@ export interface BusinessConfig {
   socialLinks: { instagram: string; facebook: string; tiktok: string };
   costosFijos: CostosFijos;
   wholesaleDiscounts: Discount[];
+  deliveryPersonnel?: { id: string; name: string; phone: string }[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

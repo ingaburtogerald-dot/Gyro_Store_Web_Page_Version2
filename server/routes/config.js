@@ -110,7 +110,7 @@ router.put('/costos-fijos', requireAdmin, asyncHandler(async (req, res) => {
 // PUT /api/config/business — actualiza configuración general de la tienda (admin).
 // Cubre: whatsapp, dirección, redes sociales, tipo de cambio, nombre.
 router.put('/business', requireAdmin, asyncHandler(async (req, res) => {
-  const allowed = ['storeName', 'storeAddress', 'whatsapp', 'exchangeRate', 'socialLinks'];
+  const allowed = ['storeName', 'storeAddress', 'whatsapp', 'exchangeRate', 'socialLinks', 'deliveryPersonnel'];
   const update = {};
   for (const k of allowed) {
     if (req.body[k] !== undefined) update[k] = req.body[k];
@@ -151,6 +151,7 @@ router.get('/full', requireAdmin, asyncHandler(async (req, res) => {
       },
       costosFijos: biz.costosFijos || defaultBusiness.costosFijos,
       wholesaleDiscounts: pricing.wholesaleDiscounts || defaultPricing.wholesaleDiscounts,
+      deliveryPersonnel: biz.deliveryPersonnel || [],
     };
     console.log('⚡ Caché de configuración administrativa reconstruido.');
   }
