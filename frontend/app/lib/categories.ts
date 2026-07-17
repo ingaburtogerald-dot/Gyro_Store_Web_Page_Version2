@@ -3,7 +3,7 @@
 // mismo idioma. El `id` de cada categoría DEBE ser el valor real de `product.category`
 // que devuelve la API; así el chip activo, las subcategorías y el filtro de la grilla
 // coinciden (antes ids inventados no casaban con productos → filtros vacíos).
-import type { CatalogProduct, Category } from "~/store/api/catalogApi";
+import type { CatalogProduct, Category } from "~/types/catalog";
 
 // Valores reales actuales en la API: audifonos-kz, adaptador-bt, accesorios-pc, …
 export const BASE_CATEGORIES: { id: string; name: string }[] = [

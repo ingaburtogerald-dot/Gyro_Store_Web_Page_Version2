@@ -6,7 +6,6 @@ import { Link, useLoaderData } from "@remix-run/react";
 import { motion } from "framer-motion";
 import { ChevronRight, ImageOff, Sparkles, ShoppingCart, Check } from "lucide-react";
 import { toast } from "sonner";
-import { PublicHeader } from "~/components/layout/PublicHeader";
 import { PublicFooter } from "~/components/layout/PublicFooter";
 import { Button } from "~/components/ui/Button";
 import type { Combo } from "~/store/api/catalogApi";
@@ -61,7 +60,6 @@ export default function ComboDetail() {
   if (!combo) {
     return (
       <div className="flex min-h-dvh flex-col bg-bg font-sans text-text">
-        <PublicHeader />
         <main className="grid flex-1 place-items-center px-4 py-20 text-center">
           <div>
             <p className="text-lg font-semibold">Combo no encontrado</p>

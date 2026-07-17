@@ -52,7 +52,8 @@ import {
 import { hydrate } from "~/store/slices/cartSlice";
 import { useGetAgendaQuery } from "~/store/api/contactsApi";
 import { useGetSalesPaginatedQuery, useGetPublicOrdersQuery } from "~/store/api/salesApi";
-import { useGetCatalogQuery, type Category } from "~/store/api/catalogApi";
+import { useGetCatalogQuery } from "~/store/api/catalogApi";
+import type { Category } from "~/types/catalog";
 import { buildCategoryTree } from "~/lib/categories";
 import { isDue } from "~/components/admin/crm/crmMeta";
 import { cn } from "~/lib/utils";
@@ -137,8 +138,9 @@ function useNavBadges(roles: Role[]): Record<string, number> {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const authRoles = useAppSelector(selectRoles);
-  const roles = authRoles.length > 0 ? authRoles : (["public"] as Role[]);
+  // Sin sesión, roles = [] → canSee/businessGroups quedan vacíos (no hay portales
+  // de admin), que es justo el comportamiento del storefront público.
+  const roles = useAppSelector(selectRoles);
   const { user } = useAuth();
   const dispatch = useAppDispatch();
   const location = useLocation();
