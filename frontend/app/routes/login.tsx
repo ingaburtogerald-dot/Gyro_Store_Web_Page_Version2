@@ -17,7 +17,7 @@ import { GoogleStrategy, MicrosoftStrategy, EmailStrategy } from "~/lib/authStra
 import { loginSchema, type LoginInput } from "~/lib/validators";
 import { roleLandingPath, type Role, WHATSAPP_NUMBER } from "~/lib/constants";
 
-export const meta: MetaFunction = () => [{ title: "Acceso Colaboradores · Gyro Store" }];
+export const meta: MetaFunction = () => [{ title: "Iniciar Sesión · Gyro Store" }];
 
 // Curva de salida exponencial (mismo lenguaje de motion que el resto de la app).
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
@@ -180,10 +180,10 @@ export default function Login() {
               />
             </div>
             <p
-              className="login-enter-item inline-flex w-fit items-center gap-1.5 rounded-pill border border-[#5eead4]/25 bg-[#5eead4]/10 px-3 py-1 text-xs font-medium text-[#5eead4]"
+              className="login-enter-item inline-flex w-fit items-center gap-1.5 rounded-none border border-[#5eead4]/25 bg-[#5eead4]/10 px-3 py-1 text-xs font-medium text-[#5eead4]"
               style={itemDelay(2)}
             >
-              <ShieldCheck className="h-3.5 w-3.5" /> Panel interno · Gyro Store
+              <ShieldCheck className="h-3.5 w-3.5" /> Gyro Store
             </p>
             {/* Título decorativo grande (el <h1> semántico vive en la tarjeta). */}
             <p
@@ -191,13 +191,13 @@ export default function Login() {
               className="login-enter-item mt-5 text-balance font-heading text-4xl font-extrabold leading-[1.1] text-white xl:text-5xl"
               style={itemDelay(3)}
             >
-              Acceso<br />Colaboradores
+              Iniciar<br />Sesión
             </p>
             <p
               className="login-enter-item mt-4 max-w-sm text-pretty text-base leading-relaxed text-white/60"
               style={itemDelay(4)}
             >
-              Inicia sesión para gestionar Gyro Store: inventario, ventas, reportería y logística en un solo lugar.
+              Accede a tu cuenta para gestionar tus pedidos y disfrutar de todos los servicios.
             </p>
           </div>
 
@@ -242,11 +242,11 @@ export default function Login() {
           {/* Cabecera de marca COMPACTA — protagonista en móvil, sr-only en desktop
               (allí el panel izquierdo ya muestra la identidad en grande). */}
           <h1 className="text-center font-heading text-2xl font-bold text-text lg:sr-only">
-            Acceso Colaboradores
+            Iniciar Sesión
           </h1>
           {greeting && (
             <p className="mt-1 text-center text-sm text-muted lg:hidden">
-              {greeting.text} <span className="align-middle">{greeting.emoji}</span> — inicia sesión para gestionar Gyro Store.
+              {greeting.text} <span className="align-middle">{greeting.emoji}</span> — inicia sesión en Gyro Store.
             </p>
           )}
 

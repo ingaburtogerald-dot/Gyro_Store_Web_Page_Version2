@@ -69,7 +69,7 @@ export function SearchBar({
       className={cn(
         // Spotlight/command-palette: superficie de vidrio, esquina suave, y al
         // enfocar un halo de acento contenido (sin neón permanente).
-        "ease-expo group relative flex w-full items-stretch overflow-hidden rounded-2xl border bg-surface/60 backdrop-blur-xl transition duration-300",
+        "ease-expo group relative flex w-full items-stretch overflow-hidden rounded-none border bg-surface/60 backdrop-blur-xl transition duration-300",
         focused
           ? "border-accent/60 ring-4 ring-accent/15 shadow-none"
           : "border-border/70 hover:border-border",
@@ -133,7 +133,7 @@ export function SearchBar({
             inputRef.current?.focus();
           }}
           aria-label="Limpiar búsqueda"
-          className="my-auto mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text"
+          className="my-auto mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-none text-muted transition-colors hover:bg-surface-2 hover:text-text"
         >
           <X className="h-4 w-4" />
         </button>
@@ -141,7 +141,7 @@ export function SearchBar({
 
       {/* Hint de teclado ⌘K / Ctrl+K — solo en reposo y desktop (la búsqueda es en vivo). */}
       {idle && (
-        <kbd className="my-auto mr-1.5 hidden h-7 select-none items-center gap-0.5 rounded-md border border-border bg-surface-2/70 px-2 text-[12px] font-semibold text-muted md:inline-flex">
+        <kbd className="my-auto mr-1.5 hidden h-7 select-none items-center gap-0.5 rounded-none border border-border bg-surface-2/70 px-2 text-[12px] font-semibold text-muted md:inline-flex">
           {isMac ? "⌘" : "Ctrl"} K
         </kbd>
       )}
@@ -152,7 +152,7 @@ export function SearchBar({
         type="button"
         aria-label="Buscar"
         onClick={() => inputRef.current?.focus()}
-        className="my-1.5 mr-1.5 flex aspect-square shrink-0 items-center justify-center rounded-xl bg-accent text-bg transition-all duration-300 hover:bg-accent-hover active:scale-95"
+        className="my-1.5 mr-1.5 flex aspect-square shrink-0 items-center justify-center rounded-none bg-accent text-bg transition-all duration-300 hover:bg-accent-hover active:scale-95"
       >
         <Search className="h-[18px] w-[18px]" />
       </button>

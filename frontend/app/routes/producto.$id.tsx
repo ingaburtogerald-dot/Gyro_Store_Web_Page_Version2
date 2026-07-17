@@ -4,7 +4,6 @@ import { useParams, Link, useLoaderData } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, ImageOff, MessageCircle, ShoppingCart, ShoppingBag, X, ShieldCheck, Check, Bike, Package, Banknote, TrendingUp, Share2, Sparkles, List } from "lucide-react";
 import { toast } from "sonner";
-import { PublicHeader } from "~/components/layout/PublicHeader";
 import { PublicFooter } from "~/components/layout/PublicFooter";
 import { VariantPicker, type VariantSelection } from "~/components/product/VariantPicker";
 import { TikTokButton } from "~/components/product/TikTokButton";
@@ -213,7 +212,6 @@ export default function ProductDetail() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg font-sans text-text">
-      <PublicHeader />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 md:pb-12">
         {/* Migas de pan (breadcrumbs) minimalistas. La columna de la imagen es sticky,

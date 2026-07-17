@@ -25,9 +25,9 @@ export const pendingSalesColumns: ColumnDef<Sale>[] = [
       <div>
         <div className="font-semibold text-text">{row.original.sellerName}</div>
         {row.original.insufficientStockError && (
-          <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-danger">
-            <AlertTriangle className="h-3 w-3" />
-            <span>Stock insuficiente</span>
+          <div className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-danger" title={row.original.insufficientStockError}>
+            <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate max-w-[200px]">{row.original.insufficientStockError}</span>
           </div>
         )}
       </div>

@@ -43,12 +43,8 @@ export const ROLE_BADGE: Record<Role, string> = {
 // Roles que habilitan el Centro de Administración
 export const ADMIN_ROLES: Role[] = ["global_admin", "admin"];
 
-// Ruta de aterrizaje del panel según los roles (compartida por login y header).
+// Ruta de aterrizaje del panel (ahora siempre es el catálogo por defecto).
 export function roleLandingPath(roles: Role[]): string {
-  if (roles.some((r) => ADMIN_ROLES.includes(r))) return "/admin";
-  if (roles.includes("seller")) return "/admin/ventas";
-  if (roles.includes("cashier")) return "/admin/facturacion";
-  if (roles.includes("logistics_admin") || roles.includes("logistics_customer")) return "/admin/logistica";
   return "/";
 }
 

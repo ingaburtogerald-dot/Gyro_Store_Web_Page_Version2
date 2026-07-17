@@ -30,10 +30,14 @@ import {
 import { UserMenu } from "./UserMenu";
 import { NotificationsBell } from "./NotificationsBell";
 import { CommandPalette } from "./CommandPalette";
+import { CartButton } from "./PublicHeader";
+import { CartDrawer } from "~/components/cart/CartDrawer";
+import { SearchBar } from "~/components/filters/SearchBar";
 import { useAuth } from "~/hooks/useAuth";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectRoles } from "~/store/slices/authSlice";
-import { setSidebar, toggleSidebar, toggleSidebarCollapsed, setSidebarCollapsed } from "~/store/slices/uiSlice";
+import { setSidebar, toggleSidebar, toggleSidebarCollapsed, setSidebarCollapsed, setSearch } from "~/store/slices/uiSlice";
+import { hydrate } from "~/store/slices/cartSlice";
 import { useGetAgendaQuery } from "~/store/api/contactsApi";
 import { useGetSalesPaginatedQuery, useGetPublicOrdersQuery } from "~/store/api/salesApi";
 import { isDue } from "~/components/admin/crm/crmMeta";
@@ -57,20 +61,21 @@ interface NavGroup {
 // Secciones por dominio: qué opero a diario, qué ve el cliente, y análisis/sistema.
 const NAV_GROUPS: NavGroup[] = [
   {
+    label: "Tienda",
+    items: [
+      { to: "/", label: "Catálogo", icon: Store, roles: ["public", "admin", "seller", "cashier", "logistics_admin", "logistics_customer"] },
+      { to: "/admin/catalogo", label: "Gestión de Catálogo", icon: LayoutGrid, roles: ["admin"] },
+      { to: "/admin/pedidos", label: "Pedidos WhatsApp", icon: MessageCircle, roles: ["admin"] },
+      { to: "/admin/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "cashier"] },
+    ],
+  },
+  {
     label: "Operación",
     items: [
       { to: "/admin/inventario", label: "Inventario", icon: Package, roles: ["admin"] },
       { to: "/admin/ventas", label: "Ventas", icon: ShoppingCart, roles: ["admin", "seller"] },
       { to: "/admin/crm", label: "Seguimientos", icon: KanbanSquare, roles: ["admin", "seller"] },
       { to: "/admin/cuotas", label: "Cuotas", icon: CreditCard, roles: ["admin"] },
-    ],
-  },
-  {
-    label: "Tienda",
-    items: [
-      { to: "/admin/catalogo", label: "Gestión de Catálogo", icon: LayoutGrid, roles: ["admin"] },
-      { to: "/admin/pedidos", label: "Pedidos WhatsApp", icon: MessageCircle, roles: ["admin"] },
-      { to: "/admin/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "cashier"] },
     ],
   },
   {
@@ -116,8 +121,9 @@ function useNavBadges(roles: Role[]): Record<string, number> {
   };
 }
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
-  const roles = useAppSelector(selectRoles);
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const authRoles = useAppSelector(selectRoles);
+  const roles = authRoles.length > 0 ? authRoles : ["public"];
   const { user } = useAuth();
   const sidebarOpen = useAppSelector((s) => s.ui.sidebarOpen);
   const sidebarCollapsed = useAppSelector((s) => s.ui.sidebarCollapsed);
@@ -136,13 +142,23 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     localStorage.setItem(COLLAPSE_KEY, sidebarCollapsed ? "1" : "0");
   }, [sidebarCollapsed]);
 
+  // Hidratar carrito
+  useEffect(() => {
+    dispatch(hydrate());
+  }, [dispatch]);
+
+  const search = useAppSelector((s) => s.ui.search);
+  const showSearch = location.pathname === "/";
+  const showSidebar = !!user;
+
   const canSee = (item: NavItem) =>
-    roles.includes("global_admin") || item.roles.some((r) => roles.includes(r));
+    roles.includes("global_admin") || item.roles.includes("public") || item.roles.some((r) => roles.includes(r as Role));
   const visibleGroups = NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter(canSee) })).filter(
     (g) => g.items.length > 0,
   );
   const visible = visibleGroups.flatMap((g) => g.items);
-  const current = visible.find((item) => location.pathname.startsWith(item.to));
+  // Match exact para "/" o startswith para otras rutas
+  const current = visible.find((item) => item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to));
 
   // La campana de seguimientos solo aplica a quienes usan el CRM (admin/seller).
   const canCRM = roles.includes("global_admin") || roles.includes("admin") || roles.includes("seller");
@@ -160,8 +176,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar — ancho fijo (shrink-0 evita que el contenido ancho lo encoja).
           En escritorio, cuando está colapsado se reduce a 80px (modo solo-iconos)
           en vez de ocultarse. En móvil siempre es un drawer de ancho completo. */}
-      <aside
-        className={cn(
+      {showSidebar && (
+        <aside
+          className={cn(
           // Glass SOLO en escritorio: en móvil el sidebar es un drawer sobre un overlay
           // oscuro, así que va sólido (backdrop-blur persistente cuesta repaint en gama baja).
           // El glass (blur + translucidez) se activa en md+ para dejar filtrar el ambiente.
@@ -244,41 +261,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 </p>
               )}
               <div className="space-y-0.5">
-                {/* Acceso al catálogo, dentro de Operación, con el mismo look y las mismas
-                    animaciones que el resto de ítems. Es un Link a la tienda (misma pestaña),
-                    así que nunca queda "activo" ni entra en el breadcrumb/paleta. */}
-                {group.label === "Operación" && (
-                  <motion.div
-                    variants={{
-                      hidden: { opacity: 0, x: -10 },
-                      show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
-                    }}
-                  >
-                    <Link
-                      to="/"
-                      onClick={() => dispatch(setSidebar(false))}
-                      title={sidebarCollapsed ? "Ir al catálogo" : undefined}
-                      className={cn(
-                        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition-all duration-300 ease-out hover:translate-x-0.5 hover:text-text active:scale-[0.97] motion-reduce:hover:translate-x-0",
-                        sidebarCollapsed && "md:justify-center md:gap-0 md:px-0 md:hover:translate-x-0",
-                      )}
-                    >
-                      <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-accent/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none" />
-                      <span className="relative z-10 shrink-0">
-                        <Store className="h-[18px] w-[18px] transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6 group-hover:text-accent-2" />
-                      </span>
-                      <span className={cn("relative z-10 flex-1 truncate", sidebarCollapsed && "md:hidden")}>
-                        Ir al catálogo
-                      </span>
-                      <ChevronRight
-                        className={cn(
-                          "relative z-10 h-4 w-4 shrink-0 -translate-x-1 text-accent-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 motion-reduce:hidden",
-                          sidebarCollapsed && "md:hidden",
-                        )}
-                      />
-                    </Link>
-                  </motion.div>
-                )}
                 {group.items.map(({ to, label, icon: Icon }) => {
                   const badge = badges[to] ?? 0;
                   return (
@@ -297,7 +279,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                         className={({ isActive }) =>
                           cn(
                             "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-300 ease-out hover:translate-x-0.5 active:scale-[0.97] motion-reduce:hover:translate-x-0",
-                            isActive ? "font-medium text-accent-2" : "text-muted hover:text-text",
+                            (isActive && to !== "/") ? "font-medium text-accent-2" : "text-muted hover:text-text",
                             // Colapsado (escritorio): icono centrado, sin padding lateral ni desliz.
                             sidebarCollapsed && "md:justify-center md:gap-0 md:px-0 md:hover:translate-x-0",
                           )
@@ -306,7 +288,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                         {({ isActive }) => (
                           <>
                             {/* Fondo del ítem activo (compartido entre rutas con layoutId). */}
-                            {isActive && (
+                            {(isActive && to !== "/") && (
                               <motion.span
                                 layoutId="admin-nav-active"
                                 className="absolute inset-0 rounded-lg bg-accent/10"
@@ -316,14 +298,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                               </motion.span>
                             )}
                             {/* Tinte de acento que aparece al hover (solo en inactivos). */}
-                            {!isActive && (
+                            {!(isActive && to !== "/") && (
                               <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-accent/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none" />
                             )}
                             <span className="relative z-10 shrink-0">
                               <Icon
                                 className={cn(
                                   "h-[18px] w-[18px] transition-all duration-300",
-                                  isActive
+                                  (isActive && to !== "/")
                                     ? "text-accent-2"
                                     : "group-hover:scale-110 group-hover:-rotate-6 group-hover:text-accent-2",
                                 )}
@@ -353,7 +335,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                             )}
                             {/* Afordancia: chevron que entra deslizándose al hover
                                 (expandido y sin badge, para no encimar el contador). */}
-                            {badge === 0 && (
+                            {badge === 0 && !(isActive && to !== "/") && (
                               <ChevronRight
                                 className={cn(
                                   "relative z-10 h-4 w-4 shrink-0 -translate-x-1 text-accent-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 motion-reduce:hidden",
@@ -396,39 +378,156 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </aside>
+      )}
+      
+      {/* Sidebar Mobile (Overlay) */}
+      <AnimatePresence>
+        {sidebarOpen && showSidebar && (
+          <motion.aside
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-border bg-surface shadow-2xl md:hidden"
+          >
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <div className="flex items-center gap-2">
+                <img src="/logo_gyro.png" alt="Gyro Store" className="h-8 w-8 rounded-full shadow-sm ring-1 ring-white/10" />
+                <span className="text-lg font-bold tracking-tight text-text">Gyro Store</span>
+              </div>
+              <button
+                className="grid h-10 w-10 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                onClick={() => dispatch(setSidebar(false))}
+                aria-label="Cerrar menú"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-      {/* Contenido — min-w-0 deja que las tablas anchas se encojan/scrolleen
-          en vez de empujar el layout y deformar el sidebar. */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Header sticky: sólido en móvil (blur persistente sobre contenido en scroll
-            es el efecto más caro), glass en escritorio. */}
+            <nav className="flex-1 space-y-6 overflow-y-auto p-4">
+              {visibleGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-muted/80">{group.label}</p>
+                  <div className="space-y-1">
+                    {group.items.map(({ to, label, icon: Icon }) => {
+                      const badge = badges[to] ?? 0;
+                      return (
+                        <NavLink
+                          key={to}
+                          to={to}
+                          onClick={() => dispatch(setSidebar(false))}
+                          className={({ isActive }) =>
+                            cn(
+                              "flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-medium transition-colors active:scale-95",
+                              (isActive && to !== "/") ? "bg-accent/15 text-accent-2" : "text-muted hover:bg-surface-2 hover:text-text",
+                            )
+                          }
+                        >
+                          <Icon className="h-5 w-5 shrink-0" />
+                          <span className="flex-1 truncate">{label}</span>
+                          {badge > 0 && (
+                            <span className="rounded-full bg-warning px-2 py-0.5 text-[11px] font-bold text-[#000000]">
+                              {badge}
+                            </span>
+                          )}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            {user && (
+              <div className="border-t border-border p-4">
+                <div className="flex items-center gap-3 rounded-xl bg-surface-2 p-3">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-border" />
+                  ) : (
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-accent text-sm font-semibold text-white shadow-inner">
+                      {user.name?.[0]?.toUpperCase() || "?"}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-text">{user.name}</p>
+                    <p className="truncate text-xs font-medium text-muted">{roleLabel(roles)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      <div
+        className="flex flex-1 min-w-0 min-h-dvh flex-col transition-all duration-300"
+      >
         <header className="sticky top-0 z-[60] flex h-16 items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 md:bg-surface/60 md:backdrop-blur-xl">
-          <div className="flex min-w-0 items-center gap-2">
-            <button
-              className="-ml-2 grid h-11 w-11 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 md:hidden"
-              onClick={() => dispatch(toggleSidebar())}
-              aria-label="Abrir menú"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            {/* Breadcrumb del portal activo */}
-            {current && (
+          {/* Lado izquierdo (Menú / Logo / Breadcrumbs) */}
+          <div className="flex shrink-0 items-center gap-2 md:w-64">
+            {showSidebar ? (
+              <button
+                className="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-none text-muted transition-colors hover:bg-surface-2 hover:text-text md:hidden"
+                onClick={() => dispatch(toggleSidebar())}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            ) : (
+              <Link to="/" className="flex items-center gap-2 mr-2 md:mr-6 shrink-0 transition-transform active:scale-95">
+                <img src="/logo_gyro.png" alt="Gyro Store" className="h-8 w-8 shadow-sm ring-1 ring-white/10" />
+                <span className="hidden text-lg font-bold tracking-tight text-text sm:block">Gyro Store</span>
+              </Link>
+            )}
+            
+            {!showSearch && current ? (
               <div className="hidden min-w-0 items-center gap-1.5 text-sm sm:flex">
-                <span className="text-muted">Admin</span>
+                <span className="text-muted">App</span>
                 <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted" />
                 <span className="flex min-w-0 items-center gap-1.5 font-medium text-text">
                   <current.icon className="h-4 w-4 shrink-0 text-accent-2" />
                   <span className="truncate">{current.label}</span>
                 </span>
               </div>
-            )}
+            ) : null}
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          {/* Centro (Buscador principal) */}
+          {showSearch && (
+            <div className="hidden flex-1 justify-center px-4 md:flex max-w-2xl">
+              <SearchBar
+                value={search}
+                onChange={(v) => dispatch(setSearch(v))}
+                onClear={() => dispatch(setSearch(""))}
+                size="sm"
+              />
+            </div>
+          )}
+
+          {/* Lado derecho (Carrito, Usuario) */}
+          <div className="flex shrink-0 items-center gap-2 justify-end md:w-64">
+            <CartButton />
             {canCRM && <NotificationsBell />}
-            <UserMenu />
+            {user ? (
+              <UserMenu />
+            ) : (
+              <Link to="/login" className="rounded-none bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-2 transition-colors">
+                Iniciar Sesión
+              </Link>
+            )}
           </div>
         </header>
+        
+        {/* Búsqueda móvil en catálogo */}
+        {showSearch && (
+          <div className="px-4 pt-3 pb-1 md:hidden bg-surface/95">
+            <SearchBar
+              value={search}
+              onChange={(v) => dispatch(setSearch(v))}
+              onClear={() => dispatch(setSearch(""))}
+              size="sm"
+            />
+          </div>
+        )}
 
         {/* key por ruta = cada portal entra con fade+slide (sin exit: con Remix
             el Outlet ya trae el contenido nuevo y animar la salida lo duplica). */}
@@ -445,6 +544,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
       {/* Paleta de comandos ⌘K (salto rápido entre portales) */}
       <CommandPalette items={visible.map(({ to, label, icon }) => ({ to, label, icon }))} />
+      
+      {/* Drawer del carrito global */}
+      <CartDrawer />
     </div>
   );
 }

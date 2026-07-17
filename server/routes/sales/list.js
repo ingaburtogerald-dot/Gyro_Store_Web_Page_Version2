@@ -120,8 +120,19 @@ router.get('/', requireAnyRole, asyncHandler(async (req, res) => {
       }
     } else if (isUserAdmin && sanitized.status === 'pending_approval') {
       try {
-        for (const it of sanitized.items) {
-          it.lineCost = await fifoForCode(it.code, it.quantity, false);
+        if (sanitized.reservations && sanitized.reservations.length > 0) {
+          const config = require('../../config');
+          const costByCode = {};
+          for (const r of sanitized.reservations) {
+            costByCode[r.code] = (costByCode[r.code] || 0) + (r.unitFinalUsd || 0) * config.exchangeRate * r.quantity;
+          }
+          for (const it of sanitized.items) {
+            it.lineCost = costByCode[it.code] || 0;
+          }
+        } else {
+          for (const it of sanitized.items) {
+            it.lineCost = await fifoForCode(it.code, it.quantity, false);
+          }
         }
         const est = computeFinancials({ lines: sanitized.items, costosFijosConfig });
 

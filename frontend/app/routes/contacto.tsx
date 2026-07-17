@@ -35,7 +35,6 @@ export default function Contacto() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg font-sans text-text">
-      <PublicHeader />
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10">
         <h1 className="text-2xl font-bold">Contacto</h1>

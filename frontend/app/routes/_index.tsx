@@ -2,9 +2,7 @@ import { useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
-import { PageShell } from "~/components/layout/PageShell";
 import { Container } from "~/components/layout/Container";
-import { PublicHeader } from "~/components/layout/PublicHeader";
 import { Hero } from "~/components/catalog/Hero";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { ProductCarousel } from "~/components/product/ProductCarousel";
@@ -15,7 +13,6 @@ import { FilterBar } from "~/components/filters/FilterBar";
 import { ActiveFilters } from "~/components/filters/ActiveFilters";
 import { FilterFab } from "~/components/catalog/FilterFab";
 import { FilterSheet } from "~/components/filters/FilterSheet";
-import { PublicSidebar } from "~/components/layout/PublicSidebar";
 import type { CatalogProduct, Category, Combo } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectEditMode, selectIsAdmin, setEditMode } from "~/store/slices/authSlice";
@@ -149,30 +146,19 @@ export default function Index() {
   }, [isAdmin, searchParams, setSearchParams, dispatch]);
 
   return (
-    <PageShell
-      header={
-        <PublicHeader
-          bottomBar={
-          !editing ? (
-            <div className="w-full border-b border-border/40 bg-bg/60 backdrop-blur-xl">
-              <div className="flex w-full items-center px-4 md:px-8">
-                <CategoryChips categories={categories} />
-              </div>
+    <>
+      {!editing && (
+        <>
+          <FilterFab />
+          <FilterSheet />
+          {/* Barra de categorías pegajosa justo debajo del header global (h-16 = top-16) */}
+          <div className="sticky top-16 z-40 w-full border-b border-border/40 bg-surface/90 backdrop-blur-xl -mt-4 md:-mt-6 mb-4">
+            <div className="flex w-full items-center px-4 md:px-8 py-2">
+              <CategoryChips categories={categories} />
             </div>
-          ) : null
-        }
-      />
-      }
-      sidebar={
-        !editing ? (
-          <>
-            <FilterFab />
-            <FilterSheet />
-            <PublicSidebar categories={categories} />
-          </>
-        ) : null
-      }
-    >
+          </div>
+        </>
+      )}
       <AnimatePresence initial={false}>
         {!hasFilters && (
           <motion.div key="hero" {...collapse}>
@@ -207,6 +193,6 @@ export default function Index() {
           </div>
         )}
       </Container>
-    </PageShell>
+    </>
   );
 }

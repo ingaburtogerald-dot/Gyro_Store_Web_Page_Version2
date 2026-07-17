@@ -6,6 +6,7 @@ import {
   ScrollRestoration,
   isRouteErrorResponse,
   useRouteError,
+  useLocation,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 import { Provider } from "react-redux";
@@ -14,6 +15,7 @@ import { store } from "~/store/store";
 import { useAuthBootstrap } from "~/hooks/useAuth";
 import { useTheme } from "~/hooks/useTheme";
 import { ForcePasswordChangeGate } from "~/components/auth/ForcePasswordChangeGate";
+import { AppShell } from "~/components/layout/AppShell";
 import tailwind from "~/styles/globals.css?url";
 
 export const links: LinksFunction = () => [
@@ -88,7 +90,18 @@ function AuthBootstrap() {
 }
 
 export default function App() {
-  return <Outlet />;
+  const location = useLocation();
+  const isLogin = location.pathname.startsWith("/login");
+  
+  if (isLogin) {
+    return <Outlet />;
+  }
+  
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
 }
 
 // Boundary de error global — mensaje claro al usuario, sin pantalla en blanco.

@@ -18,7 +18,7 @@ import { setSearch } from "~/store/slices/uiSlice";
 
 /** Botón del carrito con contador y "pop" al agregar. Comparte fuente de verdad
  *  con el resto de la app (cartSlice); reemplaza al antiguo CartFab. */
-function CartButton() {
+export function CartButton() {
   const dispatch = useAppDispatch();
   const count = useAppSelector(selectCartCount);
   const controls = useAnimationControls();
@@ -38,7 +38,7 @@ function CartButton() {
       whileTap={{ scale: 0.92 }}
       onClick={() => dispatch(openCart())}
       aria-label={count > 0 ? `Abrir carrito, ${count} artículo${count === 1 ? "" : "s"}` : "Abrir carrito"}
-      className="relative grid h-11 w-11 place-items-center rounded-full border border-border bg-surface-2/70 text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-accent/40 hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="relative grid h-11 w-11 place-items-center rounded-none border border-border bg-surface-2/70 text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-accent/40 hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <ShoppingCart className="h-5 w-5" />
       <AnimatePresence>
@@ -50,7 +50,7 @@ function CartButton() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 520, damping: 20 }}
             // ring-bg lo separa del header con un halo del color de fondo → "flota".
-            className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-bold tabular-nums text-bg ring-2 ring-bg shadow-accent-cta"
+            className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-none bg-accent px-1 text-[11px] font-bold tabular-nums text-bg ring-2 ring-bg shadow-accent-cta"
           >
             {count}
           </motion.span>

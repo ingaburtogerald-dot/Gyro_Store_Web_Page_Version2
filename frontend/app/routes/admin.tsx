@@ -3,12 +3,11 @@
 import { Outlet } from "@remix-run/react";
 import type { MetaFunction } from "@remix-run/node";
 import { RequireRole } from "~/components/admin/RequireRole";
-import { AdminShell } from "~/components/layout/AdminShell";
 import type { Role } from "~/lib/constants";
 
 export const meta: MetaFunction = () => [{ title: "Centro de Administración · Gyro Store" }];
 
-// Cualquier rol del staff puede entrar al shell; cada sub-ruta valida lo suyo.
+// Cualquier rol del staff puede entrar al admin; cada sub-ruta valida lo suyo.
 const STAFF_ROLES: Role[] = [
   "admin",
   "seller",
@@ -20,9 +19,7 @@ const STAFF_ROLES: Role[] = [
 export default function AdminLayout() {
   return (
     <RequireRole allowed={STAFF_ROLES}>
-      <AdminShell>
-        <Outlet />
-      </AdminShell>
+      <Outlet />
     </RequireRole>
   );
 }
