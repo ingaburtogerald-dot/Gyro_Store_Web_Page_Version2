@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@remix-run/react";
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
-import { ShoppingCart, Sparkles } from "lucide-react";
+import { ShoppingBag, Sparkles } from "lucide-react";
 import { Logo } from "~/components/ui/Logo";
 import { SearchBar } from "~/components/filters/SearchBar";
 import { CartDrawer } from "~/components/cart/CartDrawer";
@@ -16,31 +16,89 @@ import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { hydrate, openCart, selectCartCount } from "~/store/slices/cartSlice";
 import { setSearch } from "~/store/slices/uiSlice";
 
-/** Botón del carrito con contador y "pop" al agregar. Comparte fuente de verdad
- *  con el resto de la app (cartSlice); reemplaza al antiguo CartFab. */
-export function CartButton() {
+/** Botón del carrito con contador y micro-interacciones. Al agregar un producto
+ *  la bolsa "rebota" y emite un anillo (ping); en hover/tap responde con un
+ *  pequeño scale. Comparte fuente de verdad con el resto de la app (cartSlice).
+ *  `variant="bar"` lo adapta a la barra inferior móvil (icono + etiqueta). */
+export function CartButton({ variant }: { variant?: "bar" }) {
   const dispatch = useAppDispatch();
   const count = useAppSelector(selectCartCount);
   const controls = useAnimationControls();
+  const [ping, setPing] = useState(false);
   const prev = useRef(count);
 
   useEffect(() => {
     if (count > prev.current) {
-      controls.start({ scale: [1, 1.25, 0.95, 1], transition: { duration: 0.4, ease: "easeOut" } });
+      // Rebote de la bolsa + anillo que se expande y desvanece.
+      controls.start({
+        scale: [1, 1.18, 0.94, 1],
+        rotate: [0, -8, 6, 0],
+        transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+      });
+      setPing(true);
+      const t = setTimeout(() => setPing(false), 650);
+      return () => clearTimeout(t);
     }
     prev.current = count;
   }, [count, controls]);
 
+  const label = count > 0 ? `Abrir carrito, ${count} artículo${count === 1 ? "" : "s"}` : "Abrir carrito";
+
+  if (variant === "bar") {
+    return (
+      <button
+        onClick={() => dispatch(openCart())}
+        aria-label={label}
+        className="relative flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:text-accent-2"
+      >
+        <span className="relative">
+          <motion.span animate={controls} className="block">
+            <ShoppingBag className="h-5 w-5" />
+          </motion.span>
+          {ping && (
+            <motion.span
+              aria-hidden
+              initial={{ scale: 0.6, opacity: 0.6 }}
+              animate={{ scale: 1.9, opacity: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="absolute inset-0 rounded-full ring-2 ring-accent"
+            />
+          )}
+          {count > 0 && (
+            <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-pill bg-accent px-1 text-[10px] font-bold tabular-nums text-bg ring-2 ring-surface">
+              {count}
+            </span>
+          )}
+        </span>
+        Carrito
+      </button>
+    );
+  }
+
   return (
     <motion.button
-      animate={controls}
       whileHover={{ scale: 1.06 }}
       whileTap={{ scale: 0.92 }}
       onClick={() => dispatch(openCart())}
-      aria-label={count > 0 ? `Abrir carrito, ${count} artículo${count === 1 ? "" : "s"}` : "Abrir carrito"}
-      className="relative grid h-11 w-11 place-items-center rounded-none border border-border bg-surface-2/70 text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-accent/40 hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      aria-label={label}
+      className="relative grid h-11 w-11 place-items-center rounded-lg border border-border bg-surface-2/70 text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-accent/40 hover:bg-surface-2 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
-      <ShoppingCart className="h-5 w-5" />
+      <motion.span animate={controls} className="block">
+        <ShoppingBag className="h-5 w-5" />
+      </motion.span>
+      {/* Anillo "ping" al agregar */}
+      <AnimatePresence>
+        {ping && (
+          <motion.span
+            aria-hidden
+            initial={{ scale: 0.6, opacity: 0.7 }}
+            animate={{ scale: 1.8, opacity: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="absolute inset-0 rounded-lg ring-2 ring-accent"
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {count > 0 && (
           <motion.span
@@ -49,8 +107,8 @@ export function CartButton() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 520, damping: 20 }}
-            // ring-bg lo separa del header con un halo del color de fondo → "flota".
-            className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-none bg-accent px-1 text-[11px] font-bold tabular-nums text-bg ring-2 ring-bg shadow-accent-cta"
+            // ring-bg lo separa del rail con un halo del color de fondo → "flota".
+            className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-pill bg-accent px-1 text-[11px] font-bold tabular-nums text-bg ring-2 ring-surface"
           >
             {count}
           </motion.span>

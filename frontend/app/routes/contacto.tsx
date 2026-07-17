@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { Instagram, Facebook, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import { PublicHeader } from "~/components/layout/PublicHeader";
 import { PublicFooter } from "~/components/layout/PublicFooter";
 import { Button } from "~/components/ui/Button";
 import { contactSchema, type ContactInput } from "~/lib/validators";

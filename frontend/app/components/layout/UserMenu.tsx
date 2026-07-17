@@ -14,7 +14,7 @@ import { useAppDispatch } from "~/store/hooks";
 import { setUser } from "~/store/slices/authSlice";
 import { cn } from "~/lib/utils";
 
-export function UserMenu() {
+export function UserMenu({ compact = false }: { compact?: boolean } = {}) {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
@@ -61,24 +61,43 @@ export function UserMenu() {
 
   return (
     <div className="relative" ref={ref}>
-      {/* Disparador: avatar */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2.5 rounded-pill p-1 pl-3 transition-colors hover:bg-surface-2"
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        <div className="hidden text-right lg:block">
-          <p className="text-sm font-medium leading-tight">{user.name}</p>
-        </div>
-        {user.photoURL ? (
-          <img src={user.photoURL} alt="" className="h-9 w-9 rounded-full object-cover" />
-        ) : (
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-accent text-sm font-semibold text-white">
-            {user.name?.[0]?.toUpperCase() || "?"}
+      {/* Disparador: avatar. `compact` = columna icono+etiqueta para la barra móvil. */}
+      {compact ? (
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:text-accent-2"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label="Cuenta"
+        >
+          {user.photoURL ? (
+            <img src={user.photoURL} alt="" className="h-6 w-6 rounded-full object-cover" />
+          ) : (
+            <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-accent text-[11px] font-semibold text-bg">
+              {user.name?.[0]?.toUpperCase() || "?"}
+            </div>
+          )}
+          Cuenta
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-2.5 rounded-pill p-1 pl-3 transition-colors hover:bg-surface-2"
+          aria-haspopup="menu"
+          aria-expanded={open}
+        >
+          <div className="hidden text-right lg:block">
+            <p className="text-sm font-medium leading-tight">{user.name}</p>
           </div>
-        )}
-      </button>
+          {user.photoURL ? (
+            <img src={user.photoURL} alt="" className="h-9 w-9 rounded-full object-cover" />
+          ) : (
+            <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-accent text-sm font-semibold text-bg">
+              {user.name?.[0]?.toUpperCase() || "?"}
+            </div>
+          )}
+        </button>
+      )}
 
       <AnimatePresence>
         {open && (
@@ -88,14 +107,17 @@ export function UserMenu() {
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
             role="menu"
-            className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-card border border-border bg-surface shadow-2xl"
+            className={cn(
+              "absolute right-0 z-50 w-72 overflow-hidden rounded-card border border-border bg-surface shadow-2xl",
+              compact ? "bottom-full mb-2" : "mt-2",
+            )}
           >
             {/* Cabecera: nombre + email */}
             <div className="flex items-center gap-3 border-b border-border px-4 py-3">
               {user.photoURL ? (
                 <img src={user.photoURL} alt="" className="h-10 w-10 rounded-full object-cover" />
               ) : (
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-accent text-sm font-semibold text-white">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-accent text-sm font-semibold text-bg">
                   {user.name?.[0]?.toUpperCase() || "?"}
                 </div>
               )}
@@ -396,7 +418,7 @@ function ChangePhotoModal({ open, onClose }: { open: boolean; onClose: () => voi
           {currentSrc ? (
             <img src={currentSrc} alt="" className="h-24 w-24 rounded-full object-cover" />
           ) : (
-            <div className="grid h-24 w-24 place-items-center rounded-full bg-gradient-accent text-2xl font-semibold text-white">
+            <div className="grid h-24 w-24 place-items-center rounded-full bg-gradient-accent text-2xl font-semibold text-bg">
               {user?.name?.[0]?.toUpperCase() || "?"}
             </div>
           )}
