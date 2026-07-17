@@ -1,4 +1,4 @@
-﻿// LÃ³gica de negocio de ventas: comisiones y rentabilidad. CENTRALIZADA aquÃ­ para
+// LÃ³gica de negocio de ventas: comisiones y rentabilidad. CENTRALIZADA aquÃ­ para
 // que el cotizador (estimaciÃ³n) y la aprobaciÃ³n (definitivo) usen exactamente la
 // misma fÃ³rmula. NO duplicar estas cuentas en ninguna otra parte.
 const { db } = require('../firebase');
@@ -163,6 +163,110 @@ function migratedComisionPct(utilidad) {
   if (utilidad <= 300) return 45;
   if (utilidad <= 600) return 40;
   if (utilidad <= 900) return 38;
+function computeFinancials({ lines }) {
+  let costRealTotal = 0, utilidadBrutaTotal = 0, utilidadNetaTotal = 0, comisionVendedorTotal = 0, gananciaTiendaTotal = 0, costosFijosTotal = 0, saleTotal = 0;
+  const linesFinancials = [];
+
+  const breakdownWeights = { prestamos: 5, garantias: 5, publicidad: 10, servicios: 5, insumos: 5 };
+  const totalWeight = 30; // 5 + 5 + 10 + 5 + 5
+
+  for (const line of lines) {
+    const unitPrice = line.salePrice || 0;
+    const qty = line.quantity || 1;
+    const lineTotal = unitPrice * qty;
+    const lineCost = line.lineCost || 0;
+    const unitCost = qty > 0 ? lineCost / qty : 0;
+    
+    // MÃ¡rgenes basados en PRECIO UNITARIO (solo para la comisiÃ³n ahora)
+    const { comisionPct } = getDynamicMargins(unitPrice);
+    
+    const unitUB = unitPrice - unitCost;
+    // Nuevo cÃ¡lculo de costos fijos: ya estÃ¡n agregados al costo real (25% del costoFijoCordobas = unitCost / 0.75 - unitCost)
+    const unitCF = (unitCost / 0.75) - unitCost;
+    const unitUN = unitUB - unitCF;
+    const unitComision = unitUN > 0 ? unitUN * (comisionPct / 100) : 0;
+    
+    const ubLine = unitUB * qty;
+    const cfLine = unitCF * qty;
+    const unLine = unitUN * qty;
+    const comisionLine = unitComision * qty;
+    const gananciaLine = unLine - comisionLine;
+    
+    saleTotal += lineTotal;
+    costRealTotal += lineCost;
+    utilidadBrutaTotal += ubLine;
+    costosFijosTotal += cfLine;
+    utilidadNetaTotal += unLine;
+    comisionVendedorTotal += comisionLine;
+    gananciaTiendaTotal += gananciaLine;
+
+    // Desglose de costos fijos
+    const unitCostosFijosDesglose = {};
+    const costosFijosDesglose = {};
+    for (const [k, w] of Object.entries(breakdownWeights)) {
+      unitCostosFijosDesglose[k] = round(unitCF * (w / totalWeight));
+      costosFijosDesglose[k] = round(unitCF * (w / totalWeight) * qty);
+    }
+
+    const unitGanancia = unitUN - unitComision;
+
+    linesFinancials.push({
+      ...line,
+      // â”€â”€ Valores POR UNIDAD (el cÃ¡lculo base) â”€â”€
+      unitCostReal: round(unitCost),
+      unitUtilidadBruta: round(unitUB),
+      unitCostosFijos: round(unitCF),
+      unitCostosFijosDesglose,
+      unitUtilidadNeta: round(unitUN),
+      unitComisionVendedor: round(unitComision),
+      unitGananciaTienda: round(unitGanancia),
+      unitInversionRecuperada: round(unitCost),
+      // â”€â”€ Valores TOTALES (unitario Ã— cantidad) â”€â”€
+      costReal: round(lineCost),
+      utilidadBruta: round(ubLine),
+      costosFijos: round(cfLine),
+      costosFijosDesglose,
+      costosFijosPct: 25, // Conceptualmente representa el 25% del costo con fijos
+      utilidadNeta: round(unLine),
+      comisionVendedor: round(comisionLine),
+      comisionPercent: comisionPct,
+      gananciaTienda: round(gananciaLine),
+      inversionRecuperada: round(lineCost),
+    });
+  }
+
+  const comisionPercentGlobal = utilidadNetaTotal > 0 ? round((comisionVendedorTotal / utilidadNetaTotal) * 100) : 0;
+  const costosFijosPctGlobal = 25;
+
+  return {
+    saleTotal: round(saleTotal),
+    costReal: round(costRealTotal),
+    utilidadBruta: round(utilidadBrutaTotal),
+    costosFijos: round(costosFijosTotal),
+    utilidadNeta: round(utilidadNetaTotal),
+    comisionVendedor: round(comisionVendedorTotal),
+    comisionPercent: comisionPercentGlobal,
+    gananciaTienda: round(gananciaTiendaTotal),
+    costosFijosPct: costosFijosPctGlobal,
+    inversionRecuperada: round(costRealTotal),
+    linesFinancials,
+  };
+}
+
+function round(n) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+// ComisiÃ³n M1 â€” % escalonado segÃºn la UTILIDAD de la lÃ­nea (venta âˆ’ costo), no
+// segÃºn saleTotal. Replica la tabla del Excel viejo:
+//   â‰¤0 â†’ 0 Â· â‰¤300 â†’ 45% Â· â‰¤600 â†’ 40% Â· â‰¤900 â†’ 38% Â· â‰¤1000 â†’ 35%
+//   â‰¤1400 â†’ 32% Â· â‰¤1800 â†’ 30% Â· >1800 â†’ 28%
+// (El Excel dejaba 1800â€“2000 en "-"; aquÃ­ se rellena con 28% para no pagar 0.)
+function migratedComisionPct(utilidad) {
+  if (utilidad <= 0) return 0;
+  if (utilidad <= 300) return 45;
+  if (utilidad <= 600) return 40;
+  if (utilidad <= 900) return 38;
   if (utilidad <= 1000) return 35;
   if (utilidad <= 1400) return 32;
   if (utilidad <= 1800) return 30;
@@ -171,7 +275,7 @@ function migratedComisionPct(utilidad) {
 
 // Financieros de venta MIGRADA, por lÃ­nea con su modo.
 //   - M1: utilidad = venta âˆ’ costo, SIN costos fijos; comisiÃ³n por tabla escalonada.
-//   - M2: Utilidad Bruta = venta - costo. Gastos fijos = (unitCost / 0.75) - unitCost. Neta = UB - GF. ComisiÃ³n sobre Neta.
+//   - M2: Utilidad Bruta = venta - costo. Gastos fijos = 15% de UB. Neta = UB - GF. ComisiÃ³n sobre Neta.
 // `lines`: [{ lineTotal, lineCost, mode }]. Devuelve la misma forma que computeFinancials.
 function migratedM2ComisionPct(utilidadNeta) {
   if (utilidadNeta <= 0) return 0;
@@ -188,9 +292,6 @@ function computeMigratedFinancials({ lines }) {
   let costReal = 0, utilidadBruta = 0, utilidadNeta = 0, comisionVendedor = 0, gananciaTienda = 0, totalCostosFijos = 0;
   const linesFinancials = [];
 
-  const breakdownWeights = { prestamos: 5, garantias: 5, publicidad: 10, servicios: 5, insumos: 5 };
-  const totalWeight = 30; // 5 + 5 + 10 + 5 + 5
-
   for (const l of lines) {
     const qty = l.quantity || 1;
     const ub = (l.lineTotal || 0) - (l.lineCost || 0);
@@ -199,38 +300,22 @@ function computeMigratedFinancials({ lines }) {
     
     let neta = 0, comision = 0, gastosFijos = 0;
     let unitCF = 0, unitUN = 0, unitComision = 0;
-    
-    let unitCostosFijosDesglose = null;
-    let costosFijosDesglose = null;
-
-    // "para ventas mihradas sera el mismo proceso"
-    // Asumimos que ahora todas las migradas aplican el mismo costo fijo del 25%?
-    // El usuario dijo: "para ventas mihradas sera el mismo proceso". AsÃ­ que M2 y M1 ahora usan el mismo cÃ¡lculo de costo fijo.
-    // Wait, M1 era SIN costos fijos antes. Si el usuario dijo "para ventas mihradas sera el mismo proceso", 
-    // asumirÃ© que ahora aplica para todos.
-    
-    unitCF = (unitCost / 0.75) - unitCost;
-    unitUN = unitUB - unitCF;
-    
-    unitCostosFijosDesglose = {};
-    costosFijosDesglose = {};
-    for (const [k, w] of Object.entries(breakdownWeights)) {
-      unitCostosFijosDesglose[k] = round(unitCF * (w / totalWeight));
-      costosFijosDesglose[k] = round(unitCF * (w / totalWeight) * qty);
-    }
 
     if (l.mode === 'M2') {
+      unitCF = unitUB * 0.15; // 15% de Gastos Fijos
+      unitUN = unitUB - unitCF;
       unitComision = unitUN > 0 ? unitUN * (migratedM2ComisionPct(unitUN) / 100) : 0;
+      
+      gastosFijos = unitCF * qty;
+      neta = unitUN * qty;
+      comision = unitComision * qty;
     } else {
-      // M1 original calculaba comisiÃ³n sobre Utilidad Bruta. Lo mantendrÃ© usando la escala en UB para no romper el % del vendedor migrado, 
-      // a menos que tambiÃ©n cambie a utilidades netas. El usuario dijo "el mismo proceso".
-      // UsarÃ© la misma lÃ³gica: comisiÃ³n sobre Utilidad Neta.
+      unitUN = unitUB; // sin costos fijos
       unitComision = unitUN > 0 ? unitUN * (migratedComisionPct(unitUN) / 100) : 0;
+      
+      neta = unitUN * qty;
+      comision = unitComision * qty;
     }
-    
-    gastosFijos = unitCF * qty;
-    neta = unitUN * qty;
-    comision = unitComision * qty;
 
     costReal += l.lineCost || 0;
     utilidadBruta += ub;
@@ -241,7 +326,7 @@ function computeMigratedFinancials({ lines }) {
     gananciaTienda += gananciaLine;
 
     const unitGanancia = unitUN - unitComision;
-    const cfPct = 25;
+    const cfPct = l.mode === 'M2' ? 15 : 0;
     const comPct = l.mode === 'M2' ? migratedM2ComisionPct(unitUN) : migratedComisionPct(unitUN);
 
     linesFinancials.push({
@@ -250,7 +335,6 @@ function computeMigratedFinancials({ lines }) {
       unitCostReal: round(unitCost),
       unitUtilidadBruta: round(unitUB),
       unitCostosFijos: round(unitCF),
-      unitCostosFijosDesglose,
       unitUtilidadNeta: round(unitUN),
       unitComisionVendedor: round(unitComision),
       unitGananciaTienda: round(unitGanancia),
@@ -259,7 +343,6 @@ function computeMigratedFinancials({ lines }) {
       costReal: round(l.lineCost || 0),
       utilidadBruta: round(ub),
       costosFijos: round(gastosFijos),
-      costosFijosDesglose,
       costosFijosPct: cfPct,
       utilidadNeta: round(neta),
       comisionVendedor: round(comision),
@@ -267,7 +350,6 @@ function computeMigratedFinancials({ lines }) {
       gananciaTienda: round(gananciaLine),
       inversionRecuperada: round(l.lineCost || 0),
     });
-
   }
 
   const comisionPercent = utilidadNeta > 0 ? round((comisionVendedor / utilidadNeta) * 100) : 0;
@@ -288,4 +370,3 @@ function computeMigratedFinancials({ lines }) {
 }
 
 module.exports = { calcularComision, calcularComisionYPorcentaje, getCostosFijosPct, getCostosFijosConfig, computeFinancials, computeMigratedFinancials, round };
-
