@@ -58,9 +58,9 @@
   --font-heading: "Inter", system-ui, -apple-system, sans-serif;
 
   /* Radios (del storefront) */
-  --radius-card: 0px;
-  --radius-input: 0px;
-  --radius-pill: 0px;
+  --radius-card: 20px;
+  --radius-input: 14px;
+  --radius-pill: 99px;
 
   /* Sombra premium (del storefront) */
   --shadow-premium:
