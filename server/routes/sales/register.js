@@ -6,6 +6,7 @@ const config = require('../../config');
 const { requireSeller } = require('../../middleware/auth');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { reserveForItems, reserveForMigratedItems } = require('../../services/sales');
+const { saleItemsSchema } = require('../../utils/validators');
 const storage = require('../../services/storage');
 const {
   ORDERS, upload, isAdminLike, publicItems, buildLines, migratedFinancialsFromLines, validatePriceFloor,
@@ -42,6 +43,11 @@ router.post('/report', requireSeller, upload.single('receipt'), asyncHandler(asy
   } catch {
     return res.status(400).json({ error: 'Datos de la venta inválidos.' });
   }
+  const parsedItems = saleItemsSchema.safeParse(items);
+  if (!parsedItems.success) {
+    return res.status(400).json({ error: parsedItems.error.errors[0]?.message || 'Datos de la venta inválidos.' });
+  }
+  items = parsedItems.data;
 
   const { lines, saleTotal } = await buildLines(items);
   if (!lines.length) return res.status(400).json({ error: 'La venta no tiene productos válidos.' });
@@ -246,6 +252,11 @@ router.post('/', requireSeller, upload.single('receipt'), asyncHandler(async (re
   } catch {
     return res.status(400).json({ error: 'Datos de la venta inválidos.' });
   }
+  const parsedItems = saleItemsSchema.safeParse(items);
+  if (!parsedItems.success) {
+    return res.status(400).json({ error: parsedItems.error.errors[0]?.message || 'Datos de la venta inválidos.' });
+  }
+  items = parsedItems.data;
 
   let built;
   try {

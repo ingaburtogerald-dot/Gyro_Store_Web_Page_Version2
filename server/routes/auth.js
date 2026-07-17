@@ -1,15 +1,15 @@
 // Rutas de autenticación.
 const router = require('express').Router();
-const multer = require('multer');
 const { auth, db } = require('../firebase');
 const config = require('../config');
 const storage = require('../services/storage');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { requireAnyRole } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
+const { imageUpload } = require('../utils/upload');
 
 // Imágenes en memoria, máx 5 MB.
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = imageUpload({ maxSizeMb: 5 });
 
 // GET /api/auth/config — config pública de Firebase Web (para el login del navegador).
 // No expone secretos: la apiKey web de Firebase es pública por diseño.

@@ -2,6 +2,7 @@
 // Reciclado del proyecto anterior: whitelist por env → Firestore → array de roles.
 const { auth, db } = require('../firebase');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 const VALID_ROLES = config.validRoles;
 
@@ -9,38 +10,55 @@ function primaryRole(roles) {
   return config.rolePriority.find((r) => roles.includes(r)) || roles[0] || null;
 }
 
-// Resuelve los roles de un correo. Env vars primero (rápido, sin índice),
-// luego Firestore (usuarios creados desde el panel). Siempre devuelve un array.
-async function resolveRoles(email) {
+// Lee el doc de usuario por email UNA sola vez (query de un solo campo, sin índice
+// compuesto). Devuelve { ref, data } o null. Centraliza la lectura para que
+// authenticate() no consulte el mismo documento dos veces por request.
+async function fetchUserByEmail(email) {
+  try {
+    const snap = await db
+      .collection(config.collections.users)
+      .where('email', '==', email.toLowerCase())
+      .limit(1)
+      .get();
+    if (snap.empty) return null;
+    return { ref: snap.docs[0].ref, data: snap.docs[0].data() };
+  } catch (err) {
+    logger.error('fetch_user_by_email_failed', { email: email.toLowerCase(), message: err.message });
+    return null;
+  }
+}
+
+// Deriva los roles a partir del email (whitelist por env) y, si no aplica, del
+// doc de usuario YA leído. No hace I/O: recibe los datos ya en memoria.
+function rolesFromEnvOrDoc(email, userData) {
   const lower = email.toLowerCase();
 
-  // 1. Whitelist por variables de entorno
+  // 1. Whitelist por variables de entorno (rápido, sin lectura de Firestore).
   if (config.adminEmails.includes(lower)) {
     return lower === config.protectedEmail ? ['global_admin'] : ['admin'];
   }
   if (config.sellerEmails.includes(lower)) return ['seller'];
 
-  // 2. Firestore — query de un solo campo para no requerir índice compuesto
-  try {
-    const snap = await db
-      .collection(config.collections.users)
-      .where('email', '==', lower)
-      .limit(1)
-      .get();
-    if (!snap.empty) {
-      const data = snap.docs[0].data();
-      if (data.status !== 'disabled' && !data.deletedAt) {
-        const roles = Array.isArray(data.roles) && data.roles.length
-          ? data.roles.filter((r) => VALID_ROLES.includes(r))
-          : VALID_ROLES.includes(data.role) ? [data.role] : [];
-        if (roles.length) return roles;
-      }
-    }
-  } catch (err) {
-    console.error('⚠️  resolveRoles Firestore error:', err.message);
+  // 2. Doc de Firestore (usuarios creados desde el panel).
+  if (userData && userData.status !== 'disabled' && !userData.deletedAt) {
+    const roles = Array.isArray(userData.roles) && userData.roles.length
+      ? userData.roles.filter((r) => VALID_ROLES.includes(r))
+      : VALID_ROLES.includes(userData.role) ? [userData.role] : [];
+    if (roles.length) return roles;
   }
-
   return [];
+}
+
+// API pública (env-first, luego Firestore). Se mantiene para llamadas externas;
+// authenticate() usa la ruta optimizada de lectura única.
+async function resolveRoles(email) {
+  const lower = email.toLowerCase();
+  if (config.adminEmails.includes(lower)) {
+    return lower === config.protectedEmail ? ['global_admin'] : ['admin'];
+  }
+  if (config.sellerEmails.includes(lower)) return ['seller'];
+  const user = await fetchUserByEmail(lower);
+  return rolesFromEnvOrDoc(lower, user && user.data);
 }
 
 // Verifica el Bearer token y devuelve { user } o { error, message }.
@@ -59,31 +77,30 @@ async function authenticate(req) {
       return { error: 403, message: 'El correo de la cuenta no está verificado.' };
     }
 
-    const roles = await resolveRoles(decoded.email);
+    // UNA sola lectura del doc de usuario, reusada para roles + flags + sync
+    // (antes se leía el mismo documento dos veces por request).
+    const user = await fetchUserByEmail(decoded.email);
+    const roles = rolesFromEnvOrDoc(decoded.email, user && user.data);
     let mustChangePassword = false;
     let whatsapp = '';
-    try {
-      const snap = await db.collection(config.collections.users).where('email', '==', decoded.email.toLowerCase()).limit(1).get();
-      if (!snap.empty) {
-        const docSnap = snap.docs[0];
-        const data = docSnap.data();
-        mustChangePassword = data.mustChangePassword === true;
-        whatsapp = data.whatsapp || '';
+    if (user) {
+      const data = user.data;
+      mustChangePassword = data.mustChangePassword === true;
+      whatsapp = data.whatsapp || '';
 
-        // Sincronizar foto de perfil y nombre de proveedores (Google/Microsoft) a Firestore
-        // para que se vea en el panel de Gestión de Usuarios.
-        const updateData = {};
-        if (decoded.picture && data.photoURL !== decoded.picture) {
-          updateData.photoURL = decoded.picture;
-        }
-        if (decoded.name && data.name !== decoded.name) {
-          updateData.name = decoded.name;
-        }
-        if (Object.keys(updateData).length > 0) {
-          docSnap.ref.update(updateData).catch(() => {});
-        }
+      // Sincronizar foto de perfil y nombre de proveedores (Google/Microsoft) a Firestore
+      // para que se vea en el panel de Gestión de Usuarios.
+      const updateData = {};
+      if (decoded.picture && data.photoURL !== decoded.picture) {
+        updateData.photoURL = decoded.picture;
       }
-    } catch {}
+      if (decoded.name && data.name !== decoded.name) {
+        updateData.name = decoded.name;
+      }
+      if (Object.keys(updateData).length > 0) {
+        user.ref.update(updateData).catch(() => {});
+      }
+    }
 
     return {
       user: {
@@ -98,7 +115,7 @@ async function authenticate(req) {
       },
     };
   } catch (err) {
-    console.error('❌ Error al verificar token:', err.message);
+    logger.error('verify_token_failed', { message: err.message });
     return { error: 401, message: 'Sesión inválida o expirada.' };
   }
 }

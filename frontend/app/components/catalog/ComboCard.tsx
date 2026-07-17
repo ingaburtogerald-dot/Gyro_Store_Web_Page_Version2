@@ -36,20 +36,20 @@ export function ComboCard({ combo, index = 0 }: { combo: Combo; index?: number }
     <motion.article
       {...motionProps}
       className={cn(
-        "card-premium ease-expo group relative flex h-full flex-col overflow-hidden rounded-2xl p-3",
+        "card-premium ease-expo group relative flex h-full flex-col overflow-hidden rounded-none p-3",
         "transition-[transform,border-color,box-shadow] duration-300 hover:border-white/25",
       )}
     >
       <Link to={`/combo/${combo.id}`} prefetch="intent" aria-label={combo.name} className="block">
         {/* Escenario: las 2 fotos con el "+" al centro */}
-        <div className="relative flex items-center gap-2 rounded-xl bg-surface-2/40 p-3">
-          <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent ring-1 ring-accent/30 backdrop-blur-md">
+        <div className="relative flex items-center gap-2 rounded-none bg-surface-2/40 p-3">
+          <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-none bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent ring-1 ring-accent/30 backdrop-blur-md">
             <Sparkles className="h-3 w-3" /> Combo
           </span>
           {combo.products.map((p, i) => (
             <div key={p.id} className="flex flex-1 items-center gap-2">
               {i > 0 && <span className="text-lg font-light text-muted">+</span>}
-              <div className="aspect-square w-full overflow-hidden rounded-lg">
+              <div className="aspect-square w-full overflow-hidden rounded-none">
                 {p.image ? (
                   <img
                     src={p.image}
@@ -88,7 +88,7 @@ export function ComboCard({ combo, index = 0 }: { combo: Combo; index?: number }
               </span>
             )}
             {combo.savings > 0 && (
-              <span className="rounded-sm border border-whatsapp/20 bg-whatsapp/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-whatsapp">
+              <span className="rounded-none border border-whatsapp/20 bg-whatsapp/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-whatsapp">
                 Ahorras {formatCordobas(combo.savings)}
               </span>
             )}
@@ -99,7 +99,7 @@ export function ComboCard({ combo, index = 0 }: { combo: Combo; index?: number }
             onClick={addToCart}
             aria-label={`Agregar combo ${combo.name} al carrito`}
             className={cn(
-              "ease-expo flex h-11 w-full items-center justify-center gap-2 rounded-lg text-sm font-bold transition duration-300 active:translate-y-px active:scale-[0.98]",
+              "ease-expo flex h-11 w-full items-center justify-center gap-2 rounded-none text-sm font-bold transition duration-300 active:translate-y-px active:scale-[0.98]",
               "bg-accent text-bg hover:bg-accent-hover",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
             )}

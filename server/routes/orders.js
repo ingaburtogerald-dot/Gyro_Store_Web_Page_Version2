@@ -3,10 +3,11 @@
 // servidor con los datos reales de Firestore. Nunca se confía en lo que manda el cliente.
 const router = require('express').Router();
 const { z } = require('zod');
-const { db, FieldValue } = require('../firebase');
+const { db, FieldValue, Timestamp } = require('../firebase');
 const config = require('../config');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { requireAdmin } = require('../middleware/auth');
+const { paginateQuery } = require('../utils/pagination');
 
 const CATALOG = config.collections.catalog;
 const PRODUCTS = config.collections.products;
@@ -189,32 +190,53 @@ router.post('/public', asyncHandler(async (req, res) => {
   res.status(201).json({ id: ref.id, subtotal, discount, total, whatsappUrl });
 }));
 
-// GET /api/orders/public — lista todos los pedidos del catálogo (admin).
+// Forma pública de un pedido del catálogo (oculta nada sensible; ya es admin-only).
+function publicOrderView(doc) {
+  const o = doc.data();
+  return {
+    id: doc.id,
+    customerName: o.customerName,
+    customerPhone: o.customerPhone,
+    deliveryMethod: o.deliveryMethod,
+    address: o.address || '',
+    locationUrl: o.locationUrl || '',
+    note: o.note || '',
+    items: o.items || [],
+    subtotal: o.subtotal || 0,
+    discount: o.discount || 0,
+    total: o.total || 0,
+    contacted: o.contacted || false,
+    contactedAt: o.contactedAt?.toDate?.()?.toISOString() || null,
+    contactedBy: o.contactedBy || null,
+    contactAttempts: o.contactAttempts || 0,
+    archived: o.archived || false,
+    createdAt: o.createdAt?.toDate?.()?.toISOString() || null,
+  };
+}
+
+// GET /api/orders/public — lista los pedidos del catálogo (admin).
+// Compatibilidad: SIN ?limit/?cursor devuelve el array como antes (hasta 200).
+// Con ?limit= (y opcional ?cursor= ISO) devuelve { items, nextCursor, hasMore }
+// paginado por cursor sobre createdAt.
 router.get('/public', requireAdmin, asyncHandler(async (req, res) => {
-  const snap = await db.collection(PUBLIC_ORDERS).orderBy('createdAt', 'desc').limit(200).get();
-  const list = snap.docs.map((d) => {
-    const o = d.data();
-    return {
-      id: d.id,
-      customerName: o.customerName,
-      customerPhone: o.customerPhone,
-      deliveryMethod: o.deliveryMethod,
-      address: o.address || '',
-      locationUrl: o.locationUrl || '',
-      note: o.note || '',
-      items: o.items || [],
-      subtotal: o.subtotal || 0,
-      discount: o.discount || 0,
-      total: o.total || 0,
-      contacted: o.contacted || false,
-      contactedAt: o.contactedAt?.toDate?.()?.toISOString() || null,
-      contactedBy: o.contactedBy || null,
-      contactAttempts: o.contactAttempts || 0,
-      archived: o.archived || false,
-      createdAt: o.createdAt?.toDate?.()?.toISOString() || null,
-    };
+  const paginated = req.query.limit !== undefined || req.query.cursor !== undefined;
+
+  if (!paginated) {
+    const snap = await db.collection(PUBLIC_ORDERS).orderBy('createdAt', 'desc').limit(200).get();
+    return res.json(snap.docs.map(publicOrderView));
+  }
+
+  const { docs, hasMore, nextCursor } = await paginateQuery(db.collection(PUBLIC_ORDERS), {
+    orderField: 'createdAt',
+    direction: 'desc',
+    limit: req.query.limit,
+    cursor: req.query.cursor,
+    // El cursor viaja como ISO string; Firestore ordena por Timestamp.
+    decodeCursor: (iso) => Timestamp.fromDate(new Date(iso)),
+    encodeCursor: (ts) => ts?.toDate?.()?.toISOString() || null,
   });
-  res.json(list);
+
+  res.json({ items: docs.map(publicOrderView), nextCursor, hasMore });
 }));
 
 // PATCH /api/orders/public/:id/contacted — marcar si se contactó al cliente.

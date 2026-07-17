@@ -13,7 +13,7 @@ export function InfoCard({ icon: Icon, title, description, variant = "default", 
   return (
     <div
       className={cn(
-        "flex items-start gap-4 rounded-xl border bg-surface-2 p-4",
+        "flex items-start gap-4 rounded-none border bg-surface-2 p-4",
         variant === "highlight" ? "border-accent-2/30 bg-accent-2/5" : "border-border",
         className
       )}

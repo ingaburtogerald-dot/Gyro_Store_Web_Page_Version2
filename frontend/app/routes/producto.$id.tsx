@@ -322,7 +322,7 @@ export default function ProductDetail() {
               </motion.p>
 
               {/* Contenedor Unificado: Diseño Apilado */}
-              <motion.div variants={itemFade} className="card-premium mt-8 flex flex-col gap-10 rounded-3xl p-6 sm:p-8">
+              <motion.div variants={itemFade} className="card-premium mt-8 flex flex-col gap-10 rounded-none p-6 sm:p-8">
                 
                 {/* 1. Opciones de Compra */}
                 <div className="flex flex-col focus:outline-none">
@@ -343,11 +343,11 @@ export default function ProductDetail() {
                   {/* Selector de cantidad */}
                   <div className="mb-8">
                     <p className="mb-3 text-sm font-semibold text-text/80">Cantidad</p>
-                    <div className="flex items-center rounded-2xl border border-border bg-surface-2 p-1 w-fit shadow-sm">
+                    <div className="flex items-center rounded-none border border-border bg-surface-2 p-1 w-fit shadow-sm">
                       <button
                         type="button"
                         onClick={() => setQty((q) => Math.max(1, q - 1))}
-                        className="flex h-10 w-12 items-center justify-center rounded-xl text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95"
+                        className="flex h-10 w-12 items-center justify-center rounded-none text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95"
                         aria-label="Quitar uno"
                       >
                         −
@@ -356,7 +356,7 @@ export default function ProductDetail() {
                       <button
                         type="button"
                         onClick={() => setQty((q) => q + 1)}
-                        className="flex h-10 w-12 items-center justify-center rounded-xl text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95"
+                        className="flex h-10 w-12 items-center justify-center rounded-none text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95"
                         aria-label="Agregar uno"
                       >
                         +
@@ -541,7 +541,7 @@ export default function ProductDetail() {
             <p className="truncate text-xs font-medium text-muted">{selectedVariant ? selectedVariant.name : baseName}</p>
             <p className="font-heading text-xl font-bold tabular-nums text-text">{formatCordobas(unitPrice)}</p>
           </div>
-          <Button onClick={add} disabled={!inStock} className="shrink-0 rounded-xl px-5">
+          <Button onClick={add} disabled={!inStock} className="shrink-0 rounded-none px-5">
             <ShoppingBag className="h-4 w-4 mr-1.5" /> {inStock ? "Agregar" : "Agotado"}
           </Button>
         </div>

@@ -14,7 +14,9 @@ const {
 } = require('../../services/sales');
 const { RATE } = require('../../services/inventory');
 const { recordCommissionAdjustment } = require('../../services/balance');
+const { saleItemsSchema } = require('../../utils/validators');
 const storage = require('../../services/storage');
+const logger = require('../../utils/logger');
 const email = require('../../services/email');
 const {
   ORDERS, upload, getISOWeekString, buildLines, migratedFinancialsFromLines, validatePriceFloor, releaseAny,
@@ -112,13 +114,12 @@ router.post('/:id/reject', requireAdmin, asyncHandler(async (req, res) => {
 
   const order = snap.data();
 
-  // Liberar stock reservado (FIFO nativo o lote migrado)
+  // Liberar stock reservado (FIFO nativo o lote migrado). Si falla, se registra:
+  // un stock que no se libera queda "fantasma" reservado y hay que corregirlo a mano.
   if (order.reservations?.length > 0) {
-    if (order.saleOrigin === 'migrated') {
-      await releaseMigratedReservation(order.reservations).catch(() => {});
-    } else {
-      await releaseReservation(order.reservations).catch(() => {});
-    }
+    const release = order.saleOrigin === 'migrated' ? releaseMigratedReservation : releaseReservation;
+    await release(order.reservations).catch((err) =>
+      logger.error('stock_release_failed', { op: 'reject', orderId: req.params.id, origin: order.saleOrigin, message: err.message }));
   }
 
   await ref.update({ status: 'rejected', rejectionReason: reason, rejectedAt: FieldValue.serverTimestamp() });
@@ -153,6 +154,11 @@ router.put('/:id', requireAdmin, upload.single('receipt'), asyncHandler(async (r
   } catch {
     return res.status(400).json({ error: 'Datos de la venta inválidos.' });
   }
+  const parsedItems = saleItemsSchema.safeParse(items);
+  if (!parsedItems.success) {
+    return res.status(400).json({ error: parsedItems.error.errors[0]?.message || 'Datos de la venta inválidos.' });
+  }
+  items = parsedItems.data;
 
   let built;
   try {
@@ -193,7 +199,11 @@ router.put('/:id', requireAdmin, upload.single('receipt'), asyncHandler(async (r
       } else {
         await reserveForItems((order.items || []).map((it) => ({ code: it.code, quantity: it.quantity })));
       }
-    } catch { /* mejor esfuerzo */ }
+    } catch (restoreErr) {
+      // La reserva nueva falló Y no se pudo re-reservar la vieja: el stock quedó
+      // liberado sin venta que lo respalde. Se registra para corrección manual.
+      logger.error('stock_restore_failed', { op: 'edit', orderId: req.params.id, origin: oldOrigin, message: restoreErr.message });
+    }
     return res.status(400).json({ error: err.message });
   }
 
@@ -335,6 +345,12 @@ router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   }).catch(() => {});
 
   await ref.delete();
+
+  // Borrar de R2 los archivos asociados a la venta para no acumular huérfanos.
+  [order.receiptPhotoUrl, order.paymentScreenshotUrl]
+    .filter((url) => typeof url === 'string' && url)
+    .forEach((url) => storage.deleteFileByUrl(url).catch((err) => console.error('R2 delete (sale):', err.message)));
+
   res.json({ ok: true });
 }));
 

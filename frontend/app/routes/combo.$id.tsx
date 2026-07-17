@@ -94,7 +94,7 @@ export default function ComboDetail() {
           <span className="text-text">Combo</span>
         </nav>
 
-        <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent ring-1 ring-accent/30">
+        <span className="inline-flex items-center gap-1 rounded-none bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent ring-1 ring-accent/30">
           <Sparkles className="h-3.5 w-3.5" /> Combo
         </span>
         <h1 className="mt-3 font-heading text-2xl font-bold sm:text-3xl">{combo.name}</h1>
@@ -104,11 +104,11 @@ export default function ComboDetail() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
             {combo.products.map((p, i) => (
               <div key={p.id} className="flex flex-1 flex-col sm:flex-row sm:items-center">
-                <div className="card-premium flex flex-1 flex-col overflow-hidden rounded-2xl p-4">
+                <div className="card-premium flex flex-1 flex-col overflow-hidden rounded-none p-4">
                   <Link
                     to={`/producto/${p.id}`}
                     prefetch="intent"
-                    className="aspect-square w-full overflow-hidden rounded-xl bg-surface-2/40"
+                    className="aspect-square w-full overflow-hidden rounded-none bg-surface-2/40"
                   >
                     {p.image ? (
                       <img src={p.image} alt={p.name} className="h-full w-full object-contain p-6" />
@@ -141,7 +141,7 @@ export default function ComboDetail() {
           <motion.aside
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="card-premium h-fit rounded-2xl p-5 lg:sticky lg:top-24"
+            className="card-premium h-fit rounded-none p-5 lg:sticky lg:top-24"
           >
             <p className="text-sm font-medium text-muted">Precio del paquete</p>
             <div className="mt-1 flex items-baseline gap-2">
@@ -155,7 +155,7 @@ export default function ComboDetail() {
               )}
             </div>
             {combo.savings > 0 && (
-              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-whatsapp/20 bg-whatsapp/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-whatsapp">
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-none border border-whatsapp/20 bg-whatsapp/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-whatsapp">
                 <Check className="h-3.5 w-3.5" /> Ahorras {formatCordobas(combo.savings)}
               </p>
             )}

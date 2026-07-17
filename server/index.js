@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const config = require('./config');
+const logger = require('./utils/logger');
 
 require('./firebase'); // inicializa Firebase Admin
 
@@ -39,7 +40,13 @@ const corsOptions = config.isProd && config.corsOrigin
   : {};
 app.use(cors(corsOptions));
 
-if (!config.isProd) app.use('/api', morgan('dev'));
+// Logging de requests: legible en dev; en producción se emite vía el logger
+// estructurado (una línea JSON por request) para que quede en los logs de Render.
+if (config.isProd) {
+  app.use('/api', morgan('combined', { stream: { write: (line) => logger.info('http_request', { line: line.trim() }) } }));
+} else {
+  app.use('/api', morgan('dev'));
+}
 
 // ── API REST ──
 app.use('/api', apiLimiter);
@@ -66,11 +73,21 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint no encontr
 
 // ── Manejador central de errores ──
 app.use((err, req, res, next) => {
-  console.error('❌ Error:', err.message);
+  logger.error('unhandled_error', { method: req.method, path: req.originalUrl, message: err.message, stack: err.stack });
   if (err.name === 'ZodError') {
     return res.status(400).json({ error: 'Datos inválidos.', issues: err.errors });
   }
-  res.status(500).json({ error: 'Error interno del servidor.' });
+  // Errores de subida (multer): tamaño excedido o tipo de archivo rechazado.
+  if (err.name === 'MulterError') {
+    const msg = err.code === 'LIMIT_FILE_SIZE'
+      ? 'El archivo supera el tamaño máximo permitido.'
+      : 'No se pudo procesar el archivo enviado.';
+    return res.status(400).json({ error: msg });
+  }
+  // Errores con status explícito (p. ej. fileFilter → 400): se respeta el código
+  // y el mensaje. Cualquier otro caso es un 500 con mensaje genérico (no filtrar detalles).
+  const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 600 ? err.status : 500;
+  res.status(status).json({ error: status === 500 ? 'Error interno del servidor.' : err.message });
 });
 
 const { startCronJobs } = require('./cron/cleanup');

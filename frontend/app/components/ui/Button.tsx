@@ -11,16 +11,16 @@ const VARIANTS: Record<Variant, string> = {
   // Primaria — acento sólido brillante con texto oscuro (una sola convención en
   // toda la app: mismo look que tarjetas, buscador y toolbar). Con esmeralda el
   // texto oscuro da contraste ≈9:1 (AA holgado) donde el texto blanco fallaba.
-  primary: "bg-accent text-bg font-semibold hover:bg-accent-hover",
+  primary: "bg-gradient-to-b from-accent to-accent-hover shadow-md shadow-accent/20 border-t border-accent-2/20 text-bg font-semibold hover:from-accent-hover hover:to-accent hover:shadow-lg hover:shadow-accent/30 hover:-translate-y-0.5",
   // Sólido — submits dentro de modales y formularios (idéntico a primary para
   // que no haya dos "botones principales" distintos).
-  submit: "bg-accent text-bg font-semibold hover:bg-accent-hover",
+  submit: "bg-gradient-to-b from-accent to-accent-hover shadow-md shadow-accent/20 border-t border-accent-2/20 text-bg font-semibold hover:from-accent-hover hover:to-accent hover:shadow-lg hover:shadow-accent/30 hover:-translate-y-0.5",
   // Destructivo — eliminar, rechazar
-  destructive: "bg-danger/10 text-danger hover:bg-danger hover:text-white",
+  destructive: "bg-danger/10 text-danger hover:bg-danger hover:text-white hover:shadow-md hover:shadow-danger/20",
   // WhatsApp — solo para botones que abren un chat de WhatsApp real
-  whatsapp: "bg-whatsapp text-[#04201a] font-semibold",
+  whatsapp: "bg-gradient-to-b from-whatsapp to-[#00b38f] shadow-md shadow-whatsapp/20 border-t border-white/20 text-[#04201a] font-semibold hover:shadow-lg hover:-translate-y-0.5",
   ghost: "bg-transparent text-muted hover:text-text hover:bg-surface-2",
-  outline: "border border-border text-text hover:bg-surface-2",
+  outline: "border border-border text-text hover:bg-surface-2 hover:shadow-sm",
 };
 
 const SIZES: Record<Size, string> = {
@@ -46,7 +46,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       disabled={disabled || loading}
       className={cn(
-        "ease-expo inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors",
+        "ease-expo inline-flex items-center justify-center gap-2 rounded-none font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         VARIANTS[variant],

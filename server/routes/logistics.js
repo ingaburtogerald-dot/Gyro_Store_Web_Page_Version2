@@ -2,17 +2,18 @@
 // proveedor entrega en la bodega de China, y el equipo de logística valida la recepción
 // en China y luego en Nicaragua (con email + notificación en cada paso).
 const router = require('express').Router();
-const multer = require('multer');
 const { db, FieldValue } = require('../firebase');
 const config = require('../config');
 const { requireLogisticsAdmin, requireLogisticsAny } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
 const storage = require('../services/storage');
 const { sendLogisticsAdminAlert, sendLogisticsValidateAlert, sendLogisticsStatusEmail } = require('../services/email');
+const { imageOrPdfUpload } = require('../utils/upload');
 
 const SHIPMENTS = config.collections.logisticsShipments;
 const STATUS_FLOW = ['compra_registrada', 'entregado_china', 'recibido_china', 'recibido_nicaragua'];
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
+// La factura (invoiceFile) puede ser imagen o PDF; la foto del paquete es imagen.
+const upload = imageOrPdfUpload({ maxSizeMb: 8 });
 
 const isAdminLike = (roles = []) =>
   roles.includes('admin') || roles.includes('global_admin') || roles.includes('logistics_admin');

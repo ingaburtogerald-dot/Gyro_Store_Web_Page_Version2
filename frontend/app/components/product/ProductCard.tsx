@@ -80,18 +80,18 @@ export function ProductCard({
       viewTransition
       aria-label={product.name}
       className={cn(
-        "product-stage ease-expo relative block overflow-hidden rounded-xl bg-surface-2",
+        "product-stage ease-expo relative block overflow-hidden rounded-none bg-surface-2",
         isList ? "aspect-square h-full w-full shrink-0" : "aspect-square w-full",
       )}
     >
       <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
         {onSale && (
-          <span className="rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-bg">
+          <span className="rounded-none bg-accent px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-bg">
             −{discountPct}%
           </span>
         )}
         {product.isPromo && !onSale && (
-          <span className="rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold text-bg">
+          <span className="rounded-none bg-accent px-2.5 py-0.5 text-[11px] font-bold text-bg">
             Oferta
           </span>
         )}
@@ -99,7 +99,7 @@ export function ProductCard({
 
       {lowStock && (
         <div className="absolute right-2 top-2 z-10">
-          <span className="rounded-full bg-warning px-2.5 py-0.5 text-[11px] font-bold text-bg shadow-sm">
+          <span className="rounded-none bg-warning px-2.5 py-0.5 text-[11px] font-bold text-bg shadow-sm">
             ¡Últimas {product.stock}!
           </span>
         </div>
@@ -126,7 +126,7 @@ export function ProductCard({
       )}
 
       {soldOut && (
-        <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-bg/80 px-3 py-1 text-[11px] font-semibold text-text backdrop-blur-md">
+        <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-none bg-bg/80 px-3 py-1 text-[11px] font-semibold text-text backdrop-blur-md">
           Agotado
         </span>
       )}
@@ -198,7 +198,7 @@ export function ProductCard({
   };
 
   const shell = cn(
-    "ease-expo group relative overflow-hidden rounded-xl border border-border bg-surface transition-all duration-300",
+    "ease-expo group relative overflow-hidden rounded-none border border-border bg-surface transition-all duration-300",
     "hover:border-white/25 hover:shadow-[0_8px_32px_rgba(0,0,0,0.35)]",
   );
 

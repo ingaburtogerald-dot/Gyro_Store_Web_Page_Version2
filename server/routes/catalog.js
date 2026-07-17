@@ -6,17 +6,17 @@
 // real de cada SKU en la colección `products` (bodega).
 const router = require('express').Router();
 const crypto = require('crypto');
-const multer = require('multer');
 const { db, FieldValue } = require('../firebase');
 const config = require('../config');
 const { requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
 const storage = require('../services/storage');
+const { imageUpload } = require('../utils/upload');
 
 const CATALOG = config.collections.catalog;
 const TEMPLATES = config.collections.templates;
 const PRODUCTS = config.collections.products;
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
+const upload = imageUpload({ maxSizeMb: 15 });
 
 // Caché en memoria para el catálogo público
 let catalogCache = null;
@@ -381,12 +381,26 @@ router.patch('/:id/promo', requireAdmin, asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// DELETE /api/catalog/:id — elimina un ítem del catálogo.
+// DELETE /api/catalog/:id — elimina un ítem del catálogo y sus imágenes de R2.
 router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(CATALOG).doc(req.params.id);
-  if (!(await ref.get()).exists) return res.status(404).json({ error: 'Producto no encontrado.' });
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: 'Producto no encontrado.' });
+
+  // Reunir todas las imágenes del producto (galería + por color) para no dejar
+  // huérfanos en R2 (que se pagan por almacenamiento).
+  const data = snap.data();
+  const images = [...new Set([
+    ...(data.images || []),
+    ...Object.values(data.imagesByColor || {}).flat(),
+  ])].filter((url) => typeof url === 'string');
+
   await ref.delete();
   clearCatalogCache();
+
+  const { deleteFileByUrl } = require('../services/storage');
+  images.forEach((url) => deleteFileByUrl(url).catch((err) => console.error('R2 delete (catalog):', err.message)));
+
   res.json({ ok: true });
 }));
 

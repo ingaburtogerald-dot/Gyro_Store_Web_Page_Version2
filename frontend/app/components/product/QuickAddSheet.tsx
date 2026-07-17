@@ -100,7 +100,7 @@ export function QuickAddSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="relative w-full max-w-lg rounded-t-3xl border-t border-border bg-surface pb-[max(1rem,env(safe-area-inset-bottom))] text-text"
+            className="relative w-full max-w-lg rounded-t-none border-t border-border bg-surface pb-[max(1rem,env(safe-area-inset-bottom))] text-text"
           >
             {/* Asa de arrastre */}
             <div className="flex flex-col items-center pt-3">
@@ -109,7 +109,7 @@ export function QuickAddSheet({
 
             {/* Cabecera: miniatura + nombre + precio de la variante elegida */}
             <div className="flex items-center gap-3 px-5 pb-2 pt-3">
-              <div className="product-stage grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl">
+              <div className="product-stage grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-none">
                 {thumb ? (
                   <img src={thumb} alt="" className="h-full w-full object-contain p-1.5" />
                 ) : (
@@ -139,8 +139,8 @@ export function QuickAddSheet({
                     <div key={i}>
                       <div className="skeleton mb-2.5 h-4 w-24 rounded" />
                       <div className="flex gap-2.5">
-                        <div className="skeleton h-11 w-24 rounded-xl" />
-                        <div className="skeleton h-11 w-24 rounded-xl" />
+                        <div className="skeleton h-11 w-24 rounded-none" />
+                        <div className="skeleton h-11 w-24 rounded-none" />
                       </div>
                     </div>
                   ))}
@@ -165,7 +165,7 @@ export function QuickAddSheet({
                 onClick={add}
                 disabled={!variant || !inStock}
                 className={cn(
-                  "ease-expo flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition duration-300 active:scale-[0.97]",
+                  "ease-expo flex min-h-[48px] w-full items-center justify-center gap-2 rounded-none text-sm font-bold transition duration-300 active:scale-[0.97]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
                   variant && inStock
                     ? "bg-accent text-bg hover:bg-accent-hover"

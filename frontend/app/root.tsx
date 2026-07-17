@@ -20,15 +20,10 @@ export const links: LinksFunction = () => [
   { rel: "stylesheet", href: tailwind },
   { rel: "icon", type: "image/jpeg", href: "/logo.jpg" },
   { rel: "apple-touch-icon", href: "/logo.jpg" },
+  // Inter (fuente única) se carga vía @import en globals.css. Estos preconnect
+  // aceleran esa descarga a Google Fonts.
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-  {
-    // Solo 2 familias: Bricolage Grotesque (headings/UI fuerte) + Plus Jakarta
-    // Sans (body/lectura). Se eliminaron Inter y Sora — eran carga muerta y
-    // rompían la unidad admin↔catálogo. `display=swap` evita el bloqueo de render.
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
-  },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

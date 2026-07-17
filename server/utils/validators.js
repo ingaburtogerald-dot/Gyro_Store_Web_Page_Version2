@@ -13,6 +13,19 @@ const createUserSchema = z.object({
   provider: z.enum(['local', 'google', 'microsoft']).default('local'),
 });
 
+// Ítem de una venta registrada (vendedor/admin). El precio y los totales SIEMPRE
+// se recalculan en el servidor desde Firestore (ver buildLines); este schema solo
+// valida la FORMA de lo que manda el cliente antes de tocar la BD.
+const saleItemSchema = z.object({
+  productId: z.string().min(1, 'Producto inválido'),
+  origin: z.enum(['native', 'migrated']).optional().default('native'),
+  quantity: z.coerce.number().int().positive(),
+  salePrice: z.coerce.number().nonnegative(),
+  variantName: z.string().max(120).optional().default('Estándar'),
+  mode: z.enum(['M1', 'M2']).optional(),
+});
+const saleItemsSchema = z.array(saleItemSchema).min(1, 'La venta no tiene productos.');
+
 // Formulario de contacto público.
 const contactSchema = z.object({
   name: z.string().min(2).max(80),
@@ -125,6 +138,8 @@ const crmActivitySchema = z.object({
 
 module.exports = {
   roleEnum,
+  saleItemSchema,
+  saleItemsSchema,
   createUserSchema,
   contactSchema,
   purchaseSchema,

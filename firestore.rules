@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Gyro Store — Reglas de seguridad de Firestore
+//
+//  MODELO DE ACCESO: el navegador NUNCA lee ni escribe Firestore directamente.
+//  El cliente (frontend/app/lib/firebase.client.ts) solo usa Firebase AUTH para
+//  iniciar sesión; TODO el dato pasa por el backend Express, que usa el Admin SDK.
+//
+//  El Admin SDK ignora estas reglas (tiene privilegios de servidor), así que
+//  cerrar el acceso del cliente a cero NO rompe nada de la app.
+//
+//  ⚠️ Por qué deny-all: cualquier usuario logueado (incluido un cliente con
+//  cuenta de Google) obtiene un ID token válido. Sin estas reglas, con ese token
+//  podría abrir el SDK cliente por fuera de la app y leer costos/utilidades o
+//  escribir stock. Deny-all cierra esa puerta por completo.
+//
+//  Si algún día el frontend necesitara leer Firestore directo, se abren rutas
+//  puntuales aquí (nunca un allow global).
+// ─────────────────────────────────────────────────────────────────────────────
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

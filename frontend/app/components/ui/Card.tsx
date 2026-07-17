@@ -32,7 +32,7 @@ export function Card({
     ref.current.style.setProperty("--spot-y", `${e.clientY - r.top}px`);
   }
 
-  const baseStyles = "rounded-card border border-border bg-surface shadow-premium";
+  const baseStyles = "rounded-card border border-border bg-surface shadow-premium transition-all duration-300 hover:shadow-2xl hover:border-border/80 hover:-translate-y-1";
   
   if (variant === "highlight") {
     return (

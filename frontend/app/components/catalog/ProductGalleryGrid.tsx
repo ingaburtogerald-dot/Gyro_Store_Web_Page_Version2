@@ -40,7 +40,7 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
               setIsHovered(false);
               setZoomPos({ x: 50, y: 50 });
             }}
-            className="product-stage group relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-[2rem] p-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+            className="product-stage group relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-none p-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             aria-label="Ampliar imagen"
           >
             <AnimatePresence mode="wait">
@@ -114,7 +114,7 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
                 key={i}
                 onClick={() => setActiveImage(i)}
                 className={cn(
-                  "relative h-20 w-20 overflow-hidden rounded-2xl border bg-surface-2 transition-all hover:scale-105",
+                  "relative h-20 w-20 overflow-hidden rounded-none border bg-surface-2 transition-all hover:scale-105",
                   i === activeImage ? "border-accent ring-2 ring-accent ring-offset-2 ring-offset-bg opacity-100" : "border-border hover:border-accent/50 opacity-70 hover:opacity-100"
                 )}
               >

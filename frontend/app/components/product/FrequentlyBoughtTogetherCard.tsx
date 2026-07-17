@@ -23,7 +23,7 @@ export function FrequentlyBoughtTogetherCard({
   const totalPrice = mainUnitPrice * mainQty + crossPrice;
 
   return (
-    <div className="mb-8 rounded-2xl border border-border bg-surface-2 p-5 transition-shadow duration-300 ease-out hover:shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
+    <div className="mb-8 rounded-none border border-border bg-surface-2 p-5 transition-shadow duration-300 ease-out hover:shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
       <h3 className="mb-5 flex items-center gap-2 text-sm font-semibold text-text">
         <Sparkles className="h-4 w-4 text-accent" />
         Comprados juntos frecuentemente
@@ -32,7 +32,7 @@ export function FrequentlyBoughtTogetherCard({
       <div className="mb-5 flex items-center justify-center gap-2 sm:gap-4">
         {/* Main Product */}
         <div className="flex flex-1 flex-col items-center gap-2">
-          <div className="h-20 w-20 rounded-xl border border-border bg-surface p-2">
+          <div className="h-20 w-20 rounded-none border border-border bg-surface p-2">
             <img
               src={mainProduct.images?.[0] || ""}
               alt=""
@@ -55,7 +55,7 @@ export function FrequentlyBoughtTogetherCard({
 
         {/* Cross Product */}
         <div className="flex flex-1 flex-col items-center gap-2">
-          <div className="h-20 w-20 rounded-xl border border-border bg-surface p-2">
+          <div className="h-20 w-20 rounded-none border border-border bg-surface p-2">
             <img
               src={crossProduct.images?.[0] || ""}
               alt=""

@@ -1,3 +1,6 @@
+/* Inter — fuente ÚNICA de toda la app (headings + body). Pesos 400/500/600/700.
+   Los @import de URL deben ir antes que cualquier otra regla CSS. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "react-day-picker/style.css";
 
@@ -47,15 +50,17 @@
   --color-tone-purple: #c084fc;
   --color-tone-red: #f87171;
 
-  /* Tipografía: body/lectura = Plus Jakarta Sans; headings/UI fuerte = Bricolage.
-     Antes el body heredaba Bricolage (display) → texto denso y cansado. */
-  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --font-heading: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+  /* Tipografía UNIFICADA: Inter para TODO (body + headings). La jerarquía se logra
+     solo con tamaño y peso (text-sm/lg, font-medium/bold), no con familias distintas.
+     Ambas variables apuntan a la misma familia a propósito: así cualquier `font-heading`
+     o `font-sans` del código existente renderiza Inter sin tocar los componentes. */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-heading: "Inter", system-ui, -apple-system, sans-serif;
 
   /* Radios (del storefront) */
-  --radius-card: 20px;
-  --radius-input: 14px;
-  --radius-pill: 99px;
+  --radius-card: 0px;
+  --radius-input: 0px;
+  --radius-pill: 0px;
 
   /* Sombra premium (del storefront) */
   --shadow-premium:
@@ -354,7 +359,7 @@
 
   h1, h2, h3, h4 {
     font-family: var(--font-heading);
-    letter-spacing: -0.02em; /* tracking ajustado = look premium en Sora */
+    letter-spacing: -0.02em; /* leve tracking negativo = títulos más nítidos en Inter */
   }
 
   /* Cifras alineadas (estados de cuenta, KPIs, tablas) */

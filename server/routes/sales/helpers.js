@@ -2,17 +2,18 @@
 // El cotizador y la aprobación comparten la misma fórmula (services/commission)
 // y el mismo FIFO (services/sales). Los totales y la comisión SIEMPRE se
 // calculan en el servidor.
-const multer = require('multer');
 const { db } = require('../../firebase');
 const config = require('../../config');
 const { computeMigratedFinancials } = require('../../services/commission');
 const { fifoForCode, releaseReservation, releaseMigratedReservation } = require('../../services/sales');
 const { RATE } = require('../../services/inventory');
+const { imageUpload } = require('../../utils/upload');
+const logger = require('../../utils/logger');
 
 const ORDERS = config.collections.orders;
 const PRODUCTS = config.collections.products;
 const MIGRATED = config.collections.migratedInventory;
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
+const upload = imageUpload({ maxSizeMb: 8 });
 
 const isAdminLike = (u) => u.roles.includes('admin') || u.roles.includes('global_admin');
 
@@ -177,11 +178,13 @@ function distributeReservations(lineGroups, reservations) {
   return reservationsForGroup;
 }
 
-// Libera reservas según el origen de la venta.
+// Libera reservas según el origen de la venta. Un fallo aquí deja stock
+// reservado sin venta que lo respalde, así que se registra (no se traga).
 async function releaseAny(saleOrigin, reservations) {
   if (!reservations || reservations.length === 0) return;
-  if (saleOrigin === 'migrated') await releaseMigratedReservation(reservations).catch(() => {});
-  else await releaseReservation(reservations).catch(() => {});
+  const release = saleOrigin === 'migrated' ? releaseMigratedReservation : releaseReservation;
+  await release(reservations).catch((err) =>
+    logger.error('stock_release_failed', { origin: saleOrigin, message: err.message }));
 }
 
 module.exports = {
