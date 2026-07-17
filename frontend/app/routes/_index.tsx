@@ -9,6 +9,7 @@ import { ProductCarousel } from "~/components/product/ProductCarousel";
 import { ComboSection } from "~/components/catalog/ComboSection";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
 import { CategoryChips } from "~/components/filters/CategoryChips";
+import { PublicSidebar } from "~/components/layout/PublicSidebar";
 import { FilterBar } from "~/components/filters/FilterBar";
 import { ActiveFilters } from "~/components/filters/ActiveFilters";
 import { FilterFab } from "~/components/catalog/FilterFab";
@@ -147,6 +148,10 @@ export default function Index() {
 
   return (
     <>
+      {/* Drawer de categorías (el que abre el chip "Todo"). Vive aquí porque el
+          árbol de categorías se resuelve en el loader de la home; sin montarlo el
+          botón "Todo" no tenía panel que abrir. */}
+      <PublicSidebar categories={categories} />
       {!editing && (
         <>
           <FilterFab />

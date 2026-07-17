@@ -121,7 +121,7 @@ export function ErrorBoundary() {
           {stack}
         </pre>
       )}
-      <a href="/" className="rounded-pill bg-gradient-accent px-6 py-2.5 text-sm font-medium text-white">
+      <a href="/" className="rounded-pill bg-gradient-accent px-6 py-2.5 text-sm font-medium text-bg">
         Volver al inicio
       </a>
     </main>

@@ -26,6 +26,7 @@ import {
   ChevronRight,
   KanbanSquare,
   ArrowUpRight,
+  Shield,
 } from "lucide-react";
 import { UserMenu } from "./UserMenu";
 import { NotificationsBell } from "./NotificationsBell";
@@ -149,7 +150,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const search = useAppSelector((s) => s.ui.search);
   const showSearch = location.pathname === "/";
-  const showSidebar = !!user;
+  // El rail de portales es el chrome del Centro de Administración: SOLO debe
+  // aparecer en /admin/*. En las páginas públicas (catálogo, ficha, combo,
+  // contacto) el shell se comporta como tienda, sin el menú interno — así el
+  // storefront no hereda la navegación de admin cuando hay sesión iniciada.
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  const showSidebar = !!user && isAdminRoute;
 
   const canSee = (item: NavItem) =>
     roles.includes("global_admin") || item.roles.includes("public") || item.roles.some((r) => roles.includes(r as Role));
@@ -159,6 +165,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const visible = visibleGroups.flatMap((g) => g.items);
   // Match exact para "/" o startswith para otras rutas
   const current = visible.find((item) => item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to));
+
+  // Entrada al Centro de Administración desde el header de una página pública:
+  // como el rail se oculta fuera de /admin/*, un usuario con sesión necesita un
+  // acceso visible al panel. Apuntamos al primer portal de admin que su rol permite.
+  const adminEntry = user && !isAdminRoute ? visible.find((item) => item.to.startsWith("/admin")) : undefined;
 
   // La campana de seguimientos solo aplica a quienes usan el CRM (admin/seller).
   const canCRM = roles.includes("global_admin") || roles.includes("admin") || roles.includes("seller");
@@ -367,7 +378,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {user.photoURL ? (
               <img src={user.photoURL} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
             ) : (
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-accent text-xs font-semibold text-white">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-accent text-xs font-semibold text-bg">
                 {user.name?.[0]?.toUpperCase() || "?"}
               </div>
             )}
@@ -426,7 +437,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           <Icon className="h-5 w-5 shrink-0" />
                           <span className="flex-1 truncate">{label}</span>
                           {badge > 0 && (
-                            <span className="rounded-full bg-warning px-2 py-0.5 text-[11px] font-bold text-[#000000]">
+                            <span className="rounded-pill bg-warning px-2 py-0.5 text-[11px] font-bold text-bg">
                               {badge}
                             </span>
                           )}
@@ -444,7 +455,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {user.photoURL ? (
                     <img src={user.photoURL} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-border" />
                   ) : (
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-accent text-sm font-semibold text-white shadow-inner">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-accent text-sm font-semibold text-bg shadow-inner">
                       {user.name?.[0]?.toUpperCase() || "?"}
                     </div>
                   )}
@@ -463,11 +474,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="flex flex-1 min-w-0 min-h-dvh flex-col transition-all duration-300"
       >
         <header className="sticky top-0 z-[60] flex h-16 items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 md:bg-surface/60 md:backdrop-blur-xl">
-          {/* Lado izquierdo (Menú / Logo / Breadcrumbs) */}
-          <div className="flex shrink-0 items-center gap-2 md:w-64">
+          {/* Lado izquierdo (Menú / Logo / Breadcrumbs). Sin ancho fijo: usa flex
+              para alinearse con el sidebar expandido (256px) o colapsado (80px)
+              sin descuadrar el buscador. */}
+          <div className="flex min-w-0 shrink items-center gap-2">
             {showSidebar ? (
               <button
-                className="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-none text-muted transition-colors hover:bg-surface-2 hover:text-text md:hidden"
+                className="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-text md:hidden"
                 onClick={() => dispatch(toggleSidebar())}
               >
                 <Menu className="h-5 w-5" />
@@ -504,13 +517,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Lado derecho (Carrito, Usuario) */}
-          <div className="flex shrink-0 items-center gap-2 justify-end md:w-64">
+          <div className="flex shrink-0 items-center gap-2 justify-end">
             <CartButton />
             {canCRM && <NotificationsBell />}
+            {adminEntry && (
+              <Link
+                to={adminEntry.to}
+                className="hidden items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm font-medium text-text transition-colors hover:border-accent/40 hover:text-accent-2 sm:inline-flex"
+                title="Ir al Centro de Administración"
+              >
+                <Shield className="h-4 w-4 text-accent-2" />
+                Panel
+              </Link>
+            )}
             {user ? (
               <UserMenu />
             ) : (
-              <Link to="/login" className="rounded-none bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-2 transition-colors">
+              <Link to="/login" className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-bg hover:bg-accent-2 transition-colors">
                 Iniciar Sesión
               </Link>
             )}
