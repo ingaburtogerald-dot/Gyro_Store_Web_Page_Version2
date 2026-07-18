@@ -16,6 +16,7 @@ import { useAuthBootstrap } from "~/hooks/useAuth";
 import { useTheme } from "~/hooks/useTheme";
 import { ForcePasswordChangeGate } from "~/components/auth/ForcePasswordChangeGate";
 import { AppShell } from "~/components/layout/AppShell";
+import { StorefrontShell } from "~/components/layout/StorefrontShell";
 import tailwind from "~/styles/globals.css?url";
 
 export const links: LinksFunction = () => [
@@ -44,10 +45,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             su función meta() — homepage y página de producto — con URL absoluta. */}
         <Meta />
         <Links />
-        {/* Aplica el tema guardado antes del primer paint para evitar parpadeo */}
+        {/* App bloqueada en modo oscuro: fija data-theme="dark" antes del primer paint. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('gyro-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
+            __html: `document.documentElement.setAttribute('data-theme','dark');`,
           }}
         />
       </head>
@@ -91,16 +92,33 @@ function AuthBootstrap() {
 
 export default function App() {
   const location = useLocation();
-  const isLogin = location.pathname.startsWith("/login");
-  
-  if (isLogin) {
+  const path = location.pathname;
+
+  // Login: pantalla propia sin chrome.
+  if (path.startsWith("/login")) {
     return <Outlet />;
   }
-  
+
+  // Centro de administración: rail persistente (AppShell) con "Mi negocio".
+  if (path.startsWith("/admin")) {
+    return (
+      <AppShell>
+        <Outlet />
+      </AppShell>
+    );
+  }
+
+  // Ficha de producto: trae su propia navegación contextual (ProductTopNav),
+  // que reemplaza al header — sin shell para no duplicar cabeceras.
+  if (path.startsWith("/producto")) {
+    return <Outlet />;
+  }
+
+  // Storefront público (home, combos, contacto): header full-width (Apple/Razer).
   return (
-    <AppShell>
+    <StorefrontShell>
       <Outlet />
-    </AppShell>
+    </StorefrontShell>
   );
 }
 

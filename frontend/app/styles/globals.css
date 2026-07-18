@@ -1,6 +1,6 @@
 /* Inter — fuente ÚNICA de toda la app (headings + body). Pesos 400/500/600/700.
    Los @import de URL deben ir antes que cualquier otra regla CSS. */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 @import "react-day-picker/style.css";
 
@@ -10,8 +10,10 @@
    (bg-bg, text-accent, rounded-card, font-heading, etc.)
    ─────────────────────────────────────────────────────────── */
 @theme {
-  /* Superficies — Midnight Neon */
-  --color-bg: #060910;
+  /* Superficies — Midnight Neon.
+     --color-bg se iguala al fondo del logo (negro puro) para que el header y el
+     logo se fundan sin costura visible. */
+  --color-bg: #000000;
   --color-surface: #0d1320;
   --color-surface-2: #151d2f;
   --color-surface-hover: #1c2740;

@@ -8,7 +8,6 @@ import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { ProductCarousel } from "~/components/product/ProductCarousel";
 import { ComboSection } from "~/components/catalog/ComboSection";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
-import { CategoryChips } from "~/components/filters/CategoryChips";
 import { FilterBar } from "~/components/filters/FilterBar";
 import { ActiveFilters } from "~/components/filters/ActiveFilters";
 import { FilterFab } from "~/components/catalog/FilterFab";
@@ -153,12 +152,6 @@ export default function Index() {
         <>
           <FilterFab />
           <FilterSheet />
-          {/* Barra de categorías pegajosa justo debajo del header global (h-16 = top-16) */}
-          <div className="sticky top-16 z-40 w-full border-b border-border/40 bg-surface/90 backdrop-blur-xl -mt-4 md:-mt-6 mb-4">
-            <div className="flex w-full items-center px-4 md:px-8 py-2">
-              <CategoryChips categories={categories} />
-            </div>
-          </div>
         </>
       )}
       <AnimatePresence initial={false}>

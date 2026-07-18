@@ -6,11 +6,10 @@ import {
   ArrowRight,
   ChevronDown,
   Home,
-  Sun,
-  Moon,
   MessageCircle,
   Shield,
   LogIn,
+  MonitorCog,
 } from "lucide-react";
 import { Link, useNavigate } from "@remix-run/react";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
@@ -18,7 +17,6 @@ import { closePublicSidebar, setCategory, resetFilters } from "~/store/slices/ui
 import { selectUser, selectStatus, selectRoles } from "~/store/slices/authSlice";
 import { roleLandingPath } from "~/lib/constants";
 import { getProductUrl } from "~/lib/utils";
-import { useTheme, type ThemeId } from "~/hooks/useTheme";
 import type { Category } from "~/store/api/catalogApi";
 
 interface Props {
@@ -277,7 +275,7 @@ export function PublicSidebar({ categories }: Props) {
                     <HelpLink
                       to={authed ? roleLandingPath(roles) : "/login"}
                       onClick={close}
-                      icon={authed ? Shield : LogIn}
+                      icon={authed ? MonitorCog : LogIn}
                     >
                       {authed ? "Centro de Administración" : "Acceso Colaboradores"}
                     </HelpLink>
@@ -286,10 +284,6 @@ export function PublicSidebar({ categories }: Props) {
               </div>
             </div>
 
-            {/* ── Footer: tema (al alcance del pulgar, DESIGN.md §1) ── */}
-            <footer className="shrink-0 border-t border-white/5 bg-surface px-6 py-5">
-              <ThemeToggle reduce={Boolean(reduce)} />
-            </footer>
           </motion.aside>
         )}
       </AnimatePresence>
@@ -320,62 +314,5 @@ function HelpLink({
         {children}
       </span>
     </Link>
-  );
-}
-
-/* ── Toggle de tema (segmentado con indicador deslizante) ── */
-function ThemeToggle({ reduce }: { reduce: boolean }) {
-  const { theme, setTheme } = useTheme();
-  const options: { id: ThemeId; label: string; icon: typeof Sun }[] = [
-    { id: "light", label: "Claro", icon: Sun },
-    { id: "dark", label: "Oscuro", icon: Moon },
-  ];
-
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-[13px] font-medium text-muted">Apariencia</span>
-      <div
-        role="radiogroup"
-        aria-label="Tema de la aplicación"
-        className="relative flex items-center gap-1 rounded-pill border border-white/10 bg-surface-2 p-1"
-      >
-        {options.map(({ id, label, icon: Icon }) => {
-          const active = theme === id;
-          return (
-            <button
-              key={id}
-              role="radio"
-              aria-checked={active}
-              onClick={() => setTheme(id)}
-              className="relative flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              {active && (
-                <motion.span
-                  layoutId="theme-active"
-                  aria-hidden
-                  transition={
-                    reduce ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }
-                  }
-                  className="absolute inset-0 rounded-pill bg-accent"
-                />
-              )}
-              <motion.span
-                aria-hidden
-                key={active ? "on" : "off"}
-                initial={reduce ? false : { rotate: -30, scale: 0.6, opacity: 0 }}
-                animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                transition={{ duration: 0.3, ease: EASE }}
-                className={`relative z-10 flex ${active ? "text-bg" : "text-muted"}`}
-              >
-                <Icon className="h-4 w-4" strokeWidth={2.25} />
-              </motion.span>
-              <span className={`relative z-10 ${active ? "font-semibold text-bg" : "text-muted"}`}>
-                {label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }

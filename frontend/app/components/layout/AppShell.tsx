@@ -9,27 +9,27 @@ import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "@remix-run/react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  Package,
   ShoppingBag,
   BarChart3,
   Truck,
   Users,
-  Receipt,
   X,
   MessageCircle,
   CreditCard,
   Settings,
   Store,
   LayoutGrid,
-  ChevronsLeft,
   ChevronDown,
   ChevronRight,
   KanbanSquare,
   Home,
-  Sun,
-  Moon,
   LogIn,
   Shield,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Boxes,
+  ReceiptText,
+  ClipboardList,
 } from "lucide-react";
 import { Logo } from "~/components/ui/Logo";
 import { UserMenu } from "./UserMenu";
@@ -39,7 +39,6 @@ import { CartButton } from "./PublicHeader";
 import { CartDrawer } from "~/components/cart/CartDrawer";
 import { SearchBar } from "~/components/filters/SearchBar";
 import { useAuth } from "~/hooks/useAuth";
-import { useTheme } from "~/hooks/useTheme";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectRoles } from "~/store/slices/authSlice";
 import {
@@ -80,17 +79,16 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Tienda",
     items: [
-      { to: "/admin/catalogo", label: "Gestión de Catálogo", icon: LayoutGrid, roles: ["admin"] },
-      { to: "/admin/pedidos", label: "Pedidos WhatsApp", icon: MessageCircle, roles: ["admin"] },
-      { to: "/admin/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "cashier"] },
+      { to: "/admin/catalogo", label: "Gestión de Catálogo", icon: Boxes, roles: ["admin"] },
+      { to: "/admin/facturacion", label: "Facturación", icon: ReceiptText, roles: ["admin", "cashier"] },
     ],
   },
   {
     label: "Operación",
     items: [
-      { to: "/admin/inventario", label: "Inventario", icon: Package, roles: ["admin"] },
+      { to: "/admin/inventario", label: "Inventario", icon: ClipboardList, roles: ["admin"] },
       { to: "/admin/ventas", label: "Ventas", icon: ShoppingBag, roles: ["admin", "seller"] },
-      { to: "/admin/crm", label: "Seguimientos", icon: KanbanSquare, roles: ["admin", "seller"] },
+      { to: "/admin/crm", label: "CRM & Pedidos", icon: KanbanSquare, roles: ["admin", "seller"] },
       { to: "/admin/cuotas", label: "Cuotas", icon: CreditCard, roles: ["admin"] },
     ],
   },
@@ -130,10 +128,12 @@ function useNavBadges(roles: Role[]): Record<string, number> {
   );
   const { data: publicOrders = [] } = useGetPublicOrdersQuery(undefined, { skip: !isAdmin, pollingInterval: 30000 });
 
+  const crmCount = agenda.filter(isDue).length;
+  const whatsappCount = isAdmin ? publicOrders.filter((o) => !o.contacted && !o.archived).length : 0;
+
   return {
     "/admin/ventas": isAdmin ? pending?.total ?? 0 : 0,
-    "/admin/crm": agenda.filter(isDue).length,
-    "/admin/pedidos": isAdmin ? publicOrders.filter((o) => !o.contacted && !o.archived).length : 0,
+    "/admin/crm": crmCount + whatsappCount,
   };
 }
 
@@ -217,24 +217,29 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* ── RAIL DE ESCRITORIO (md+) ── */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-border bg-surface/95 backdrop-blur-xl transition-[width] duration-300 ease-out md:flex",
-          expanded ? "w-80 shadow-premium" : "w-[76px]",
+          "fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-border bg-black transition-[width] duration-300 ease-out md:flex",
+          expanded ? "w-58 shadow-premium" : "w-[76px]",
         )}
         style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }}
       >
         {expanded ? (
           <>
-            {/* Cabecera: marca + colapsar */}
             <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
-              <Link to="/" onClick={closePanel} className="transition-transform active:scale-95">
-                <Logo size={30} withText textClassName="text-lg" />
-              </Link>
+              {user ? (
+                <span className="truncate text-sm font-extrabold tracking-tight text-white">
+                  Administracion
+                </span>
+              ) : (
+                <Link to="/" onClick={closePanel} className="transition-transform active:scale-95">
+                  <Logo size={30} />
+                </Link>
+              )}
               <button
                 onClick={closePanel}
                 aria-label="Colapsar menú"
-                className="group grid h-9 w-9 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                className="group grid h-9 w-9 place-items-center rounded-full border border-border/80 text-muted bg-transparent transition-all duration-300 hover:border-accent-2 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               >
-                <ChevronsLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-0.5" />
+                <PanelLeftClose className="h-4.5 w-4.5 transition-transform duration-300 group-hover:-translate-x-0.5" />
               </button>
             </div>
             <div className="custom-scrollbar flex-1 overflow-y-auto px-3 py-4">
@@ -252,22 +257,28 @@ export function AppShell({ children }: { children: ReactNode }) {
           </>
         ) : (
           <>
-            {/* Colapsado: logo + botón Explorar */}
-            <div className="flex flex-col items-center gap-1.5 border-b border-border py-3">
-              <Link to="/" title="Inicio" className="transition-transform active:scale-95">
-                <Logo size={40} />
-              </Link>
+            {/* Colapsado: botón Desplegar */}
+            <div className="flex h-16 shrink-0 items-center justify-center border-b border-border">
               <button
                 onClick={openPanel}
-                title="Explorar"
-                aria-label="Explorar categorías y menú"
-                className="grid h-11 w-11 place-items-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                title="Desplegar menú"
+                aria-label="Desplegar menú"
+                className="group grid h-9 w-9 place-items-center rounded-full border border-border/80 text-muted bg-transparent transition-all duration-300 hover:border-accent-2 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               >
-                <LayoutGrid className="h-5 w-5" />
+                <PanelLeftOpen className="h-4.5 w-4.5 transition-transform duration-300 group-hover:translate-x-0.5" />
               </button>
             </div>
             {/* Iconos de portales (solo con sesión) */}
             <nav className="custom-scrollbar flex flex-1 flex-col items-center gap-1 overflow-y-auto py-3">
+              {Boolean(user) && (
+                <button
+                  onClick={goHome}
+                  title="Ir al catálogo"
+                  className="group relative grid h-11 w-11 place-items-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                >
+                  <Store className="h-5 w-5" />
+                </button>
+              )}
               {businessItems.map(({ to, label, icon: Icon }) => {
                 const badge = badges[to] ?? 0;
                 return (
@@ -278,7 +289,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     className={({ isActive }) =>
                       cn(
                         "group relative grid h-11 w-11 place-items-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
-                        isActive ? "bg-accent/12 text-accent-2" : "text-muted hover:bg-surface-2 hover:text-text",
+                        isActive ? "bg-accent/12 text-accent-2" : "text-white/70 hover:bg-white/10 hover:text-white",
                       )
                     }
                   >
@@ -306,12 +317,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             animate={reduce ? { opacity: 1 } : { x: 0 }}
             exit={reduce ? { opacity: 0 } : { x: "-100%" }}
             transition={reduce ? { duration: 0.2 } : { duration: 0.45, ease: EASE }}
-            className="fixed inset-y-0 left-0 z-50 flex w-full max-w-[360px] flex-col bg-surface shadow-premium md:hidden"
+            className="fixed inset-y-0 left-0 z-50 flex w-full max-w-[360px] flex-col bg-black shadow-premium md:hidden"
           >
             <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
-              <Link to="/" onClick={closePanel} className="transition-transform active:scale-95">
-                <Logo size={30} withText textClassName="text-lg" />
-              </Link>
+              {user ? (
+                <span className="truncate text-sm font-extrabold tracking-tight text-white">
+                  Administracion
+                </span>
+              ) : (
+                <Link to="/" onClick={closePanel} className="transition-transform active:scale-95">
+                  <Logo size={30} />
+                </Link>
+              )}
               <button
                 onClick={closePanel}
                 aria-label="Cerrar menú"
@@ -338,29 +355,38 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* ── CONTENIDO ── */}
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col pb-16 md:pb-0 md:pl-[76px]">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-xl md:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-black/80 px-4 backdrop-blur-xl md:px-6">
           {/* En escritorio el rail ya muestra el logo: aquí solo en móvil (evita duplicado). */}
           <Link to="/" className="flex shrink-0 items-center transition-transform active:scale-95 md:hidden">
             <Logo size={30} withText textClassName="text-lg" />
           </Link>
 
           {showSearch ? (
-            <div className="mx-auto hidden w-full max-w-2xl md:block">
-              <SearchBar
-                value={search}
-                onChange={(v) => dispatch(setSearch(v))}
-                onClear={() => dispatch(setSearch(""))}
-                size="sm"
-              />
+            <div className="flex-1 flex justify-center">
+              <div className="w-full max-w-2xl hidden md:block">
+                <SearchBar
+                  value={search}
+                  onChange={(v) => dispatch(setSearch(v))}
+                  onClear={() => dispatch(setSearch(""))}
+                  size="sm"
+                />
+              </div>
             </div>
           ) : (
             <div className="flex-1" />
           )}
+
+          <div className="flex items-center gap-3">
+            {canCRM && <NotificationsBell />}
+            {user && (
+              <UserMenu align="right" compact={false} />
+            )}
+          </div>
         </header>
 
         {/* Buscador móvil (segunda fila) en el catálogo */}
         {showSearch && (
-          <div className="bg-surface/95 px-4 pb-1 pt-3 md:hidden">
+          <div className="bg-black/95 px-4 pb-1 pt-3 md:hidden">
             <SearchBar
               value={search}
               onChange={(v) => dispatch(setSearch(v))}
@@ -391,8 +417,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <LayoutGrid className="h-5 w-5" />
           Todo
         </button>
-        <CartButton variant="bar" />
-        <ThemeToggleButton variant="bar" />
+        {!user && <CartButton variant="bar" />}
         {user ? (
           <div className="flex flex-col items-center">
             <UserMenu compact />
@@ -433,6 +458,8 @@ function RailControls({
   user: ReturnType<typeof useAuth>["user"];
   roles: Role[];
 }) {
+  if (user) return null;
+
   return (
     <div
       className={cn(
@@ -443,26 +470,10 @@ function RailControls({
       <div className={cn("flex items-center gap-2", expanded ? "justify-between" : "flex-col")}>
         <div className={cn("flex items-center gap-2", !expanded && "flex-col")}>
           <CartButton />
-          {canCRM && <NotificationsBell />}
-          <ThemeToggleButton />
         </div>
       </div>
 
-      {user ? (
-        expanded ? (
-          <div className="flex items-center gap-2 rounded-lg bg-surface-2 p-2">
-            <UserMenu />
-            <div className="min-w-0">
-              <p className="truncate text-xs font-medium text-text">{user.name}</p>
-              <p className="truncate text-[11px] text-muted">{roleLabel(roles)}</p>
-            </div>
-          </div>
-        ) : (
-          <UserMenu />
-        )
-      ) : (
-        <LoginButton expanded={expanded} />
-      )}
+      <LoginButton expanded={expanded} />
     </div>
   );
 }
@@ -503,37 +514,6 @@ function LoginButton({ expanded }: { expanded: boolean }) {
   );
 }
 
-/* Toggle claro/oscuro compacto. `variant="bar"` lo adapta a la barra inferior móvil. */
-function ThemeToggleButton({ variant }: { variant?: "bar" }) {
-  const { theme, setTheme } = useTheme();
-  const isDark = theme === "dark";
-  const toggle = () => setTheme(isDark ? "light" : "dark");
-  const Icon = isDark ? Sun : Moon;
-
-  if (variant === "bar") {
-    return (
-      <button
-        onClick={toggle}
-        aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
-        className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:text-text"
-      >
-        <Icon className="h-5 w-5" />
-        Tema
-      </button>
-    );
-  }
-  return (
-    <button
-      onClick={toggle}
-      aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
-      title={isDark ? "Modo claro" : "Modo oscuro"}
-      className="grid h-11 w-11 place-items-center rounded-lg border border-border bg-surface-2/70 text-muted shadow-sm transition-colors hover:border-accent/40 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-    >
-      <Icon className="h-5 w-5" />
-    </button>
-  );
-}
-
 /* ────────────────────────────────────────────────────────────────────────────
    Contenido del panel expandido (categorías + Mi negocio + ayuda). Compartido por
    el rail de escritorio y el drawer móvil.
@@ -561,22 +541,18 @@ function RailPanelContent({
 
   return (
     <div>
-      {/* CTA: volver a la tienda */}
-      <button
-        onClick={onGoHome}
-        className="group mb-6 flex w-full items-center justify-between gap-3 rounded-lg bg-accent px-4 py-3 text-[15px] font-bold text-bg transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-      >
-        <span className="flex items-center gap-2.5">
-          <Home className="h-[18px] w-[18px]" strokeWidth={2.25} />
-          Ir a la tienda
-        </span>
-        <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-      </button>
+      {authed && (
+        <div className="mb-6 px-3">
+          <Link to="/" onClick={onNavigate} className="transition-transform active:scale-95 inline-block">
+            <Logo size={80} />
+          </Link>
+        </div>
+      )}
 
       {/* Categorías */}
-      {categories.length > 0 && (
+      {!authed && categories.length > 0 && (
         <section className="mb-6">
-          <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-[0.18em] text-muted">Categorías</p>
+          <p className="mb-2 px-3 text-[15px] font-extrabold uppercase tracking-wider text-white">Categorías</p>
           <ul className="flex flex-col">
             {categories.map((c) => {
               const hasSub = Boolean(c.subcategories && c.subcategories.length > 0);
@@ -653,17 +629,26 @@ function RailPanelContent({
 
       {/* Mi negocio (solo con sesión) */}
       {authed && businessGroups.length > 0 && (
-        <section className="mb-6 border-t border-border pt-5">
-          <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-[0.18em] text-muted">Mi negocio</p>
+        <section className="mb-6">
+          <p className="mb-2 px-3 text-[15px] font-black uppercase tracking-wider text-white">Tienda</p>
           <div className="flex flex-col gap-3">
             {businessGroups.map((group) => (
               <div key={group.label}>
-                {businessGroups.length > 1 && (
-                  <p className="mb-1 px-3 text-[10px] font-medium uppercase tracking-wider text-muted/70">
+                {businessGroups.length > 1 && group.label.toLowerCase() !== "tienda" && (
+                  <p className="mb-1 px-3 text-[14px] font-extrabold uppercase tracking-wider text-white">
                     {group.label}
                   </p>
                 )}
                 <div className="flex flex-col gap-0.5">
+                  {group.label.toLowerCase() === "tienda" && (
+                    <button
+                      onClick={onGoHome}
+                      className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      <Store className="h-[18px] w-[18px] shrink-0" />
+                      <span className="flex-1 text-left truncate">Ir al catálogo</span>
+                    </button>
+                  )}
                   {group.items.map(({ to, label, icon: Icon }) => {
                     const badge = badges[to] ?? 0;
                     return (
@@ -673,15 +658,15 @@ function RailPanelContent({
                         onClick={onNavigate}
                         className={({ isActive }) =>
                           cn(
-                            "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-                            isActive ? "bg-accent/12 font-medium text-accent-2" : "text-muted hover:bg-surface-2 hover:text-text",
+                            "group flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                            isActive ? "bg-accent/12 font-bold text-accent-2" : "text-white hover:bg-white/10",
                           )
                         }
                       >
                         <Icon className="h-[18px] w-[18px] shrink-0" />
                         <span className="flex-1 truncate">{label}</span>
                         {badge > 0 && (
-                          <span className="rounded-pill bg-warning/15 px-1.5 text-[11px] font-semibold leading-4 text-warning">
+                          <span className="rounded-pill bg-warning/15 px-1.5 text-[11px] font-bold leading-4 text-warning">
                             {badge}
                           </span>
                         )}
@@ -697,24 +682,24 @@ function RailPanelContent({
 
       {/* Ayuda e información */}
       <section className="border-t border-border pt-5">
-        <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-[0.18em] text-muted">Ayuda e información</p>
+        <p className="mb-2 px-3 text-[15px] font-black uppercase tracking-wider text-white">Ayuda e información</p>
         <div className="flex flex-col">
           <Link
             to="/contacto"
             onClick={onNavigate}
-            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
-            <MessageCircle className="h-[18px] w-[18px] shrink-0 text-muted transition-colors group-hover:text-accent-2" />
-            <span className="transition-transform duration-300 group-hover:translate-x-0.5">Contacto</span>
+            <MessageCircle className="h-[18px] w-[18px] shrink-0 text-white transition-colors group-hover:text-white" />
+            <span className="transition-transform duration-300 group-hover:translate-x-0.5 font-medium">Contacto</span>
           </Link>
           {!authed && (
             <Link
               to="/login"
               onClick={onNavigate}
-              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
-              <Shield className="h-[18px] w-[18px] shrink-0 text-muted transition-colors group-hover:text-accent-2" />
-              <span className="transition-transform duration-300 group-hover:translate-x-0.5">Acceso Colaboradores</span>
+              <Shield className="h-[18px] w-[18px] shrink-0 text-white transition-colors group-hover:text-white" />
+              <span className="transition-transform duration-300 group-hover:translate-x-0.5 font-medium">Acceso Colaboradores</span>
             </Link>
           )}
         </div>

@@ -1,72 +1,31 @@
-// Tema visual de la app. Persiste en localStorage y se aplica como
-// atributo data-theme en <html> (los tokens de color se sobre-escriben en CSS).
-// El script anti-flash en root.tsx aplica el valor guardado antes del primer paint.
-import { useCallback, useEffect, useState } from "react";
+// Tema visual de la app. BLOQUEADO EN MODO OSCURO: el modo claro se retiró por
+// completo (hasta nuevo aviso) porque daba problemas creativos. `data-theme` se fija
+// siempre en "dark" y `setTheme` es un no-op — se conserva la firma del hook para no
+// romper a los componentes que aún lo consumen.
+import { useEffect } from "react";
 
-export type ThemeId = "dark" | "light";
+export type ThemeId = "dark";
 
 export const THEMES: { id: ThemeId; label: string; dark: boolean; swatch: [string, string] }[] = [
   { id: "dark", label: "Modo Oscuro", dark: true, swatch: ["#0f1714", "#10b981"] },
-  { id: "light", label: "Modo Claro", dark: false, swatch: ["#059669", "#34d399"] },
 ];
 
-const STORAGE_KEY = "gyro-theme";
 const DEFAULT_THEME: ThemeId = "dark";
 
-// Timer compartido para quitar la clase .theme-switching tras el flip.
-let themeSwitchTimer: number | undefined;
-
-function readStored(): ThemeId {
-  // localStorage es la fuente de verdad DURABLE. Se lee primero porque el atributo
-  // `data-theme` es transitorio: React puede borrarlo durante la hidratación, y en ese
-  // caso queremos restaurar la preferencia guardada, no caer al default oscuro.
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY) as ThemeId | null;
-    if (saved === "dark" || saved === "light") return saved;
-  } catch {
-    /* noop */
-  }
-  if (typeof document !== "undefined") {
-    const attr = document.documentElement.getAttribute("data-theme") as ThemeId | null;
-    if (attr === "dark" || attr === "light") return attr;
-  }
-  return DEFAULT_THEME;
-}
-
 export function useTheme() {
-  const [theme, setThemeState] = useState<ThemeId>(DEFAULT_THEME);
-
-  // Sincroniza con lo que ya aplicó el script anti-flash al montar.
-  // Re-aplicamos el atributo por si React hydration lo elimina.
+  // Fija el atributo en oscuro por si el script anti-flash o React lo alteran.
   useEffect(() => {
-    const saved = readStored();
-    setThemeState(saved);
     if (typeof document !== "undefined") {
-      document.documentElement.setAttribute("data-theme", saved);
+      document.documentElement.setAttribute("data-theme", "dark");
     }
   }, []);
 
-  const setTheme = useCallback((next: ThemeId) => {
-    setThemeState(next);
+  // setTheme se mantiene por compatibilidad de firma, pero solo hay un tema.
+  const setTheme = (_next?: ThemeId) => {
     if (typeof document !== "undefined") {
-      const el = document.documentElement;
-      // Activa la transición de color SOLO durante el flip (ver globals.css
-      // → .theme-switching). Se limpia tras 320ms para no dejar la transición
-      // colgada en cada hover/reflow posterior.
-      el.classList.add("theme-switching");
-      el.setAttribute("data-theme", next);
-      window.clearTimeout(themeSwitchTimer);
-      themeSwitchTimer = window.setTimeout(
-        () => el.classList.remove("theme-switching"),
-        320,
-      );
+      document.documentElement.setAttribute("data-theme", "dark");
     }
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      /* noop */
-    }
-  }, []);
+  };
 
-  return { theme, setTheme };
+  return { theme: DEFAULT_THEME, setTheme };
 }

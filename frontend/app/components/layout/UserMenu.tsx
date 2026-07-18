@@ -1,30 +1,42 @@
-// Menú desplegable del avatar: datos del usuario, selector de tema (paletas +
-// modo claro), opciones de cuenta local (cambiar contraseña) y cerrar sesión.
 import { useEffect, useRef, useState } from "react";
+import { Link } from "@remix-run/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Key, Check, Lock, Eye, EyeOff, Sun, Moon, Palette, Camera, Upload, Link2 } from "lucide-react";
+import { LogOut, Key, Lock, Eye, EyeOff, Camera, Upload, Link2, MonitorCog } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
 import { useAuth } from "~/hooks/useAuth";
-import { useTheme, THEMES, type ThemeId } from "~/hooks/useTheme";
 import { getIdToken } from "~/lib/authStrategies";
 import { getFirebaseAuth, linkWithPopup, GoogleAuthProvider } from "~/lib/firebase.client";
-import { useAppDispatch } from "~/store/hooks";
-import { setUser } from "~/store/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "~/store/hooks";
+import { setUser, selectRoles } from "~/store/slices/authSlice";
 import { cn } from "~/lib/utils";
 
-export function UserMenu({ compact = false }: { compact?: boolean } = {}) {
+export function UserMenu({
+  compact = false,
+  showName = true,
+  nameClassName = "hidden lg:block",
+  align = "right",
+}: {
+  compact?: boolean;
+  showName?: boolean;
+  nameClassName?: string;
+  align?: "left" | "right";
+} = {}) {
   const { user, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const roles = useAppSelector(selectRoles);
   const [open, setOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [waOpen, setWaOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<NodeJS.Timeout | number | null>(null);
 
   const isLocal = user?.authProvider === "password";
   const hasGoogle = user?.providers?.includes("google.com");
+  const isStaff = roles.some((r) =>
+    ["global_admin", "admin", "seller", "cashier", "logistics_admin", "logistics_customer"].includes(r)
+  );
 
   async function linkGoogle() {
     setOpen(false);
@@ -42,6 +54,20 @@ export function UserMenu({ compact = false }: { compact?: boolean } = {}) {
     }
   }
 
+  function handleMouseEnter() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current as any);
+      closeTimer.current = null;
+    }
+    setOpen(true);
+  }
+
+  function handleMouseLeave() {
+    closeTimer.current = setTimeout(() => {
+      setOpen(false);
+    }, 150);
+  }
+
   // Cerrar al hacer clic fuera.
   useEffect(() => {
     if (!open) return;
@@ -57,10 +83,21 @@ export function UserMenu({ compact = false }: { compact?: boolean } = {}) {
     };
   }, [open]);
 
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current as any);
+    };
+  }, []);
+
   if (!user) return null;
 
   return (
-    <div className="relative" ref={ref}>
+    <div
+      className="relative"
+      ref={ref}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Disparador: avatar. `compact` = columna icono+etiqueta para la barra móvil. */}
       {compact ? (
         <button
@@ -82,13 +119,18 @@ export function UserMenu({ compact = false }: { compact?: boolean } = {}) {
       ) : (
         <button
           onClick={() => setOpen((o) => !o)}
-          className="flex items-center gap-2.5 rounded-pill p-1 pl-3 transition-colors hover:bg-surface-2"
+          className={cn(
+            "flex items-center gap-2.5 rounded-pill transition-colors hover:bg-surface-2",
+            showName ? "p-1 pl-3" : "p-1"
+          )}
           aria-haspopup="menu"
           aria-expanded={open}
         >
-          <div className="hidden text-right lg:block">
-            <p className="text-sm font-medium leading-tight">{user.name}</p>
-          </div>
+          {showName && (
+            <div className={nameClassName}>
+              <p className="text-sm font-medium leading-tight">{user.name}</p>
+            </div>
+          )}
           {user.photoURL ? (
             <img src={user.photoURL} alt="" className="h-9 w-9 rounded-full object-cover" />
           ) : (
@@ -108,7 +150,8 @@ export function UserMenu({ compact = false }: { compact?: boolean } = {}) {
             transition={{ duration: 0.15, ease: "easeOut" }}
             role="menu"
             className={cn(
-              "absolute right-0 z-50 w-72 overflow-hidden rounded-card border border-border bg-surface shadow-2xl",
+              "absolute z-50 w-72 overflow-hidden rounded-card border border-border bg-surface shadow-2xl",
+              align === "left" ? "left-0" : "right-0",
               compact ? "bottom-full mb-2" : "mt-2",
             )}
           >
@@ -127,29 +170,25 @@ export function UserMenu({ compact = false }: { compact?: boolean } = {}) {
               </div>
             </div>
 
-            {/* Selector de tema */}
-            <div className="px-4 py-3">
-              <div className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted">
-                <Palette className="h-3.5 w-3.5" /> Tema
+            {/* Centro de administración para personal */}
+            {isStaff && (
+              <div className="border-b border-border py-1">
+                <Link
+                  to="/admin"
+                  onClick={() => setOpen(false)}
+                  className="group flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold text-accent transition-all duration-200 ease-out hover:bg-accent/10"
+                >
+                  <MonitorCog className="h-4 w-4 text-accent transition-transform duration-200 group-hover:scale-110" />
+                  <span className="transition-transform duration-200 group-hover:translate-x-0.5">
+                    Centro de Administración
+                  </span>
+                </Link>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {THEMES.map((t) => (
-                  <ThemeOption
-                    key={t.id}
-                    id={t.id}
-                    label={t.label}
-                    swatch={t.swatch}
-                    dark={t.dark}
-                    active={theme === t.id}
-                    onSelect={() => setTheme(t.id)}
-                  />
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Opciones de cuenta local */}
             {isLocal && (
-              <div className="border-t border-border py-1">
+              <div className="py-1">
                 <MenuItem
                   icon={Camera}
                   label="Cambiar foto de perfil"
@@ -199,46 +238,6 @@ export function UserMenu({ compact = false }: { compact?: boolean } = {}) {
   );
 }
 
-function ThemeOption({
-  id,
-  label,
-  swatch,
-  dark,
-  active,
-  onSelect,
-}: {
-  id: ThemeId;
-  label: string;
-  swatch: [string, string];
-  dark: boolean;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      role="menuitemradio"
-      aria-checked={active}
-      className={cn(
-        "flex items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition-colors",
-        active ? "border-accent bg-accent/10" : "border-border hover:bg-surface-2",
-      )}
-    >
-      <span
-        className="grid h-6 w-6 shrink-0 place-items-center rounded-full"
-        style={{ backgroundImage: `linear-gradient(135deg, ${swatch[0]}, ${swatch[1]})` }}
-      >
-        {id === "light" && <Sun className="h-3.5 w-3.5 text-white" />}
-        {id === "dark" && <Moon className="h-3.5 w-3.5 text-white" />}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-xs font-medium">{label}</span>
-      </span>
-      {active && <Check className="h-3.5 w-3.5 shrink-0 text-accent" />}
-    </button>
-  );
-}
-
 function MenuItem({
   icon: Icon,
   label,
@@ -255,14 +254,17 @@ function MenuItem({
       role="menuitem"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors",
+        "group flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 ease-out",
         danger
           ? "text-muted hover:bg-danger/10 hover:text-danger"
           : "text-text hover:bg-surface-2 hover:text-accent",
       )}
     >
-      <Icon className="h-4 w-4" />
-      {label}
+      <Icon className={cn(
+        "h-4 w-4 transition-transform duration-200 group-hover:scale-110",
+        danger ? "text-muted group-hover:text-danger" : "text-muted group-hover:text-accent"
+      )} />
+      <span className="transition-transform duration-200 group-hover:translate-x-0.5">{label}</span>
     </button>
   );
 }
