@@ -53,7 +53,7 @@ router.post(
     if (!trackingNumber?.trim()) return res.status(400).json({ error: 'El tracking es obligatorio.' });
 
     const slug = storage.sanitizePathSegment(req.user.name || req.user.email.split('@')[0]);
-    const folder = `${config.collections.logisticsShipments}/${slug}`;
+    const folder = storage.folders.logisticsShipment(slug);
     const uploadFile = async (file) =>
       file
         ? storage.uploadFile(file.buffer, folder, `${Date.now()}-${file.fieldname}${(file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0]}`, file.mimetype)
@@ -181,7 +181,7 @@ router.patch(
     let arrivalPhotoUrl = current.arrivalPhotoUrl || '';
     if (req.file) {
       const slug = storage.sanitizePathSegment(current.customerName || current.customerEmail.split('@')[0]);
-      const folder = `${config.collections.logisticsShipments}/${slug}`;
+      const folder = storage.folders.logisticsShipment(slug);
       arrivalPhotoUrl = await storage.uploadFile(req.file.buffer, folder, `${Date.now()}-arrival${(req.file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0]}`, req.file.mimetype);
     }
 

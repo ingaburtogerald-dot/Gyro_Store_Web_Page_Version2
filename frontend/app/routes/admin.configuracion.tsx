@@ -1,8 +1,8 @@
 // Portal de Configuración — admin puede editar costos fijos, descuentos por mayor,
 // tipo de cambio, WhatsApp, dirección y redes sociales.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Save, RefreshCw } from "lucide-react";
+import { Save, Upload, Trash2 } from "lucide-react";
 import { RequireRole } from "~/components/admin/RequireRole";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
@@ -11,6 +11,8 @@ import {
   useUpdateBusinessConfigMutation,
   useUpdateCostosFijosMutation,
   useUpdatePricingConfigMutation,
+  useUploadLogoMutation,
+  useRemoveLogoMutation,
   type Discount,
   type CostosFijos,
 } from "~/store/api/salesApi";
@@ -44,6 +46,106 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
       {children}
     </label>
+  );
+}
+
+// Subida de un logo del header (estático o animado). Muestra la vista previa actual
+// sobre fondo negro (como el header real) y sube el archivo a R2 vía /config/logo.
+function LogoUploader({
+  kind,
+  label,
+  hint,
+  accept,
+  currentUrl,
+}: {
+  kind: "static" | "animated";
+  label: string;
+  hint: string;
+  accept: string;
+  currentUrl?: string;
+}) {
+  const [uploadLogo, { isLoading }] = useUploadLogoMutation();
+  const [removeLogo, { isLoading: removing }] = useRemoveLogoMutation();
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Cache-buster para que la vista previa refresque al reemplazar el archivo.
+  const [bust, setBust] = useState(0);
+
+  async function onPick(file: File | null) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("kind", kind);
+    try {
+      await uploadLogo(fd).unwrap();
+      setBust(Date.now());
+      toast.success(`Logo ${kind === "animated" ? "animado" : "estático"} actualizado.`);
+    } catch (e) {
+      // Muestra el mensaje real del servidor (p. ej. "R2 no configurado") si viene.
+      const msg = (e as { data?: { error?: string } })?.data?.error;
+      toast.error(msg || "No se pudo subir el logo.");
+    } finally {
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  async function onRemove() {
+    try {
+      await removeLogo(kind).unwrap();
+      toast.success("Logo eliminado. Se usará el logo por defecto.");
+    } catch (e) {
+      const msg = (e as { data?: { error?: string } })?.data?.error;
+      toast.error(msg || "No se pudo eliminar el logo.");
+    }
+  }
+
+  const previewSrc = currentUrl ? `${currentUrl}${currentUrl.includes("?") ? "&" : "?"}v=${bust}` : "";
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs font-medium text-muted">{label}</span>
+      <div className="flex items-center gap-4">
+        {/* Vista previa sobre negro, como el header real */}
+        <div className="grid h-16 w-32 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-black">
+          {previewSrc ? (
+            <img src={previewSrc} alt="" className="max-h-full max-w-full object-contain" />
+          ) : (
+            <span className="text-[11px] text-muted">Sin logo</span>
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs leading-relaxed text-muted">{hint}</p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              loading={isLoading}
+              onClick={() => inputRef.current?.click()}
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" /> {currentUrl ? "Reemplazar" : "Subir imagen"}
+            </Button>
+            {currentUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                loading={removing}
+                onClick={onRemove}
+                className="flex items-center gap-2 text-danger"
+              >
+                <Trash2 className="h-4 w-4" /> Quitar
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -228,6 +330,29 @@ export default function Configuracion() {
               </Button>
             </div>
           </form>
+        </Section>
+
+        {/* Logo del header (identidad de marca) */}
+        <Section
+          title="Logo del header"
+          description="El logo que aparece arriba a la izquierda en toda la tienda. El estático se muestra por defecto; el animado (GIF) aparece al pasar el mouse o hacer clic. Se aplican al instante sin volver a desplegar."
+        >
+          <div className="space-y-5">
+            <LogoUploader
+              kind="static"
+              label="Logo estático"
+              accept="image/jpeg,image/png,image/webp"
+              hint="Imagen (JPG, PNG o WebP). Se recomienda proporción 2:1 y fondo negro."
+              currentUrl={config?.branding?.logoStaticUrl}
+            />
+            <LogoUploader
+              kind="animated"
+              label="Logo animado (GIF)"
+              accept="image/gif"
+              hint="GIF animado. Debe coincidir en tamaño/proporción con el estático."
+              currentUrl={config?.branding?.logoAnimatedUrl}
+            />
+          </div>
         </Section>
 
         {/* Costos fijos */}

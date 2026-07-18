@@ -13,6 +13,13 @@ export interface VolumeDiscount {
 
 export type DiscountTier = VolumeDiscount;
 
+export interface Branding {
+  /** Logo estático del header (imagen). Vacío → /logo-estatico.jpg del repo. */
+  logoStaticUrl?: string;
+  /** Logo animado del header (GIF). Vacío → /logo-animado.gif del repo. */
+  logoAnimatedUrl?: string;
+}
+
 export interface BusinessConfig {
   storeName: string;
   storeAddress: string;
@@ -22,6 +29,7 @@ export interface BusinessConfig {
   wholesaleDiscounts: VolumeDiscount[];
   categories: Category[];
   socialLinks: { instagram: string; facebook: string; tiktok: string };
+  branding?: Branding;
 }
 
 export interface SpecRow {

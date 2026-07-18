@@ -220,6 +220,10 @@ router.get('/inventory-skus', requireAdmin, asyncHandler(async (req, res) => {
 // POST /api/catalog/upload — sube imágenes del producto y devuelve sus URLs.
 router.post('/upload', requireAdmin, upload.array('images', 10), asyncHandler(async (req, res) => {
   if (!req.files?.length) return res.status(400).json({ error: 'No se enviaron imágenes.' });
+  // El editor manda `productId` cuando edita un producto existente → las fotos se
+  // agrupan en catalog/products/<id>/. En un producto nuevo (aún sin id) el campo
+  // no viene y caen a catalog/products/_sin-asignar/<AAAA>/<MM>/.
+  const folder = storage.folders.productImages(req.body?.productId);
   const urls = [];
   for (const file of req.files) {
     // Optimiza (resize + WebP) para que toda imagen subida pese/luzca igual que
@@ -232,7 +236,7 @@ router.post('/upload', requireAdmin, upload.array('images', 10), asyncHandler(as
     // es la misma → se sobrescribe en vez de duplicar, y la URL idéntica se
     // deduplica sola en la galería. Evita huérfanos y fotos repetidas.
     const hash = crypto.createHash('sha256').update(file.buffer).digest('hex');
-    urls.push(await storage.uploadFile(opt.buffer, 'catalog-images', `${hash}${ext}`, contentType));
+    urls.push(await storage.uploadFile(opt.buffer, folder, `${hash}${ext}`, contentType));
   }
   res.status(201).json({ urls });
 }));

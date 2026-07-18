@@ -213,6 +213,11 @@ export interface PublicOrder {
   createdAt: string | null;
 }
 
+export interface Branding {
+  logoStaticUrl?: string;
+  logoAnimatedUrl?: string;
+}
+
 export interface BusinessConfig {
   storeName: string;
   storeAddress: string;
@@ -222,6 +227,7 @@ export interface BusinessConfig {
   costosFijos: CostosFijos;
   wholesaleDiscounts: Discount[];
   deliveryPersonnel?: { id: string; name: string; phone: string }[];
+  branding?: Branding;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -473,6 +479,17 @@ export const salesApi = baseApi.injectEndpoints({
       query: (body) => ({ url: "/config/business", method: "PUT", body }),
       invalidatesTags: ["Config"],
     }),
+    // Sube el logo del header (estático o animado) a R2 y lo guarda en la config.
+    // `body` = FormData con `file` y `kind` ('static' | 'animated').
+    uploadLogo: build.mutation<{ ok: boolean; url: string; kind: string }, FormData>({
+      query: (body) => ({ url: "/config/logo", method: "POST", body }),
+      invalidatesTags: ["Config"],
+    }),
+    // Quita el logo de la config y lo borra de R2 (vuelve al default del repo).
+    removeLogo: build.mutation<{ ok: boolean; kind: string }, "static" | "animated">({
+      query: (kind) => ({ url: `/config/logo?kind=${kind}`, method: "DELETE" }),
+      invalidatesTags: ["Config"],
+    }),
     getPublicOrders: build.query<PublicOrder[], void>({
       query: () => "/orders/public",
       providesTags: ["PublicOrder"],
@@ -527,6 +544,8 @@ export const {
   useUpdatePricingConfigMutation,
   useUpdateCostosFijosMutation,
   useUpdateBusinessConfigMutation,
+  useUploadLogoMutation,
+  useRemoveLogoMutation,
   useMarkContactedMutation,
   useLogOrderFollowUpMutation,
   useDeletePublicOrderMutation,

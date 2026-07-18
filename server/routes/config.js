@@ -5,8 +5,12 @@ const config = require('../config');
 const { db } = require('../firebase');
 const { requireSeller, requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
+const storage = require('../services/storage');
+const { imageUpload } = require('../utils/upload');
 
 const APP_CONFIG = config.collections.appConfig;
+// Subida del logo del header (imagen estática o GIF animado). Máx 10 MB.
+const logoUpload = imageUpload({ maxSizeMb: 10 });
 
 // Caché en memoria para las configuraciones de la tienda
 let configCache = null;
@@ -57,6 +61,9 @@ router.get('/', asyncHandler(async (req, res) => {
         facebook: 'https://facebook.com/gyrostore',
         tiktok: 'https://tiktok.com/@gyrostore',
       },
+      // Identidad de marca editable desde el admin (logo del header). Vacío = el
+      // front usa los archivos por defecto del repo (/logo-estatico.jpg, /logo-animado.gif).
+      branding: biz.branding || {},
     };
     console.log('⚡ Caché de configuración pública reconstruido desde Firestore.');
   }
@@ -110,7 +117,7 @@ router.put('/costos-fijos', requireAdmin, asyncHandler(async (req, res) => {
 // PUT /api/config/business — actualiza configuración general de la tienda (admin).
 // Cubre: whatsapp, dirección, redes sociales, tipo de cambio, nombre.
 router.put('/business', requireAdmin, asyncHandler(async (req, res) => {
-  const allowed = ['storeName', 'storeAddress', 'whatsapp', 'exchangeRate', 'socialLinks', 'deliveryPersonnel'];
+  const allowed = ['storeName', 'storeAddress', 'whatsapp', 'exchangeRate', 'socialLinks', 'deliveryPersonnel', 'branding'];
   const update = {};
   for (const k of allowed) {
     if (req.body[k] !== undefined) update[k] = req.body[k];
@@ -152,10 +159,64 @@ router.get('/full', requireAdmin, asyncHandler(async (req, res) => {
       costosFijos: biz.costosFijos || defaultBusiness.costosFijos,
       wholesaleDiscounts: pricing.wholesaleDiscounts || defaultPricing.wholesaleDiscounts,
       deliveryPersonnel: biz.deliveryPersonnel || [],
+      branding: biz.branding || {},
     };
     console.log('⚡ Caché de configuración administrativa reconstruido.');
   }
   res.json(fullConfigCache);
+}));
+
+const LOGO_FIELDS = { static: 'logoStaticUrl', animated: 'logoAnimatedUrl' };
+
+// POST /api/config/logo — sube el logo del header a R2 (site/logo/) y guarda su
+// URL en la config del negocio. `kind`: 'static' (imagen) | 'animated' (GIF).
+// El GIF se sube TAL CUAL (sin optimizar) para no perder la animación.
+// Al REEMPLAZAR, borra el logo anterior de R2 para no dejar huérfanos/duplicados.
+router.post('/logo', requireAdmin, logoUpload.single('file'), asyncHandler(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se envió ningún archivo.' });
+  const kind = req.body.kind === 'animated' ? 'animated' : 'static';
+  const field = LOGO_FIELDS[kind];
+  const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.png'])[0];
+
+  // URL anterior (para borrarla de R2 después de guardar la nueva).
+  const bizRef = db.collection(APP_CONFIG).doc('business');
+  const snap = await bizRef.get();
+  const oldUrl = snap.exists ? snap.data()?.branding?.[field] : null;
+
+  const url = await storage.uploadFile(
+    req.file.buffer,
+    'site/logo',
+    `${kind}-${Date.now()}${ext}`,
+    req.file.mimetype,
+  );
+
+  // Merge para no pisar el otro campo del branding (estático/animado).
+  await bizRef.set({ branding: { [field]: url } }, { merge: true });
+  clearConfigCache();
+
+  // Borra el anterior de R2 (no-op si era un default del repo o estaba vacío).
+  if (oldUrl && oldUrl !== url) await storage.deleteFileByUrl(oldUrl);
+
+  res.json({ ok: true, url, kind });
+}));
+
+// DELETE /api/config/logo?kind=static|animated — quita el logo de la config y lo
+// borra de R2. El header vuelve a usar el archivo por defecto del repo.
+router.delete('/logo', requireAdmin, asyncHandler(async (req, res) => {
+  const kind = req.query.kind === 'animated' ? 'animated' : 'static';
+  const field = LOGO_FIELDS[kind];
+
+  const bizRef = db.collection(APP_CONFIG).doc('business');
+  const snap = await bizRef.get();
+  const oldUrl = snap.exists ? snap.data()?.branding?.[field] : null;
+
+  // Vacía el campo (string vacío → el front cae al logo por defecto).
+  await bizRef.set({ branding: { [field]: '' } }, { merge: true });
+  clearConfigCache();
+
+  if (oldUrl) await storage.deleteFileByUrl(oldUrl);
+
+  res.json({ ok: true, kind });
 }));
 
 module.exports = router;

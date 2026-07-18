@@ -77,7 +77,7 @@ router.post('/settle-balance', requireAdmin, upload.single('receipt'), asyncHand
   let receiptUrl = null;
   if (req.file) {
     const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.png'])[0];
-    receiptUrl = await storage.uploadFile(req.file.buffer, 'payments', `${Date.now()}_settle_${sellerEmail}${ext}`, req.file.mimetype);
+    receiptUrl = await storage.uploadFile(req.file.buffer, storage.folders.payment(), `${Date.now()}_settle_${sellerEmail}${ext}`, req.file.mimetype);
   }
 
   const userSnap = await db.collection(config.collections.users).where('email', '==', sellerEmail.toLowerCase()).limit(1).get();
@@ -257,7 +257,7 @@ router.post('/approve-and-pay', requireAdmin, upload.single('receipt'), asyncHan
     const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.png'])[0];
     receiptUrl = await storage.uploadFile(
       req.file.buffer,
-      'payments',
+      storage.folders.payment(),
       `${Date.now()}_${sellerEmail}${ext}`,
       req.file.mimetype
     );
@@ -372,7 +372,7 @@ router.post('/pay-week', requireAdmin, upload.single('screenshot'), asyncHandler
   let paymentScreenshotUrl = '';
   if (req.file) {
     const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
-    paymentScreenshotUrl = await storage.uploadFile(req.file.buffer, 'payment-screenshots', `${Date.now()}${ext}`, req.file.mimetype);
+    paymentScreenshotUrl = await storage.uploadFile(req.file.buffer, storage.folders.paymentScreenshot(), `${Date.now()}${ext}`, req.file.mimetype);
   }
 
   const batch = db.batch();
@@ -413,7 +413,7 @@ router.post('/:id/pay', requireAdmin, upload.single('screenshot'), asyncHandler(
   let paymentScreenshotUrl = '';
   if (req.file) {
     const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
-    paymentScreenshotUrl = await storage.uploadFile(req.file.buffer, 'payment-screenshots', `${Date.now()}${ext}`, req.file.mimetype);
+    paymentScreenshotUrl = await storage.uploadFile(req.file.buffer, storage.folders.paymentScreenshot(), `${Date.now()}${ext}`, req.file.mimetype);
   }
 
   await ref.update({

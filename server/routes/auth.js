@@ -62,7 +62,7 @@ router.post('/photo', authLimiter, requireAnyRole, upload.single('photo'), async
   const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
   const photoURL = await storage.uploadFile(
     req.file.buffer,
-    `profile-photos/${req.user.uid}`,
+    storage.folders.profilePhoto(req.user.uid),
     `${Date.now()}${ext}`,
     req.file.mimetype,
   );

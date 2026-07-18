@@ -62,7 +62,7 @@ router.post('/report', requireSeller, upload.single('receipt'), asyncHandler(asy
   if (req.file) {
     const slug = storage.sanitizePathSegment(req.user.name || req.user.email.split('@')[0]);
     const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
-    receiptPhotoUrl = await storage.uploadFile(req.file.buffer, `sales-receipts/${slug}`, `${Date.now()}${ext}`, req.file.mimetype);
+    receiptPhotoUrl = await storage.uploadFile(req.file.buffer, storage.folders.saleReceipt(), `${Date.now()}_${slug}${ext}`, req.file.mimetype);
   }
 
   let reservations = [];
@@ -165,7 +165,7 @@ async function registerFromInvoice(req, res) {
   if (req.file) {
     const slug = storage.sanitizePathSegment(assigned.name || req.user.email.split('@')[0]);
     const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
-    receiptPhotoUrl = await storage.uploadFile(req.file.buffer, `sales-receipts/${slug}`, `${Date.now()}${ext}`, req.file.mimetype);
+    receiptPhotoUrl = await storage.uploadFile(req.file.buffer, storage.folders.saleReceipt(), `${Date.now()}_${slug}${ext}`, req.file.mimetype);
   }
 
   // La venta queda a nombre del vendedor asignado al ticket, aunque la registre un admin.
@@ -287,7 +287,7 @@ router.post('/', requireSeller, upload.single('receipt'), asyncHandler(async (re
   if (req.file) {
     const slug = storage.sanitizePathSegment(req.user.name || req.user.email.split('@')[0]);
     const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
-    receiptPhotoUrl = await storage.uploadFile(req.file.buffer, `sales-receipts/${slug}`, `${Date.now()}${ext}`, req.file.mimetype);
+    receiptPhotoUrl = await storage.uploadFile(req.file.buffer, storage.folders.saleReceipt(), `${Date.now()}_${slug}${ext}`, req.file.mimetype);
   }
 
   let sellerUid = req.user.uid;

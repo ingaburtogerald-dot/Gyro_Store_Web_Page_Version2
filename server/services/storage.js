@@ -27,10 +27,15 @@ let _client = null;
 function getClient() {
   if (_client) return _client;
   if (!R2_ENDPOINT || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
-    throw new Error(
-      'Cloudflare R2 no está configurado: faltan R2_ENDPOINT/R2_ACCESS_KEY_ID/' +
-      'R2_SECRET_ACCESS_KEY/R2_BUCKET_NAME en el .env.'
+    const err = new Error(
+      'El almacenamiento de imágenes (Cloudflare R2) no está configurado en el servidor. ' +
+      'Agrega las credenciales R2 (R2_ENDPOINT/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/' +
+      'R2_BUCKET_NAME) en el .env y reinicia el servidor.'
     );
+    // 503: dependencia no disponible. El handler central devuelve este mensaje al
+    // cliente (los 500 se enmascaran con un genérico; los demás status sí pasan).
+    err.status = 503;
+    throw err;
   }
   _client = new S3Client({
     region: 'auto', // R2 ignora la región pero el SDK la exige
@@ -73,6 +78,41 @@ function sanitizePathSegment(value) {
       .slice(0, 60) || 'sin-nombre'
   );
 }
+
+// Sanitizador ligero para IDs (docId de Firestore, uid): conserva mayúsculas y
+// solo deja caracteres seguros para una key. NO lo uses para nombres de persona
+// (para eso está sanitizePathSegment, que además pasa a minúsculas y quita acentos).
+function safeId(value, fallback = 'sin-id') {
+  const s = String(value || '').replace(/[^A-Za-z0-9_-]+/g, '').slice(0, 80);
+  return s || fallback;
+}
+
+// Partición por fecha (UTC) → "AAAA/MM". Mantiene manejables las carpetas que
+// crecen sin fin (recibos, pagos) y habilita reglas de expiración por antigüedad.
+function datePartition(date = new Date()) {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return `${y}/${m}`;
+}
+
+// ── TAXONOMÍA CANÓNICA del bucket (FUENTE ÚNICA DE VERDAD) ───────────────────
+// Todo lo que se sube pasa por aquí para que el bucket tenga un orden lógico:
+//   catalog/products/<id>/ · users/profile/<uid>/ · sales/{receipts,payments,
+//   screenshots}/<AAAA>/<MM>/ · logistics/shipments/<cliente>/ · site/…
+// Cambiar una ruta aquí la cambia en toda la app. (No renombra lo ya subido: es
+// solo para subidas nuevas — el backfill de lo viejo sería un script aparte.)
+const folders = {
+  // Fotos de producto agrupadas por producto. Si aún no hay id (producto nuevo
+  // sin guardar), caen a un bucket con fecha para no ensuciar la raíz.
+  productImages: (productId) =>
+    productId ? `catalog/products/${safeId(productId)}` : `catalog/products/_sin-asignar/${datePartition()}`,
+  templateImages: (templateId) => `catalog/templates/${safeId(templateId, 'sin-plantilla')}`,
+  profilePhoto: (uid) => `users/profile/${safeId(uid)}`,
+  saleReceipt: () => `sales/receipts/${datePartition()}`,
+  payment: () => `sales/payments/${datePartition()}`,
+  paymentScreenshot: () => `sales/screenshots/${datePartition()}`,
+  logisticsShipment: (customerSlug) => `logistics/shipments/${customerSlug || 'sin-cliente'}`,
+};
 
 // Sube un buffer a R2 y devuelve su URL pública.
 async function uploadFile(buffer, folder, filename, contentType) {
@@ -127,6 +167,9 @@ async function listFiles(prefix = '') {
 
 module.exports = {
   sanitizePathSegment,
+  safeId,
+  datePartition,
+  folders,
   uploadFile,
   deleteFileByUrl,
   listFiles,

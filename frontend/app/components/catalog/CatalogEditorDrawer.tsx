@@ -147,6 +147,9 @@ export function CatalogEditorDrawer({
   async function uploadFiles(files: FileList): Promise<string[]> {
     const fd = new FormData();
     Array.from(files).forEach((f) => fd.append("images", f));
+    // Al editar un producto existente, agrupa sus fotos en catalog/products/<id>/.
+    // En un producto nuevo (sin id aún) se omite → caen a un bucket con fecha.
+    if (editId) fd.append("productId", editId);
     try {
       const { urls } = await uploadImages(fd).unwrap();
       return urls;

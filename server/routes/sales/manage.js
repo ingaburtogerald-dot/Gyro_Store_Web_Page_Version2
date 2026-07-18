@@ -301,7 +301,7 @@ router.put('/:id', requireAdmin, upload.single('receipt'), asyncHandler(async (r
     const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.png'])[0];
     update.receiptPhotoUrl = await storage.uploadFile(
       req.file.buffer,
-      'receipts',
+      storage.folders.saleReceipt(),
       `${Date.now()}_${req.params.id}${ext}`,
       req.file.mimetype
     );

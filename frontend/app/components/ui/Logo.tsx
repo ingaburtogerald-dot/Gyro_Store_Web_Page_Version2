@@ -21,10 +21,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@remix-run/react";
 import { cn } from "~/lib/utils";
+import { useGetConfigQuery } from "~/store/api/catalogApi";
 
-// Coloca estos archivos en `frontend/public/`.
-const LOGO_STATIC = "/logo-estatico.jpg";
-const LOGO_ANIMATED = "/logo-animado.gif";
+// Fallback: archivos del repo. El admin puede sobre-escribir estas URLs desde
+// Configuración → Logo del header (se guardan en la config y llegan por /api/config).
+const DEFAULT_STATIC = "/logo-estatico.jpg";
+const DEFAULT_ANIMATED = "/logo-animado.gif";
 
 export function Logo({
   size = 36,
@@ -46,22 +48,32 @@ export function Logo({
   const blobRef = useRef<Blob | null>(null);
   const objUrlRef = useRef<string | null>(null);
 
-  // Precarga el GIF una sola vez como Blob (para generar object URLs sin red).
+  // Logo configurable desde el admin (branding). Fallback a los archivos del repo.
+  const { data: cfg } = useGetConfigQuery();
+  const staticUrl = cfg?.branding?.logoStaticUrl || DEFAULT_STATIC;
+  const animatedUrl = cfg?.branding?.logoAnimatedUrl || DEFAULT_ANIMATED;
+
+  // Precarga el GIF como Blob (para generar object URLs sin red). Se re-ejecuta si
+  // el admin cambia el logo animado (la URL cambia → se recarga el Blob nuevo).
   useEffect(() => {
     let cancelled = false;
-    fetch(LOGO_ANIMATED)
+    blobRef.current = null;
+    fetch(animatedUrl)
       .then((r) => (r.ok ? r.blob() : Promise.reject()))
       .then((b) => {
         if (!cancelled) blobRef.current = b;
       })
       .catch(() => {
-        /* si falla, se usa el fallback con cache-busting */
+        /* si falla (p.ej. CORS de R2), se usa el fallback con cache-busting */
       });
     return () => {
       cancelled = true;
-      if (objUrlRef.current) URL.revokeObjectURL(objUrlRef.current);
+      if (objUrlRef.current) {
+        URL.revokeObjectURL(objUrlRef.current);
+        objUrlRef.current = null;
+      }
     };
-  }, []);
+  }, [animatedUrl]);
 
   const activate = () => {
     // URL única → el GIF reinicia desde el frame 0, siempre y de inmediato.
@@ -71,8 +83,8 @@ export function Logo({
       objUrlRef.current = url;
       setGifUrl(url);
     } else {
-      // Fallback (el Blob aún no cargó): cache-busting con timestamp único.
-      setGifUrl(`${LOGO_ANIMATED}?t=${Date.now()}`);
+      // Fallback (el Blob aún no cargó o falló por CORS): cache-busting único.
+      setGifUrl(`${animatedUrl}${animatedUrl.includes("?") ? "&" : "?"}t=${Date.now()}`);
     }
     setActive(true);
   };
@@ -82,7 +94,7 @@ export function Logo({
     <span className="relative block shrink-0" style={{ height: size }}>
       {/* Imagen estática (base): fija la caja con su proporción natural. */}
       <img
-        src={LOGO_STATIC}
+        src={staticUrl}
         alt="Gyro Store"
         style={{ height: size }}
         className="block h-full w-auto select-none object-contain"
