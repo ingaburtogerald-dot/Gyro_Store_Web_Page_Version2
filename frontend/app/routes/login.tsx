@@ -168,7 +168,7 @@ export default function Login() {
         href="/"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="group absolute left-12 top-5 z-20 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-bg shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:left-16 sm:top-8"
+        className="group absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-bg shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:left-16 sm:top-8"
       >
         <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
         Volver al catálogo
@@ -220,7 +220,7 @@ export default function Login() {
                   type="email"
                   autoComplete="email"
                   placeholder="tu@gyrostore.com"
-                  className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-muted"
+                  className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted"
                   {...register("email")}
                 />
                 {emailValid && (
@@ -242,7 +242,7 @@ export default function Login() {
                   autoComplete="current-password"
                   placeholder="••••••••"
                   onKeyUp={(e) => setCapsOn(e.getModifierState?.("CapsLock") ?? false)}
-                  className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-muted"
+                  className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted"
                   {...register("password")}
                 />
                 <button

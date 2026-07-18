@@ -63,6 +63,10 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
     setActiveIndex((prev) => (slides.length ? (prev + 1) % slides.length : 0));
   }, [slides.length]);
 
+  const prevSlide = useCallback(() => {
+    setActiveIndex((prev) => (slides.length ? (prev - 1 + slides.length) % slides.length : 0));
+  }, [slides.length]);
+
   const handleDotClick = (idx: number) => {
     setActiveIndex(idx);
     setPlaying(true);
@@ -133,7 +137,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
   return (
     <section className="mx-auto max-w-[1400px] w-full px-4 pt-6 pb-12">
       {/* ── CONTENEDOR PRINCIPAL ESTILO DBRAND ── */}
-      <div className="relative w-full bg-[#111] border border-border/40 rounded-[2.5rem] overflow-hidden shadow-2xl">
+      <div className="relative w-full bg-[#111] border border-border/40 rounded-[2.5rem] overflow-hidden shadow-2xl group">
         {/* Controles de edición (solo admin en modo edición) */}
         {editing && (
           <div className="absolute right-4 top-4 z-30 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-2 py-1.5 backdrop-blur-md">
@@ -261,33 +265,63 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
           <div className="h-4 w-px bg-white/10" />
 
           {/* Puntos / Barras de Progreso */}
-          <div className="flex items-center gap-2">
-            {slides.map((slide, idx) => {
-              const isActive = idx === safeIndex;
-              return (
-                <button
-                  key={slide.id}
-                  onClick={() => handleDotClick(idx)}
-                  className={cn(
-                    "h-2.5 rounded-full transition-all duration-300 relative overflow-hidden bg-white/15",
-                    isActive ? "w-11" : "w-2.5 hover:bg-white/35"
-                  )}
-                  aria-label={`Ir al slide ${idx + 1}`}
-                >
-                  {/* Animación del indicador de carga lineal */}
-                  {isActive && autoPlaying && (
-                    <motion.div
-                      key={`${safeIndex}-${autoPlaying}`}
-                      initial={{ width: "0%" }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 8, ease: "linear" }}
-                      onAnimationComplete={nextSlide}
-                      className="absolute inset-y-0 left-0 bg-accent-2 rounded-full"
-                    />
-                  )}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-1">
+            {/* Flecha Anterior */}
+            {slides.length > 1 && (
+              <button
+                onClick={() => {
+                  prevSlide();
+                  setPlaying(false);
+                }}
+                className="grid h-7 w-7 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none"
+                title="Anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            )}
+
+            <div className="flex items-center gap-2 mx-1">
+              {slides.map((slide, idx) => {
+                const isActive = idx === safeIndex;
+                return (
+                  <button
+                    key={slide.id}
+                    onClick={() => handleDotClick(idx)}
+                    className={cn(
+                      "h-2.5 rounded-full transition-all duration-300 relative overflow-hidden bg-white/15",
+                      isActive ? "w-11" : "w-2.5 hover:bg-white/35"
+                    )}
+                    aria-label={`Ir al slide ${idx + 1}`}
+                  >
+                    {/* Animación del indicador de carga lineal */}
+                    {isActive && autoPlaying && (
+                      <motion.div
+                        key={`${safeIndex}-${autoPlaying}`}
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        transition={{ duration: 8, ease: "linear" }}
+                        onAnimationComplete={nextSlide}
+                        className="absolute inset-y-0 left-0 bg-accent-2 rounded-full"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Flecha Siguiente */}
+            {slides.length > 1 && (
+              <button
+                onClick={() => {
+                  nextSlide();
+                  setPlaying(false);
+                }}
+                className="grid h-7 w-7 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none"
+                title="Siguiente"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
 
             {/* Agregar diapositiva (solo modo edición) */}
             {editing && (
