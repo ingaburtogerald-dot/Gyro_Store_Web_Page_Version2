@@ -37,6 +37,30 @@ export interface SpecRow {
   value: string;
 }
 
+// ── Landing editable (modo edición inline) ──
+// Una diapositiva del Hero. `mediaType` decide si se renderiza <video> o <img>.
+// `actionType` "modal" abre "Quiénes Somos"; "link" navega a `actionTarget`.
+// `locked` (solo el slide #1 / marca) impide mover o eliminar, pero sí editar.
+export interface HeroSlide {
+  id: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  mediaUrl: string;
+  mediaType: "image" | "video";
+  buttonText: string;
+  actionType: "modal" | "link";
+  actionTarget: string;
+  locked?: boolean;
+}
+
+export interface LandingConfig {
+  // Ids de categoría en el orden/visibilidad elegidos por el admin. Vacío = todas
+  // las categorías en su orden natural (los nombres salen del catálogo, no de aquí).
+  headerCategories: string[];
+  heroSlides: HeroSlide[];
+}
+
 export interface CatalogProduct {
   id: string;
   name: string;
@@ -54,7 +78,9 @@ export interface CatalogProduct {
   templateId?: string;
   published?: boolean;
   variantCount?: number;
-  axesSummary?: string;
+  // Opciones no-color ofrecidas por el producto (pills de variante en la card).
+  // El backend (buildAxesSummary) lo devuelve como arreglo; ver server/routes/catalog.js.
+  axesSummary?: string[];
   badges?: string[];
 }
 

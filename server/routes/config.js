@@ -6,19 +6,23 @@ const { db } = require('../firebase');
 const { requireSeller, requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
 const storage = require('../services/storage');
-const { imageUpload } = require('../utils/upload');
+const { imageUpload, mediaUpload } = require('../utils/upload');
 
 const APP_CONFIG = config.collections.appConfig;
 // Subida del logo del header (imagen estática o GIF animado). Máx 10 MB.
 const logoUpload = imageUpload({ maxSizeMb: 10 });
+// Subida de la media de un slide del Hero (imagen, GIF o video). Videos pesan → 50 MB.
+const slideUpload = mediaUpload({ maxSizeMb: 50 });
 
 // Caché en memoria para las configuraciones de la tienda
 let configCache = null;
 let fullConfigCache = null;
+let landingCache = null;
 
 function clearConfigCache() {
   configCache = null;
   fullConfigCache = null;
+  landingCache = null;
 }
 
 const defaultPricing = {
@@ -217,6 +221,146 @@ router.delete('/logo', requireAdmin, asyncHandler(async (req, res) => {
   if (oldUrl) await storage.deleteFileByUrl(oldUrl);
 
   res.json({ ok: true, kind });
+}));
+
+// ── Landing page (modo edición inline): Hero + orden del header ──────────────
+// Doc `app_config/landing_page`. Separado de `business` para no sobrecargar el doc
+// que se lee globalmente. `headerCategories` = ids de categoría en el orden/visibilidad
+// elegidos por el admin (los nombres siguen saliendo del catálogo). `heroSlides` =
+// diapositivas del carrusel (máx 12); la #1 es la marca y va bloqueada (locked).
+const MAX_SLIDES = 12;
+
+// Slides por defecto: reflejan el Hero estático original mientras el admin no guarde.
+// El slide 2 apuntaba a un producto hardcodeado; ahora es editable → target seguro.
+const defaultLanding = {
+  headerCategories: [], // vacío = el header usa todas las categorías en su orden natural
+  heroSlides: [
+    {
+      id: 'slide-brand',
+      eyebrow: 'CALIDAD DE SOBRA',
+      title: 'Gyro Store',
+      description: 'Audífonos, adaptadores y accesorios tecnológicos que suenan por encima de su precio. Equipamiento premium en Managua.',
+      mediaUrl: '/videos/gyro-promo.mp4',
+      mediaType: 'video',
+      buttonText: 'Quiénes Somos',
+      actionType: 'modal',
+      actionTarget: '',
+      locked: true,
+    },
+    {
+      id: 'slide-kz-edx-pro',
+      eyebrow: 'MONITOREO PROFESIONAL',
+      title: 'KZ EDX Pro',
+      description: 'Sonido de alta resolución, graves potentes y diseño ergonómico. El favorito de músicos y entusiastas del audio en Nicaragua.',
+      mediaUrl: '/videos/kz-edx-pro.mp4',
+      mediaType: 'video',
+      buttonText: 'Comprar KZ EDX Pro',
+      actionType: 'link',
+      actionTarget: '/#catalogo',
+      locked: false,
+    },
+  ],
+};
+
+// Normaliza/sanea un slide venido del cliente a la forma canónica del doc.
+function normalizeSlide(raw, index) {
+  const str = (v, max = 400) => String(v ?? '').slice(0, max);
+  const mediaType = raw?.mediaType === 'video' ? 'video' : 'image';
+  const actionType = raw?.actionType === 'link' ? 'link' : 'modal';
+  return {
+    // Id estable para agrupar su media en R2; si no viene, uno determinista.
+    id: str(raw?.id, 60) || `slide-${index + 1}-${Date.now()}`,
+    eyebrow: str(raw?.eyebrow, 80),
+    title: str(raw?.title, 120),
+    description: str(raw?.description, 600),
+    mediaUrl: str(raw?.mediaUrl, 600),
+    mediaType,
+    buttonText: str(raw?.buttonText, 60),
+    actionType,
+    actionTarget: str(raw?.actionTarget, 600),
+    // El primer slide siempre queda bloqueado (marca), pase lo que pase.
+    locked: index === 0 ? true : Boolean(raw?.locked),
+  };
+}
+
+// Todas las URLs de media que son archivos nuestros en R2 (para borrado de huérfanos).
+function slideMediaUrls(slides) {
+  return (slides || []).map((s) => s.mediaUrl).filter((u) => typeof u === 'string' && u);
+}
+
+async function readLanding() {
+  const doc = await db.collection(APP_CONFIG).doc('landing_page').get();
+  if (!doc.exists) return { ...defaultLanding };
+  const data = doc.data() || {};
+  return {
+    headerCategories: Array.isArray(data.headerCategories) ? data.headerCategories : [],
+    heroSlides: Array.isArray(data.heroSlides) && data.heroSlides.length
+      ? data.heroSlides.map(normalizeSlide)
+      : defaultLanding.heroSlides,
+  };
+}
+
+// GET /api/config/landing_page — Hero + orden del header (público; lo consume el
+// loader SSR de la home). Cacheado en memoria como el resto de la config.
+router.get('/landing_page', asyncHandler(async (req, res) => {
+  if (!landingCache) {
+    landingCache = await readLanding();
+    console.log('⚡ Caché de landing_page reconstruido desde Firestore.');
+  }
+  res.json(landingCache);
+}));
+
+// PUT /api/config/landing_page — guarda Hero + orden del header (admin). Al quitar
+// un slide o reemplazar su media, borra de R2 los archivos que dejaron de usarse
+// (mismo patrón que el logo). Nunca toca archivos que no sean del bucket.
+router.put('/landing_page', requireAdmin, asyncHandler(async (req, res) => {
+  const body = req.body || {};
+
+  const headerCategories = Array.isArray(body.headerCategories)
+    ? [...new Set(body.headerCategories.map((id) => String(id)).filter(Boolean))].slice(0, 50)
+    : [];
+
+  if (!Array.isArray(body.heroSlides) || body.heroSlides.length === 0) {
+    return res.status(400).json({ error: 'Debe haber al menos una diapositiva en el Hero.' });
+  }
+  const heroSlides = body.heroSlides.slice(0, MAX_SLIDES).map(normalizeSlide);
+
+  // Media que se dejó de usar respecto al doc anterior → borrar de R2.
+  const ref = db.collection(APP_CONFIG).doc('landing_page');
+  const prevSnap = await ref.get();
+  const prevUrls = new Set(slideMediaUrls(prevSnap.exists ? prevSnap.data()?.heroSlides : []));
+  const nextUrls = new Set(slideMediaUrls(heroSlides));
+
+  await ref.set({ headerCategories, heroSlides }, { merge: false });
+  clearConfigCache();
+
+  // deleteFileByUrl es no-op seguro para URLs que no son del bucket (ej. /videos/…).
+  for (const url of prevUrls) {
+    if (!nextUrls.has(url)) await storage.deleteFileByUrl(url);
+  }
+
+  res.json({ ok: true, headerCategories, heroSlides });
+}));
+
+// POST /api/config/hero-slide — sube la media de un slide a R2 (site/slides/<id>/).
+// Devuelve la URL pública + el tipo (image|video); el guardado del arreglo completo
+// va aparte por PUT. El archivo se sube TAL CUAL (sin optimizar) para no perder la
+// animación del GIF ni recodificar el video, igual que el logo. Acepta imagen/GIF/video.
+router.post('/hero-slide', requireAdmin, slideUpload.single('file'), asyncHandler(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se envió ningún archivo.' });
+  const slideId = storage.safeId(req.body.slideId, `slide-${Date.now()}`);
+  const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.png'])[0];
+
+  const url = await storage.uploadFile(
+    req.file.buffer,
+    storage.folders.siteSlide(slideId),
+    `media-${Date.now()}${ext}`,
+    req.file.mimetype,
+  );
+
+  // El tipo decide si el Hero lo pinta en <video> o <img>.
+  const mediaType = (req.file.mimetype || '').startsWith('video/') ? 'video' : 'image';
+  res.json({ ok: true, url, mediaType });
 }));
 
 module.exports = router;

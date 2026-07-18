@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@remix-run/react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ShoppingCart, ImageOff, Star } from "lucide-react";
+import { ShoppingCart, ImageOff } from "lucide-react";
 import { toast } from "sonner";
 import { QuickAddSheet } from "./QuickAddSheet";
 import { Button } from "~/components/ui/Button";
@@ -28,17 +28,16 @@ export function ProductCard({
   const reduce = useReducedMotion();
   const category = categories.find((c) => c.id === product.category);
   const image = product.images?.[0];
-  const hoverImage = product.images?.[1];
   const soldOut = (product.stock ?? 0) <= 0;
   const lowStock = !soldOut && (product.stock ?? 0) > 0 && (product.stock ?? 0) <= 5;
   const compareAt = product.compareAtPrice ?? 0;
   const onSale = compareAt > product.price;
   const discountPct = onSale ? Math.round((1 - product.price / compareAt) * 100) : 0;
-  const savedAmount = onSale ? compareAt - product.price : 0;
   const isList = layout === "list";
 
   // Pills de variantes: primero las opciones reales de la plantilla; si el
-  // ítem no tiene plantilla, se muestran sus badges.
+  // ítem no tiene plantilla, se muestran sus badges. (El color NO viene en la
+  // card — se ve en la foto; ver DESIGN.md §7 y server/routes/catalog.js.)
   const pills = (product.axesSummary?.length ? product.axesSummary : product.badges) ?? [];
   const visiblePills = pills.slice(0, MAX_PILLS);
   const extraPills = pills.length - visiblePills.length;
@@ -73,6 +72,7 @@ export function ProductCard({
   }
 
   // ── Escenario de la imagen (Link al detalle) ──
+  // Grid: foto a tope del borde superior → rounded-t-xl. List: panel inset → rounded-xl.
   const Stage = (
     <Link
       to={getProductUrl(product.id, product.name)}
@@ -80,18 +80,18 @@ export function ProductCard({
       viewTransition
       aria-label={product.name}
       className={cn(
-        "product-stage ease-expo relative block overflow-hidden rounded-none bg-surface-2",
-        isList ? "aspect-square h-full w-full shrink-0" : "aspect-square w-full",
+        "product-stage ease-expo relative block overflow-hidden bg-surface-2",
+        isList ? "aspect-square h-full w-full shrink-0 rounded-xl" : "aspect-square w-full rounded-t-xl",
       )}
     >
       <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
         {onSale && (
-          <span className="rounded-none bg-accent px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-bg">
+          <span className="rounded-md bg-accent px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-bg">
             −{discountPct}%
           </span>
         )}
         {product.isPromo && !onSale && (
-          <span className="rounded-none bg-accent px-2.5 py-0.5 text-[11px] font-bold text-bg">
+          <span className="rounded-md bg-accent px-2.5 py-0.5 text-[11px] font-bold text-bg">
             Oferta
           </span>
         )}
@@ -99,7 +99,7 @@ export function ProductCard({
 
       {lowStock && (
         <div className="absolute right-2 top-2 z-10">
-          <span className="rounded-none bg-warning px-2.5 py-0.5 text-[11px] font-bold text-bg shadow-sm">
+          <span className="rounded-md bg-warning px-2.5 py-0.5 text-[11px] font-bold text-bg shadow-sm">
             ¡Últimas {product.stock}!
           </span>
         </div>
@@ -110,10 +110,9 @@ export function ProductCard({
           src={image}
           alt={product.name}
           loading={index < 4 ? "eager" : "lazy"}
-          fetchPriority={index < 4 ? "high" : "auto"}
           decoding="async"
           className={cn(
-            "ease-expo h-full w-full object-contain p-4 transition duration-[600ms] will-change-transform",
+            "ease-expo h-full w-full object-contain p-6 transition duration-[600ms] will-change-transform",
             "group-hover:scale-[1.06]",
             soldOut && "opacity-60 grayscale"
           )}
@@ -126,53 +125,58 @@ export function ProductCard({
       )}
 
       {soldOut && (
-        <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-none bg-bg/80 px-3 py-1 text-[11px] font-semibold text-text backdrop-blur-md">
+        <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-bg/80 px-3 py-1 text-[11px] font-semibold text-text backdrop-blur-md">
           Agotado
         </span>
       )}
     </Link>
   );
 
+  // Eyebrow editorial: categoría en label tracked (sin emoji; DESIGN.md §8).
   const Eyebrow = category ? (
-    <span className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.22em] text-muted">
-      <span aria-hidden>{category.icon}</span>
-      <span className="truncate">{category.name}</span>
+    <span className="truncate text-[11px] font-medium uppercase tracking-[0.22em] text-muted">
+      {category.name}
     </span>
   ) : null;
 
   const Name = (
-    <div>
-      <Link
-        to={getProductUrl(product.id, product.name)}
-        prefetch="intent"
-        viewTransition
-        className="line-clamp-2 text-sm font-semibold leading-snug tracking-tight text-text transition-colors group-hover:text-text"
-      >
-        {product.name}
-      </Link>
-      {/* Mock Social Proof */}
-      <div className="mt-1 flex items-center gap-1 text-[11px] text-muted">
-        <div className="flex items-center text-accent">
-          <Star className="h-3 w-3 fill-current" />
-        </div>
-        <span className="font-semibold text-text/90">4.9</span>
-        <span className="opacity-70">(124)</span>
-      </div>
-    </div>
+    <Link
+      to={getProductUrl(product.id, product.name)}
+      prefetch="intent"
+      viewTransition
+      className="line-clamp-2 text-sm font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2"
+    >
+      {product.name}
+    </Link>
   );
 
-  const Price = (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-baseline gap-2">
-        <span className="text-xl font-bold tabular-nums leading-none text-accent">
-          {formatCordobas(product.price)}
+  // Variantes reales (pills de la plantilla). font-light por DESIGN.md §3.
+  const Pills = visiblePills.length ? (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {visiblePills.map((p) => (
+        <span
+          key={p}
+          className="rounded-pill border border-white/10 px-2 py-0.5 text-[11px] font-light text-muted"
+        >
+          {p}
         </span>
-        {onSale && (
-          <span className="text-xs text-muted line-through">
-            {formatCordobas(compareAt)}
-          </span>
-        )}
-      </div>
+      ))}
+      {extraPills > 0 && (
+        <span className="text-[11px] font-light text-muted">+{extraPills}</span>
+      )}
+    </div>
+  ) : null;
+
+  const Price = (
+    <div className="flex items-baseline gap-2">
+      <span className="text-lg font-extrabold tabular-nums leading-none text-accent">
+        {formatCordobas(product.price)}
+      </span>
+      {onSale && (
+        <span className="text-xs text-muted line-through tabular-nums">
+          {formatCordobas(compareAt)}
+        </span>
+      )}
     </div>
   );
 
@@ -182,7 +186,7 @@ export function ProductCard({
       onClick={handleCta}
       disabled={soldOut}
       aria-haspopup={needsPicker ? "dialog" : undefined}
-      className="w-full h-11"
+      className="h-11 w-full"
     >
       <ShoppingCart className="h-4 w-4" />
       {soldOut ? "Agotado" : "Agregar"}
@@ -194,13 +198,14 @@ export function ProductCard({
     whileInView: { opacity: 1, y: 0 },
     viewport: { once: true, margin: "-40px" },
     transition: { duration: 0.5, delay: (index % 4) * 0.06, ease: [0.16, 1, 0.3, 1] as const },
-    whileHover: reduce ? undefined : { y: -2 },
+    // Se ELEVA en hover (no crece). El spring va anidado para que solo aplique al
+    // hover (objeto táctil); la entrada sigue con ease-expo. DESIGN.md §5.
+    whileHover: reduce ? undefined : { y: -4, transition: { type: "spring", stiffness: 260, damping: 24 } },
+    whileTap: reduce ? undefined : { scale: 0.985, transition: { duration: 0.15 } },
   };
 
-  const shell = cn(
-    "ease-expo group relative overflow-hidden rounded-none border border-border bg-surface transition-all duration-300",
-    "hover:border-white/25 hover:shadow-[0_8px_32px_rgba(0,0,0,0.35)]",
-  );
+  // Sin sombra ni glow: la profundidad la carga el hairline que se aclara. DESIGN.md §6.
+  const shell = "ease-expo group relative flex overflow-hidden rounded-xl border border-white/10 bg-surface transition-colors duration-300 hover:border-white/25";
 
   const Sheet = sheetMounted ? (
     <QuickAddSheet product={product} open={sheetOpen} onClose={() => setSheetOpen(false)} />
@@ -208,17 +213,18 @@ export function ProductCard({
 
   if (isList) {
     return (
-      <motion.article {...motionProps} className={cn(shell, "flex p-3 sm:gap-4 sm:p-4")}>
+      <motion.article {...motionProps} className={cn(shell, "p-3 sm:gap-4 sm:p-4")}>
         <div className="relative w-[40%] max-w-[200px] shrink-0 self-center">{Stage}</div>
 
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 py-1 pl-4">
           {Eyebrow}
           {Name}
           {product.description && (
-            <p className="line-clamp-2 text-xs font-medium leading-relaxed text-muted">
-              {String(product.description).replace(/<[^>]*>?/gm, '')}
+            <p className="line-clamp-2 text-xs font-light leading-relaxed text-muted">
+              {String(product.description).replace(/<[^>]*>?/gm, "")}
             </p>
           )}
+          {Pills}
           <div className="mt-3 flex flex-col gap-3">
             {Price}
             <div className="w-full max-w-[200px]">{Cta}</div>
@@ -230,11 +236,12 @@ export function ProductCard({
   }
 
   return (
-    <motion.article {...motionProps} className={cn(shell, "flex flex-col p-4")}>
+    <motion.article {...motionProps} className={cn(shell, "flex-col")}>
       {Stage}
-      <div className="flex flex-1 flex-col gap-1.5 pt-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-4">
         {Eyebrow}
         {Name}
+        {Pills}
         <div className="mt-auto space-y-3 pt-3">
           {Price}
           {Cta}

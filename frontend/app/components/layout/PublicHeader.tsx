@@ -11,7 +11,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@remix-run/react";
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
-import { ShoppingBag, Search, User, X, ArrowRight, ChevronDown } from "lucide-react";
+import { ShoppingBag, Search, User, X, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Logo } from "~/components/ui/Logo";
 import { SearchBar } from "~/components/filters/SearchBar";
 import { CartDrawer } from "~/components/cart/CartDrawer";
@@ -20,9 +21,11 @@ import { useAuth } from "~/hooks/useAuth";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { hydrate, openCart, selectCartCount } from "~/store/slices/cartSlice";
 import { setSearch, setCategory } from "~/store/slices/uiSlice";
-import { useGetCatalogQuery } from "~/store/api/catalogApi";
+import { selectIsAdmin, selectEditMode } from "~/store/slices/authSlice";
+import { useGetCatalogQuery, useGetLandingConfigQuery, useUpdateLandingConfigMutation } from "~/store/api/catalogApi";
 import { buildCategoryTree } from "~/lib/categories";
 import { cn, getProductUrl, formatCordobas } from "~/lib/utils";
+import type { Category } from "~/types/catalog";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -167,9 +170,80 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
   const [openCat, setOpenCat] = useState<string | null>(null);
   const closeTimer = useRef<number>();
 
-  // Categorías del catálogo (fuente única compartida con el rail).
+  // Modo edición inline (solo admin). El header es global (AppShell), así que lee
+  // el estado de Redux por su cuenta.
+  const isAdmin = useAppSelector(selectIsAdmin);
+  const editMode = useAppSelector(selectEditMode);
+  const editing = isAdmin && editMode;
+
+  // Categorías del catálogo (fuente única compartida con el rail). `allCategories`
+  // = las que tienen productos en inventario (candidatas para el header).
   const { data: products = [] } = useGetCatalogQuery();
-  const categories = useMemo(() => buildCategoryTree(products), [products]);
+  const allCategories = useMemo(() => buildCategoryTree(products), [products]);
+
+  // Orden/visibilidad elegidos por el admin (doc landing_page). Vacío = mostrar
+  // todas en su orden natural (compatibilidad con el comportamiento anterior).
+  const { data: landing } = useGetLandingConfigQuery();
+  const [updateLanding, { isLoading: savingHeader }] = useUpdateLandingConfigMutation();
+  const headerOrder = landing?.headerCategories ?? [];
+
+  // Categorías visibles en el header, en el orden configurado. Se filtran ids que
+  // ya no existen en inventario (categoría que se quedó sin productos).
+  const categories = useMemo<Category[]>(() => {
+    if (!headerOrder.length) return allCategories;
+    const byId = new Map(allCategories.map((c) => [c.id, c]));
+    return headerOrder.map((id) => byId.get(id)).filter(Boolean) as Category[];
+  }, [headerOrder, allCategories]);
+
+  // Categorías con productos que NO están en el header (candidatas del botón "+").
+  const availableToAdd = useMemo<Category[]>(() => {
+    const shown = new Set(categories.map((c) => c.id));
+    return allCategories.filter((c) => !shown.has(c.id));
+  }, [categories, allCategories]);
+
+  // Menú desplegable del botón "+" (agregar etiqueta).
+  const [addOpen, setAddOpen] = useState(false);
+
+  // Persiste un nuevo orden del header sin tocar los slides del Hero. Materializa el
+  // orden actual visible cuando el doc aún estaba vacío (default = todas).
+  async function saveHeaderOrder(ids: string[]) {
+    try {
+      await updateLanding({
+        headerCategories: ids,
+        heroSlides: landing?.heroSlides ?? [],
+      }).unwrap();
+    } catch (e) {
+      const msg = (e as { data?: { error?: string } })?.data?.error;
+      toast.error(msg || "No se pudo guardar el orden del header.");
+    }
+  }
+
+  const currentIds = categories.map((c) => c.id);
+
+  function moveCategory(idx: number, dir: -1 | 1) {
+    const target = idx + dir;
+    if (target < 0 || target >= currentIds.length) return;
+    const next = [...currentIds];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    saveHeaderOrder(next);
+  }
+
+  function removeCategory(id: string) {
+    saveHeaderOrder(currentIds.filter((x) => x !== id));
+  }
+
+  function addCategory(id: string) {
+    saveHeaderOrder([...currentIds, id]);
+    setAddOpen(false);
+  }
+
+  function handleAddClick() {
+    if (availableToAdd.length === 0) {
+      toast.info("No hay más etiquetas disponibles.");
+      return;
+    }
+    setAddOpen((v) => !v);
+  }
 
   // Productos de cada categoría, para el contenido del mega-menú.
   const productsByCat = useMemo(() => {
@@ -274,33 +348,116 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.28, ease: EASE }}
                   aria-label="Categorías"
-                  onMouseLeave={scheduleCloseMenu}
+                  onMouseLeave={editing ? undefined : scheduleCloseMenu}
                   className="absolute inset-x-0 hidden items-center justify-start gap-1 md:flex"
                 >
-                  {categories.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onMouseEnter={() => openMenu(c.id)}
-                      onFocus={() => openMenu(c.id)}
-                      onClick={() => toggleMenu(c.id)}
-                      aria-expanded={openCat === c.id}
-                      className={cn(
-                        "flex items-center gap-1 whitespace-nowrap rounded-full px-3.5 py-2 text-[14px] font-bold tracking-[-0.02em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-                        openCat === c.id ? "bg-surface-hover text-text" : "text-muted hover:bg-surface-hover hover:text-text",
-                      )}
-                    >
-                      {c.name}
-                      <motion.span
-                        aria-hidden
-                        animate={{ rotate: openCat === c.id ? 180 : 0 }}
-                        transition={{ duration: 0.25, ease: EASE }}
-                        className="grid place-items-center"
+                  {/* Modo edición: chips con controles de reordenar/quitar + botón "+".
+                      Modo normal: disparadores del mega-menú (comportamiento original). */}
+                  {editing
+                    ? categories.map((c, idx) => (
+                        <div
+                          key={c.id}
+                          className="flex items-center gap-0.5 rounded-full border border-dashed border-accent/40 bg-surface-hover/60 py-1 pl-1 pr-1.5"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => moveCategory(idx, -1)}
+                            disabled={idx === 0 || savingHeader}
+                            title="Mover a la izquierda"
+                            className="grid h-6 w-6 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text disabled:opacity-30 disabled:hover:bg-transparent"
+                          >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="whitespace-nowrap px-1 text-[13px] font-bold tracking-[-0.02em] text-text">{c.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => moveCategory(idx, 1)}
+                            disabled={idx === categories.length - 1 || savingHeader}
+                            title="Mover a la derecha"
+                            className="grid h-6 w-6 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text disabled:opacity-30 disabled:hover:bg-transparent"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeCategory(c.id)}
+                            disabled={savingHeader}
+                            title="Quitar del header"
+                            className="grid h-6 w-6 place-items-center rounded-full text-muted transition-colors hover:bg-danger hover:text-white disabled:opacity-30"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    : categories.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onMouseEnter={() => openMenu(c.id)}
+                          onFocus={() => openMenu(c.id)}
+                          onClick={() => toggleMenu(c.id)}
+                          aria-expanded={openCat === c.id}
+                          className={cn(
+                            "flex items-center gap-1 whitespace-nowrap rounded-full px-3.5 py-2 text-[14px] font-bold tracking-[-0.02em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                            openCat === c.id ? "bg-surface-hover text-text" : "text-muted hover:bg-surface-hover hover:text-text",
+                          )}
+                        >
+                          {c.name}
+                          <motion.span
+                            aria-hidden
+                            animate={{ rotate: openCat === c.id ? 180 : 0 }}
+                            transition={{ duration: 0.25, ease: EASE }}
+                            className="grid place-items-center"
+                          >
+                            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
+                          </motion.span>
+                        </button>
+                      ))}
+
+                  {/* Botón "+" para agregar una etiqueta (solo modo edición). Grayed
+                      out cuando no hay categorías disponibles; al pulsarlo → toast. */}
+                  {editing && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={handleAddClick}
+                        aria-disabled={availableToAdd.length === 0}
+                        title={availableToAdd.length === 0 ? "No hay más etiquetas disponibles" : "Agregar etiqueta"}
+                        className={cn(
+                          "grid h-8 w-8 place-items-center rounded-full border border-dashed transition-colors",
+                          availableToAdd.length === 0
+                            ? "border-border/50 text-muted/40"
+                            : "border-accent/50 text-accent hover:bg-accent hover:text-bg",
+                        )}
                       >
-                        <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
-                      </motion.span>
-                    </button>
-                  ))}
+                        <Plus className="h-4 w-4" />
+                      </button>
+                      <AnimatePresence>
+                        {addOpen && availableToAdd.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: 0.18, ease: EASE }}
+                            className="absolute left-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-surface p-1.5 shadow-premium"
+                          >
+                            <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Agregar al header</p>
+                            {availableToAdd.map((c) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => addCategory(c.id)}
+                                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] font-medium text-text transition-colors hover:bg-surface-hover"
+                              >
+                                <Plus className="h-3.5 w-3.5 text-accent-2" />
+                                {c.name}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
                 </motion.nav>
               )}
             </AnimatePresence>
@@ -324,7 +481,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                 aria-label="Iniciar sesión"
                 className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                <User className="h-[22px] w-[22px]" />
+                <User className="h-[44px] w-[22px]" />
               </Link>
             )}
           </div>

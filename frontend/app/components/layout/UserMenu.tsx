@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@remix-run/react";
+import { Link, useNavigate } from "@remix-run/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, Key, Lock, Eye, EyeOff, Camera, Upload, Link2, MonitorCog } from "lucide-react";
+import { LogOut, Key, Lock, Eye, EyeOff, Camera, Upload, Link2, MonitorCog, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
@@ -9,7 +9,7 @@ import { useAuth } from "~/hooks/useAuth";
 import { getIdToken } from "~/lib/authStrategies";
 import { getFirebaseAuth, linkWithPopup, GoogleAuthProvider } from "~/lib/firebase.client";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
-import { setUser, selectRoles } from "~/store/slices/authSlice";
+import { setUser, selectRoles, selectIsAdmin, selectEditMode, toggleEditMode } from "~/store/slices/authSlice";
 import { cn } from "~/lib/utils";
 
 export function UserMenu({
@@ -24,7 +24,11 @@ export function UserMenu({
   align?: "left" | "right";
 } = {}) {
   const { user, logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const roles = useAppSelector(selectRoles);
+  const isAdmin = useAppSelector(selectIsAdmin);
+  const editMode = useAppSelector(selectEditMode);
   const [open, setOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
@@ -52,6 +56,16 @@ export function UserMenu({
         toast.error("No se pudo vincular con Google: " + (err.message || err.toString()));
       }
     }
+  }
+
+  // Activa/desactiva el modo edición inline (Hero + header). Al activarlo lleva a
+  // la landing, donde viven los controles de edición del Hero.
+  function handleToggleEdit() {
+    setOpen(false);
+    const turningOn = !editMode;
+    dispatch(toggleEditMode());
+    if (turningOn) navigate("/");
+    toast.success(turningOn ? "Modo edición activado." : "Modo edición desactivado.");
   }
 
   function handleMouseEnter() {
@@ -183,6 +197,32 @@ export function UserMenu({
                     Centro de Administración
                   </span>
                 </Link>
+              </div>
+            )}
+
+            {/* Modo edición inline (solo admin): edita Hero y etiquetas del header
+                directamente sobre la landing, estilo SharePoint. */}
+            {isAdmin && (
+              <div className="border-b border-border py-1">
+                <button
+                  role="menuitem"
+                  onClick={handleToggleEdit}
+                  className={cn(
+                    "group flex w-full items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-all duration-200 ease-out",
+                    editMode
+                      ? "text-accent-2 hover:bg-accent-2/10"
+                      : "text-text hover:bg-surface-2 hover:text-accent",
+                  )}
+                >
+                  {editMode ? (
+                    <Check className="h-4 w-4 text-accent-2 transition-transform duration-200 group-hover:scale-110" />
+                  ) : (
+                    <Pencil className="h-4 w-4 text-muted transition-transform duration-200 group-hover:scale-110 group-hover:text-accent" />
+                  )}
+                  <span className="transition-transform duration-200 group-hover:translate-x-0.5">
+                    {editMode ? "Salir del modo edición" : "Modo edición"}
+                  </span>
+                </button>
               </div>
             )}
 

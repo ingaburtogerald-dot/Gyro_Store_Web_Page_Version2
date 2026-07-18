@@ -8,6 +8,10 @@ const multer = require('multer');
 const IMAGE_MIMES = new Set([
   'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif',
 ]);
+// Formatos de video para la media del Hero (slides). object-cover en un <video>.
+const VIDEO_MIMES = new Set([
+  'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
+]);
 // Documentos permitidos donde además de imagen puede venir una factura.
 const DOC_MIMES = new Set(['application/pdf']);
 
@@ -38,4 +42,13 @@ function imageOrPdfUpload({ maxSizeMb = 8 } = {}) {
   });
 }
 
-module.exports = { imageUpload, imageOrPdfUpload, IMAGE_MIMES, DOC_MIMES };
+// Sube media del Hero: imágenes, GIF o video. Los videos pesan → límite más alto.
+function mediaUpload({ maxSizeMb = 50 } = {}) {
+  return multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: maxSizeMb * 1024 * 1024 },
+    fileFilter: makeFileFilter(new Set([...IMAGE_MIMES, ...VIDEO_MIMES]), 'imágenes, GIF o video'),
+  });
+}
+
+module.exports = { imageUpload, imageOrPdfUpload, mediaUpload, IMAGE_MIMES, VIDEO_MIMES, DOC_MIMES };

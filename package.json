@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "concurrently -n SERVER,FRONTEND -c blue,magenta \"npm:dev:server\" \"npm:dev:frontend\"",
-    "dev:server": "cross-env NODE_ENV=development node --watch-path=server --watch-path=shared server/index.js",
+    "dev:server": "cross-env NODE_ENV=development node --use-system-ca --watch-path=server --watch-path=shared server/index.js",
     "dev:frontend": "cd frontend && npm run dev",
     "build": "cd frontend && npm install && npm run build",
     "start": "cross-env NODE_ENV=production node server/index.js",

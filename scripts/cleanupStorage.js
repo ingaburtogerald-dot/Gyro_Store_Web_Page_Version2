@@ -19,7 +19,25 @@ async function run() {
   const catalogRef = db.collection(config.collections.catalog);
   const snap = await catalogRef.get();
 
+  // Obtener config de la tienda para los logos
+  const bizRef = db.collection(config.collections.appConfig).doc('business');
+  const bizSnap = await bizRef.get();
+  const branding = bizSnap.exists ? (bizSnap.data().branding || {}) : {};
+
+  // Config de la landing para la media de los slides del Hero (site/slides/).
+  const landingRef = db.collection(config.collections.appConfig).doc('landing_page');
+  const landingSnap = await landingRef.get();
+  const heroSlides = landingSnap.exists ? (landingSnap.data().heroSlides || []) : [];
+
   const usedUrls = new Set();
+
+  // Agregar URLs de logos actuales para no borrarlos
+  if (branding.logoStaticUrl) usedUrls.add(branding.logoStaticUrl);
+  if (branding.logoAnimatedUrl) usedUrls.add(branding.logoAnimatedUrl);
+  // Agregar la media de cada slide del Hero para no borrarla como huérfana.
+  for (const slide of heroSlides) {
+    if (slide && typeof slide.mediaUrl === 'string' && slide.mediaUrl) usedUrls.add(slide.mediaUrl);
+  }
   const batch = db.batch();
   let updatedDocsCount = 0;
 
@@ -73,7 +91,13 @@ async function run() {
   }
 
   // 2. Revisar Cloudflare R2 para buscar huérfanos
-  const files = await storage.listFiles('catalog-images/');
+  // Listar imágenes de productos y plantillas, además de los logos del sitio
+  const filesProducts = await storage.listFiles('catalog/products/');
+  const filesTemplates = await storage.listFiles('catalog/templates/');
+  const filesLogos = await storage.listFiles('site/logo/');
+  const filesSlides = await storage.listFiles('site/slides/');
+
+  const files = [...filesProducts, ...filesTemplates, ...filesLogos, ...filesSlides];
 
   let deletedFilesCount = 0;
   let totalBytesDeleted = 0;

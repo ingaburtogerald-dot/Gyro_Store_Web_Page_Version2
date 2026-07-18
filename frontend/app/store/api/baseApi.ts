@@ -17,6 +17,7 @@ export const baseApi = createApi({
   // Tags para invalidación de caché entre fases (productos, ventas, usuarios, etc.)
   tagTypes: [
     "Config",
+    "Landing",
     "Catalog",
     "Template",
     "Combo",

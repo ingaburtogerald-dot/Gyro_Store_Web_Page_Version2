@@ -6,10 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { toast } from "sonner";
 import {
-  Mail, Lock, ArrowLeft, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertTriangle,
-  KeyRound, MessageCircle, Gauge, LifeBuoy,
+  Mail, Lock, ArrowLeft, ArrowRight, Eye, EyeOff, CheckCircle2, AlertTriangle,
+  KeyRound, MessageCircle, Sunrise, Sun, Moon, Loader2,
 } from "lucide-react";
-import { Button } from "~/components/ui/Button";
 import { Logo } from "~/components/ui/Logo";
 import { cn, buildWhatsappUrl } from "~/lib/utils";
 import { useAuth } from "~/hooks/useAuth";
@@ -19,18 +18,17 @@ import { roleLandingPath, type Role, WHATSAPP_NUMBER } from "~/lib/constants";
 
 export const meta: MetaFunction = () => [{ title: "Iniciar Sesión · Gyro Store" }];
 
+// Video de fondo del login (alojado en Cloudflare R2, bucket público). Se reproduce
+// en bucle, silenciado y sin controles. Si el navegador no lo carga, el fondo negro
+// del <main> queda de respaldo.
+const LOGIN_BG_VIDEO = "https://pub-e5292366f3c04eb1a93d9a0b38928540.r2.dev/site/login/background.webm";
+
 // Curva de salida exponencial (mismo lenguaje de motion que el resto de la app).
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 const EASE_IN = [0.7, 0, 0.84, 0] as const;
 // Duración de la animación de salida antes de navegar al dashboard.
 const EXIT_MS = 520;
 
-// Beneficios del pie del panel de marca.
-const BENEFITS = [
-  { icon: ShieldCheck, label: "Conexión segura" },
-  { icon: Gauge, label: "Gestión rápida" },
-  { icon: LifeBuoy, label: "Soporte directo" },
-];
 
 export default function Login() {
   const { login } = useAuth();
@@ -47,7 +45,7 @@ export default function Login() {
   const [exiting, setExiting] = useState(false);
   // Saludo según la hora. Se calcula tras montar para no chocar con el SSR
   // (la hora del servidor puede diferir de la del navegador → hydration mismatch).
-  const [greeting, setGreeting] = useState<{ text: string; emoji: string } | null>(null);
+  const [greeting, setGreeting] = useState<{ text: string; icon: "sunrise" | "sun" | "moon" } | null>(null);
   useEffect(() => setGreeting(getGreeting()), []);
 
   // Pre-cargar Firebase Auth para evitar que el navegador (Edge/Safari)
@@ -121,137 +119,89 @@ export default function Login() {
     }
   }
 
-  // ── Variants de SALIDA (Framer) ────────────────────────────────────────
+  // ── Variant de SALIDA (Framer) ─────────────────────────────────────────
   // La ENTRADA es CSS puro (clases login-enter-*, ver globals.css): robusta ante
-  // fallo de JS y sin parpadeo. Framer solo orquesta la salida al dashboard.
-  const brandVariants: Variants = {
-    exit: { scale: reduce ? 1 : 1.08, transition: { duration: 0.5, ease: EASE_OUT } },
-  };
+  // fallo de JS y sin parpadeo. Framer solo orquesta la salida calmada al dashboard.
   const cardVariants: Variants = {
-    exit: { opacity: 0, x: reduce ? 0 : 96, transition: { duration: 0.42, ease: EASE_IN } },
+    exit: { opacity: 0, scale: reduce ? 1 : 0.98, y: reduce ? 0 : -8, transition: { duration: 0.42, ease: EASE_IN } },
   };
-  // Delay escalonado para los items del panel de marca (entrada CSS).
+  // Delay escalonado para el wordmark + encabezado (entrada CSS).
   const itemDelay = (i: number): React.CSSProperties =>
-    reduce ? {} : { animationDelay: `${0.15 + i * 0.08}s` };
+    reduce ? {} : { animationDelay: `${0.1 + i * 0.07}s` };
+
+  // Ícono del saludo (sin emojis; DESIGN.md §8).
+  const GreetIcon = greeting?.icon === "sunrise" ? Sunrise : greeting?.icon === "moon" ? Moon : Sun;
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden bg-bg lg:grid lg:grid-cols-[minmax(0,44%)_1fr]">
-      {/* ── PANEL IZQUIERDO · Marca (oculto en móvil) ─────────────────────── */}
-      {/* Panel de marca: fondo más luminoso y gradiente sutil */}
-      <motion.aside
-        variants={brandVariants}
+    <main
+      data-skin="store"
+      className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-black p-4 sm:p-6 lg:p-8"
+    >
+      {/* Fondo en video (Cloudflare R2): autoplay silenciado en bucle. Si el
+          navegador no puede reproducirlo, el fondo negro del <main> es el respaldo. */}
+      <video
+        className="absolute inset-0 z-0 h-full w-full object-cover"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        aria-hidden
+      >
+        <source src={LOGIN_BG_VIDEO} type="video/webm" />
+      </video>
+
+      {/* Scrim: oscurece el fondo y aplica una viñeta radial que enfoca el centro,
+          para que la tarjeta resalte sin que el video compita. */}
+      <div aria-hidden className="absolute inset-0 z-0 bg-black/45" />
+      <div
+        aria-hidden
+        className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_38%,rgba(0,0,0,0.6)_100%)]"
+      />
+
+      {/* Line-art hairline en los márgenes (evoca las ondas de las referencias,
+          pero es hairline esmeralda muy tenue, no glow → DESIGN.md §6). */}
+      <DecorWaves />
+
+      {/* Volver al catálogo: con fondo cristal para no perderse en la nueva imagen y animado. */}
+      <motion.a
+        href="/"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="group absolute left-12 top-5 z-20 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-bg shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:left-16 sm:top-8"
+      >
+        <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
+        Volver al catálogo
+      </motion.a>
+
+      {/* Tarjeta split que flota sobre el fondo (marco + hairline + sombra neutra). */}
+      <motion.div
+        variants={cardVariants}
         initial={false}
         animate={exiting ? "exit" : undefined}
-        className="login-enter-slide relative hidden overflow-hidden bg-surface-2 text-white lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16"
+        aria-busy={exiting}
+        className={cn(
+          "login-enter-rise relative z-10 grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border bg-surface shadow-[0_30px_90px_-30px_rgba(0,0,0,0.75)] lg:min-h-[600px] lg:grid-cols-2",
+          exiting && "pointer-events-none",
+        )}
       >
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#10b981]/25 via-transparent to-[#5eead4]/10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <div className="animate-aurora absolute -left-1/4 top-0 h-[55vh] w-[55vh] rounded-full bg-[#10b981] opacity-30 blur-[120px]" />
-          <div className="animate-aurora absolute -right-1/4 bottom-0 h-[45vh] w-[45vh] rounded-full bg-[#5eead4] opacity-20 blur-[120px]" />
-          {/* Glow central que ancla el emblema y llena el vacío con luz de marca. */}
-          <div className="absolute left-1/3 top-2/5 h-[50vh] w-[50vh] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#10b981]/20 blur-[110px]" />
-          {/* Wordmark tenue en diagonal para que se sienta "de Gyro". */}
-          <div className="absolute -inset-1/4 flex flex-wrap content-center justify-center gap-x-12 gap-y-10 rotate-[-20deg] select-none text-3xl font-extrabold uppercase tracking-[0.3em] text-white opacity-[0.04]">
-            {Array.from({ length: 60 }).map((_, i) => (
-              <span key={i}>Gyro Store</span>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-1 flex-col">
-          {/* Lockup de marca arriba */}
-          <div className="login-enter-item flex items-center gap-3" style={itemDelay(0)}>
-            <Logo size={48} withText textClassName="text-xl" />
-          </div>
-
-          {/* Centro: emblema grande (ancla visual) + propuesta de valor */}
-          <div className="flex flex-1 flex-col justify-center">
-            {/* Emblema: llena el vacío y da foco de marca; halo esmeralda + anillo. */}
-            <div className="login-enter-item relative mb-8 w-fit" style={itemDelay(1)}>
-              <span aria-hidden="true" className="absolute -inset-6 rounded-full bg-[#10b981]/30 blur-2xl" />
-              <img
-                src="/logo.jpg"
-                alt=""
-                width={128}
-                height={128}
-                className="relative rounded-full object-cover shadow-2xl ring-1 ring-white/20"
-                style={{ width: 128, height: 128 }}
-              />
+        {/* ── PANEL FORMULARIO ──────────────────────────────────────────────── */}
+        <div className="order-2 flex flex-col justify-center p-7 sm:p-10 lg:order-1 lg:p-14">
+          <div className="mx-auto w-full max-w-sm">
+            {/* Marca (visible solo en móvil) + encabezado con jerarquía. */}
+            <div className="login-enter-item" style={itemDelay(0)}>
+              <Logo size={52} className="lg:hidden" />
+              <h1 className="mt-6 font-heading text-3xl font-extrabold tracking-tight text-text">
+                Iniciar sesión
+              </h1>
+              <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted">
+                {greeting && <GreetIcon className="h-4 w-4 text-accent-2" aria-hidden />}
+                {greeting ? `${greeting.text} — t` : "T"}e damos la bienvenida, ingresa tus datos
+              </p>
             </div>
-            <p
-              className="login-enter-item inline-flex w-fit items-center gap-1.5 rounded-none border border-[#5eead4]/25 bg-[#5eead4]/10 px-3 py-1 text-xs font-medium text-[#5eead4]"
-              style={itemDelay(2)}
-            >
-              <ShieldCheck className="h-3.5 w-3.5" /> Gyro Store
-            </p>
-            {/* Título decorativo grande (el <h1> semántico vive en la tarjeta). */}
-            <p
-              aria-hidden="true"
-              className="login-enter-item mt-5 text-balance font-heading text-4xl font-extrabold leading-[1.1] text-white xl:text-5xl"
-              style={itemDelay(3)}
-            >
-              Iniciar<br />Sesión
-            </p>
-            <p
-              className="login-enter-item mt-4 max-w-sm text-pretty text-base leading-relaxed text-white/60"
-              style={itemDelay(4)}
-            >
-              Accede a tu cuenta para gestionar tus pedidos y disfrutar de todos los servicios.
-            </p>
-          </div>
-
-          {/* Pie: 3 beneficios minimalistas */}
-          <ul className="login-enter-item flex flex-wrap gap-x-8 gap-y-4" style={itemDelay(5)}>
-            {BENEFITS.map(({ icon: Icon, label }) => (
-              <li key={label} className="flex items-center gap-2.5 text-sm text-white/70">
-                <span className="grid h-9 w-9 place-items-center rounded-xl border border-[#5eead4]/15 bg-[#5eead4]/10 text-[#5eead4]">
-                  <Icon className="h-4 w-4" />
-                </span>
-                {label}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </motion.aside>
-
-      {/* ── PANEL DERECHO · Formulario ────────────────────────────────────── */}
-      <div className="relative flex min-h-screen items-center justify-center p-6 sm:p-10">
-        {/* Aura tenue detrás de la tarjeta en desktop (da profundidad al panel). */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 hidden lg:block">
-          <div className="absolute left-1/2 top-1/2 h-[70vh] w-[70vh] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/5 blur-[140px]" />
-        </div>
-
-        <motion.div
-          variants={cardVariants}
-          initial={false}
-          animate={exiting ? "exit" : undefined}
-          aria-busy={exiting}
-          className={cn(
-            "login-enter-rise relative z-10 w-full max-w-md rounded-card border border-white/10 bg-surface/70 p-7 shadow-premium backdrop-blur-xl sm:p-8",
-            exiting && "pointer-events-none",
-          )}
-        >
-          <a
-            href="/"
-            className="mb-6 inline-flex items-center gap-1.5 rounded-lg text-sm text-muted transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          >
-            <ArrowLeft className="h-4 w-4" /> Volver al catálogo
-          </a>
-
-          {/* Cabecera de marca COMPACTA — protagonista en móvil, sr-only en desktop
-              (allí el panel izquierdo ya muestra la identidad en grande). */}
-          <h1 className="text-center font-heading text-2xl font-bold text-text lg:sr-only">
-            Iniciar Sesión
-          </h1>
-          {greeting && (
-            <p className="mt-1 text-center text-sm text-muted lg:hidden">
-              {greeting.text} <span className="align-middle">{greeting.emoji}</span> — inicia sesión en Gyro Store.
-            </p>
-          )}
 
           {/* Email + contraseña */}
-          <form onSubmit={handleSubmit((d) => run("email", d))} className="mt-7 space-y-4">
+          <form onSubmit={handleSubmit((d) => run("email", d))} className="login-enter-item mt-8 space-y-4" style={itemDelay(1)}>
             <div>
               <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
                 Correo
@@ -346,55 +296,177 @@ export default function Login() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" loading={busy === "email"}>
+            <AnimatedPrimary type="submit" loading={busy === "email"} reduce={!!reduce}>
               Iniciar sesión
-            </Button>
+            </AnimatedPrimary>
           </form>
 
           {/* Separador */}
-          <div className="my-6 flex items-center gap-3 text-xs text-muted">
+          <div className="login-enter-item my-6 flex items-center gap-3 text-xs text-muted" style={itemDelay(2)}>
             <span className="h-px flex-1 bg-border" /> o continúa con <span className="h-px flex-1 bg-border" />
           </div>
 
           {/* Proveedores externos */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
+          <div className="login-enter-item grid grid-cols-2 gap-3" style={itemDelay(3)}>
+            <SocialButton
               loading={busy === "google"}
               onClick={() => run("google")}
-              className="hover:border-[#4285F4]/70 hover:bg-[#4285F4]/5"
-            >
-              {busy !== "google" && <GoogleIcon className="h-4 w-4" />}
-              Google
-            </Button>
+              reduce={!!reduce}
+              icon={<GoogleIcon className="h-4 w-4" />}
+              label="Google"
+              hoverClass="hover:border-[#4285F4]/60 hover:bg-[#4285F4]/5"
+            />
             {/* Hotmail/Outlook usa la estrategia de Microsoft por debajo (mismo OAuth que valida @hotmail/@outlook). */}
-            <Button
-              variant="outline"
+            <SocialButton
               loading={busy === "microsoft"}
               onClick={() => run("microsoft")}
-              className="hover:border-[#0078D4]/70 hover:bg-[#0078D4]/5"
-            >
-              {busy !== "microsoft" && <OutlookIcon className="h-4 w-4" />}
-              Hotmail
-            </Button>
+              reduce={!!reduce}
+              icon={<OutlookIcon className="h-4 w-4" />}
+              label="Hotmail"
+              hoverClass="hover:border-[#0078D4]/60 hover:bg-[#0078D4]/5"
+            />
           </div>
 
-          <p className="mt-4 text-center text-xs text-muted">
-            Aceptamos cuentas <span className="text-text">@gmail</span>,{" "}
-            <span className="text-text">@hotmail</span> y <span className="text-text">@outlook</span>.
-          </p>
-        </motion.div>
-      </div>
+            <p className="mt-4 text-center text-xs text-muted">
+              Aceptamos cuentas <span className="text-text">@gmail</span>,{" "}
+              <span className="text-text">@hotmail</span> y <span className="text-text">@outlook</span>.
+            </p>
+          </div>
+        </div>
+
+        {/* ── PANEL VISUAL · Marca (solo desktop) ──────────────────── */}
+        <div className="relative order-1 hidden flex-col items-center justify-center overflow-hidden bg-black lg:order-2 lg:flex">
+          {/* Logo principal centrado (obtenido de la config del admin automáticamente por el componente Logo) */}
+          <div className="relative z-10 flex flex-1 items-center justify-center p-12">
+            <Logo size={140} className="scale-90 xl:scale-100" />
+          </div>
+
+          {/* Declaración de marca al pie (sin el logo circular). */}
+          <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black via-black/80 to-transparent p-12 pt-32">
+            <p className="text-balance font-heading text-3xl font-extrabold leading-tight text-white">
+              Acceso a Colaboradores
+            </p>
+            <p className="mt-3 max-w-md text-base font-light leading-relaxed text-white/70">
+              Accede al centro de administración para la gestión de Gyro Store.
+            </p>
+          </div>
+        </div>
+      </motion.div>
     </main>
   );
 }
 
-// Saludo según la franja horaria del navegador.
-function getGreeting(): { text: string; emoji: string } {
+// Saludo según la franja horaria del navegador. Devuelve una clave de ícono lucide
+// (no emoji; DESIGN.md §8) que el componente mapea a Sunrise/Sun/Moon.
+function getGreeting(): { text: string; icon: "sunrise" | "sun" | "moon" } {
   const h = new Date().getHours();
-  if (h < 12) return { text: "Buenos días", emoji: "🌅" };
-  if (h < 19) return { text: "Buenas tardes", emoji: "☀️" };
-  return { text: "Buenas noches", emoji: "🌙" };
+  if (h < 12) return { text: "Buenos días", icon: "sunrise" };
+  if (h < 19) return { text: "Buenas tardes", icon: "sun" };
+  return { text: "Buenas noches", icon: "moon" };
+}
+
+// CTA primaria premium: relleno esmeralda con barrido de brillo (sheen) en hover,
+// flecha que se desliza y press táctil con spring (solo tacto; DESIGN.md §5). El
+// sheen se apaga con prefers-reduced-motion. Es <button> nativo → sirve de submit.
+function AnimatedPrimary({
+  children,
+  loading,
+  reduce,
+  type = "button",
+  onClick,
+}: {
+  children: React.ReactNode;
+  loading?: boolean;
+  reduce: boolean;
+  type?: "button" | "submit";
+  onClick?: () => void;
+}) {
+  return (
+    <motion.button
+      type={type}
+      onClick={onClick}
+      disabled={loading}
+      whileTap={reduce || loading ? undefined : { scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 420, damping: 24 }}
+      className="group relative w-full overflow-hidden rounded-lg bg-gradient-to-b from-accent to-accent-hover px-5 py-3 text-sm font-semibold text-bg shadow-md shadow-accent/20 transition-shadow duration-300 hover:shadow-lg hover:shadow-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      {/* Barrido de brillo que cruza en hover. */}
+      {!reduce && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full"
+        />
+      )}
+      <span className="relative flex items-center justify-center gap-2">
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <>
+            {children}
+            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+          </>
+        )}
+      </span>
+    </motion.button>
+  );
+}
+
+// Botón social: hairline que se aclara + ícono con pop sutil en hover + press táctil.
+function SocialButton({
+  icon,
+  label,
+  loading,
+  reduce,
+  onClick,
+  hoverClass,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  loading?: boolean;
+  reduce: boolean;
+  onClick?: () => void;
+  hoverClass?: string;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      whileTap={reduce || loading ? undefined : { scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 420, damping: 24 }}
+      className={cn(
+        "group flex items-center justify-center gap-2 rounded-lg border border-border bg-surface-2/40 px-4 py-2.5 text-sm font-medium text-text transition-colors hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-60 disabled:cursor-not-allowed",
+        hoverClass,
+      )}
+    >
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <span className={cn("inline-flex transition-transform duration-200", !reduce && "group-hover:scale-110")}>
+          {icon}
+        </span>
+      )}
+      {label}
+    </motion.button>
+  );
+}
+
+// Line-art decorativo de fondo: dos trazos hairline esmeralda muy tenues en esquinas
+// opuestas (evocan las ondas de las referencias sin caer en glow). Puramente estético.
+function DecorWaves() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden text-accent/[0.06]">
+      <svg className="absolute -left-24 -top-24 h-[520px] w-[520px]" viewBox="0 0 400 400" fill="none">
+        <circle cx="200" cy="200" r="150" stroke="currentColor" strokeWidth="1" />
+        <circle cx="200" cy="200" r="110" stroke="currentColor" strokeWidth="1" />
+        <circle cx="200" cy="200" r="70" stroke="currentColor" strokeWidth="1" />
+      </svg>
+      <svg className="absolute -bottom-32 -right-24 h-[560px] w-[560px]" viewBox="0 0 400 400" fill="none">
+        <path d="M0 300 Q100 220 200 300 T400 300" stroke="currentColor" strokeWidth="1" />
+        <path d="M0 340 Q100 260 200 340 T400 340" stroke="currentColor" strokeWidth="1" />
+      </svg>
+    </div>
+  );
 }
 
 // Íconos de marca (inline para no depender de paquetes externos de logos).

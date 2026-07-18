@@ -12,7 +12,7 @@ import { FilterBar } from "~/components/filters/FilterBar";
 import { ActiveFilters } from "~/components/filters/ActiveFilters";
 import { FilterFab } from "~/components/catalog/FilterFab";
 import { FilterSheet } from "~/components/filters/FilterSheet";
-import type { CatalogProduct, Category, Combo } from "~/store/api/catalogApi";
+import type { CatalogProduct, Category, Combo, LandingConfig } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { selectEditMode, selectIsAdmin, setEditMode } from "~/store/slices/authSlice";
 
@@ -32,15 +32,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
   let products: CatalogProduct[] = [];
   let categories: Category[] = [];
   let combos: Combo[] = [];
+  let landing: LandingConfig | null = null;
   try {
-    const [pRes, cRes, comboRes] = await Promise.all([
+    const [pRes, cRes, comboRes, landingRes] = await Promise.all([
       fetch(`${origin}/api/catalog`),
       fetch(`${origin}/api/config`),
       fetch(`${origin}/api/combos`),
+      fetch(`${origin}/api/config/landing_page`),
     ]);
     if (pRes.ok) products = (await pRes.json()) as CatalogProduct[];
     if (cRes.ok) categories = ((await cRes.json()) as { categories?: Category[] }).categories ?? [];
     if (comboRes.ok) combos = (await comboRes.json()) as Combo[];
+    if (landingRes.ok) landing = (await landingRes.json()) as LandingConfig;
     
     // Categorías de la tienda. FUENTE ÚNICA DE VERDAD: el `id` de cada categoría
     // DEBE ser el valor real de `product.category` que devuelve la API. Así el chip
@@ -71,7 +74,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   } catch {
     // Si la API falla, la página igual renderiza (grilla vacía con su estado vacío).
   }
-  return { origin, products, categories, combos };
+  return { origin, products, categories, combos, landing };
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -96,7 +99,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export default function Index() {
-  const { products, categories, combos } = useLoaderData<typeof loader>();
+  const { products, categories, combos, landing } = useLoaderData<typeof loader>();
   const dispatch = useAppDispatch();
   const isAdmin = useAppSelector(selectIsAdmin);
   const editMode = useAppSelector(selectEditMode);
@@ -157,7 +160,7 @@ export default function Index() {
       <AnimatePresence initial={false}>
         {!hasFilters && (
           <motion.div key="hero" {...collapse}>
-            <Hero productCount={products.length} />
+            <Hero initialLanding={landing} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -168,10 +171,11 @@ export default function Index() {
           {!editing && !hasFilters && (
             <motion.div key="brands-and-carousel" {...collapse}>
               <ProductCarousel
-                title="Lo Más Nuevo"
-                subtitle="Recién llegados a la tienda"
+                title="Artículos Populares"
+                subtitle="Los favoritos de la tienda"
                 products={products.filter((p) => p.images?.[0]).slice(0, 12)}
                 categories={categories}
+                variant="showcase"
               />
               <ComboSection combos={combos} />
             </motion.div>

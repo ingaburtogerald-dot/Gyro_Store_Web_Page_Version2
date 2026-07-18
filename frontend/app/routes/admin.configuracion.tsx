@@ -49,65 +49,61 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-// Subida de un logo del header (estático o animado). Muestra la vista previa actual
-// sobre fondo negro (como el header real) y sube el archivo a R2 vía /config/logo.
-function LogoUploader({
-  kind,
+// Una fila de logo (estático o animado). PRESENTACIONAL: solo prepara el cambio
+// (vista previa local del archivo elegido / marca "quitar"); no sube nada hasta que
+// el padre pulse "Guardar cambios".
+function LogoRow({
   label,
   hint,
   accept,
   currentUrl,
+  staged,
+  onSelect,
+  onRemove,
+  onUndo,
 }: {
-  kind: "static" | "animated";
   label: string;
   hint: string;
   accept: string;
   currentUrl?: string;
+  staged: File | "remove" | null;
+  onSelect: (file: File) => void;
+  onRemove: () => void;
+  onUndo: () => void;
 }) {
-  const [uploadLogo, { isLoading }] = useUploadLogoMutation();
-  const [removeLogo, { isLoading: removing }] = useRemoveLogoMutation();
   const inputRef = useRef<HTMLInputElement>(null);
-  // Cache-buster para que la vista previa refresque al reemplazar el archivo.
-  const [bust, setBust] = useState(0);
+  const [localUrl, setLocalUrl] = useState("");
 
-  async function onPick(file: File | null) {
-    if (!file) return;
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("kind", kind);
-    try {
-      await uploadLogo(fd).unwrap();
-      setBust(Date.now());
-      toast.success(`Logo ${kind === "animated" ? "animado" : "estático"} actualizado.`);
-    } catch (e) {
-      // Muestra el mensaje real del servidor (p. ej. "R2 no configurado") si viene.
-      const msg = (e as { data?: { error?: string } })?.data?.error;
-      toast.error(msg || "No se pudo subir el logo.");
-    } finally {
-      if (inputRef.current) inputRef.current.value = "";
+  // Vista previa local del archivo staged (se revoca al cambiar/desmontar).
+  useEffect(() => {
+    if (staged instanceof File) {
+      const u = URL.createObjectURL(staged);
+      setLocalUrl(u);
+      return () => URL.revokeObjectURL(u);
     }
-  }
+    setLocalUrl("");
+  }, [staged]);
 
-  async function onRemove() {
-    try {
-      await removeLogo(kind).unwrap();
-      toast.success("Logo eliminado. Se usará el logo por defecto.");
-    } catch (e) {
-      const msg = (e as { data?: { error?: string } })?.data?.error;
-      toast.error(msg || "No se pudo eliminar el logo.");
-    }
-  }
-
-  const previewSrc = currentUrl ? `${currentUrl}${currentUrl.includes("?") ? "&" : "?"}v=${bust}` : "";
+  const changed = staged !== null;
+  const hasCurrent = Boolean(currentUrl);
+  // Qué mostrar: archivo nuevo (local) → quitar (nada) → logo actual.
+  const src = staged instanceof File ? localUrl : staged === "remove" ? "" : currentUrl || "";
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-medium text-muted">{label}</span>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted">{label}</span>
+        {changed && (
+          <span className="text-[11px] font-medium text-accent-2">
+            {staged === "remove" ? "Se quitará al guardar" : "Nuevo · sin guardar"}
+          </span>
+        )}
+      </div>
       <div className="flex items-center gap-4">
         {/* Vista previa sobre negro, como el header real */}
         <div className="grid h-16 w-32 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-black">
-          {previewSrc ? (
-            <img src={previewSrc} alt="" className="max-h-full max-w-full object-contain" />
+          {src ? (
+            <img src={src} alt="" className="max-h-full max-w-full object-contain" />
           ) : (
             <span className="text-[11px] text-muted">Sin logo</span>
           )}
@@ -119,31 +115,119 @@ function LogoUploader({
             type="file"
             accept={accept}
             className="hidden"
-            onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onSelect(f);
+              if (inputRef.current) inputRef.current.value = "";
+            }}
           />
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Button
               type="button"
               variant="outline"
-              loading={isLoading}
               onClick={() => inputRef.current?.click()}
               className="flex items-center gap-2"
             >
-              <Upload className="h-4 w-4" /> {currentUrl ? "Reemplazar" : "Subir imagen"}
+              <Upload className="h-4 w-4" />
+              {hasCurrent || staged instanceof File ? "Cambiar imagen" : "Elegir imagen"}
             </Button>
-            {currentUrl && (
+            {changed ? (
+              <button
+                type="button"
+                onClick={onUndo}
+                className="text-xs font-medium text-muted underline-offset-2 transition-colors hover:text-text hover:underline"
+              >
+                Deshacer
+              </button>
+            ) : hasCurrent ? (
               <Button
                 type="button"
                 variant="ghost"
-                loading={removing}
                 onClick={onRemove}
                 className="flex items-center gap-2 text-danger"
               >
                 <Trash2 className="h-4 w-4" /> Quitar
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Sección "Logo del header": dos filas (estático + animado) con staging y UN solo
+// botón "Guardar cambios" que aplica todo (sube los archivos nuevos y/o quita).
+function LogoSection({ branding }: { branding?: { logoStaticUrl?: string; logoAnimatedUrl?: string } }) {
+  const [uploadLogo] = useUploadLogoMutation();
+  const [removeLogo] = useRemoveLogoMutation();
+  const [saving, setSaving] = useState(false);
+  // Cambio pendiente por tipo: File (nuevo) | "remove" (quitar) | null (sin cambio).
+  const [staged, setStaged] = useState<{
+    static: File | "remove" | null;
+    animated: File | "remove" | null;
+  }>({ static: null, animated: null });
+
+  const hasChanges = staged.static !== null || staged.animated !== null;
+  const setKind = (kind: "static" | "animated", value: File | "remove" | null) =>
+    setStaged((s) => ({ ...s, [kind]: value }));
+
+  async function save() {
+    setSaving(true);
+    try {
+      for (const kind of ["static", "animated"] as const) {
+        const change = staged[kind];
+        if (change instanceof File) {
+          const fd = new FormData();
+          fd.append("file", change);
+          fd.append("kind", kind);
+          await uploadLogo(fd).unwrap();
+        } else if (change === "remove") {
+          await removeLogo(kind).unwrap();
+        }
+      }
+      setStaged({ static: null, animated: null });
+      toast.success("Logo del header guardado.");
+    } catch (e) {
+      const msg = (e as { data?: { error?: string } })?.data?.error;
+      toast.error(msg || "No se pudo guardar el logo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <LogoRow
+        label="Logo estático"
+        accept="image/jpeg,image/png,image/webp"
+        hint="Imagen (JPG, PNG o WebP). Se recomienda proporción 2:1 y fondo negro."
+        currentUrl={branding?.logoStaticUrl}
+        staged={staged.static}
+        onSelect={(f) => setKind("static", f)}
+        onRemove={() => setKind("static", "remove")}
+        onUndo={() => setKind("static", null)}
+      />
+      <LogoRow
+        label="Logo animado (GIF)"
+        accept="image/gif"
+        hint="GIF animado. Debe coincidir en tamaño/proporción con el estático."
+        currentUrl={branding?.logoAnimatedUrl}
+        staged={staged.animated}
+        onSelect={(f) => setKind("animated", f)}
+        onRemove={() => setKind("animated", "remove")}
+        onUndo={() => setKind("animated", null)}
+      />
+      <div className="flex justify-end border-t border-border pt-4">
+        <Button
+          type="button"
+          onClick={save}
+          loading={saving}
+          disabled={!hasChanges}
+          className="flex items-center gap-2"
+        >
+          <Save className="h-4 w-4" /> Guardar cambios
+        </Button>
       </div>
     </div>
   );
@@ -335,24 +419,9 @@ export default function Configuracion() {
         {/* Logo del header (identidad de marca) */}
         <Section
           title="Logo del header"
-          description="El logo que aparece arriba a la izquierda en toda la tienda. El estático se muestra por defecto; el animado (GIF) aparece al pasar el mouse o hacer clic. Se aplican al instante sin volver a desplegar."
+          description="El logo que aparece arriba a la izquierda en toda la tienda. El estático se muestra por defecto; el animado (GIF) aparece al pasar el mouse o hacer clic. Elige los archivos y pulsa Guardar cambios para aplicarlos."
         >
-          <div className="space-y-5">
-            <LogoUploader
-              kind="static"
-              label="Logo estático"
-              accept="image/jpeg,image/png,image/webp"
-              hint="Imagen (JPG, PNG o WebP). Se recomienda proporción 2:1 y fondo negro."
-              currentUrl={config?.branding?.logoStaticUrl}
-            />
-            <LogoUploader
-              kind="animated"
-              label="Logo animado (GIF)"
-              accept="image/gif"
-              hint="GIF animado. Debe coincidir en tamaño/proporción con el estático."
-              currentUrl={config?.branding?.logoAnimatedUrl}
-            />
-          </div>
+          <LogoSection branding={config?.branding} />
         </Section>
 
         {/* Costos fijos */}

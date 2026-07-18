@@ -2,8 +2,8 @@
 // En esta fase solo expone la config de negocio; los endpoints de productos
 // del catálogo se agregan en la Fase 2.
 import { baseApi } from "./baseApi";
-import type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, Combo as PublicCombo } from "~/types/catalog";
-export type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, PublicCombo };
+import type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, Combo as PublicCombo, HeroSlide, LandingConfig } from "~/types/catalog";
+export type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, PublicCombo, HeroSlide, LandingConfig };
 // ── Plantillas (molde de características reutilizable por categoría) ──
 export interface TemplateAxis {
   key: string;
@@ -85,6 +85,20 @@ export const catalogApi = baseApi.injectEndpoints({
     getConfig: build.query<BusinessConfig, void>({
       query: () => "/config",
       providesTags: ["Config"],
+    }),
+
+    // ── Landing editable (Hero + orden del header) ──
+    getLandingConfig: build.query<LandingConfig, void>({
+      query: () => "/config/landing_page",
+      providesTags: ["Landing"],
+    }),
+    updateLandingConfig: build.mutation<LandingConfig & { ok: boolean }, LandingConfig>({
+      query: (body) => ({ url: "/config/landing_page", method: "PUT", body }),
+      invalidatesTags: ["Landing"],
+    }),
+    // Sube la media de un slide a R2. `body` = FormData con `file` y `slideId`.
+    uploadHeroSlide: build.mutation<{ ok: boolean; url: string; mediaType: "image" | "video" }, FormData>({
+      query: (body) => ({ url: "/config/hero-slide", method: "POST", body }),
     }),
     getCatalog: build.query<CatalogProduct[], { category?: string; promo?: boolean } | void>({
       query: (args) => {
@@ -272,6 +286,9 @@ export interface CatalogItemInput {
 
 export const {
   useGetConfigQuery,
+  useGetLandingConfigQuery,
+  useUpdateLandingConfigMutation,
+  useUploadHeroSlideMutation,
   useGetCatalogQuery,
   useGetCatalogItemQuery,
   useGetAdminCatalogQuery,

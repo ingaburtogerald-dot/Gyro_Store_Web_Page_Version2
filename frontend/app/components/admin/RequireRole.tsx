@@ -4,8 +4,11 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "@remix-run/react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAppSelector } from "~/store/hooks";
 import { selectRoles, selectStatus } from "~/store/slices/authSlice";
+import { useAuth } from "~/hooks/useAuth";
+import { useIdleTimeout } from "~/hooks/useIdleTimeout";
 import type { Role } from "~/lib/constants";
 
 export function RequireRole({
@@ -19,8 +22,18 @@ export function RequireRole({
   const roles = useAppSelector(selectRoles);
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const hasAccess = roles.includes("global_admin") || roles.some((r) => allowed.includes(r));
+
+  useIdleTimeout({
+    minutes: 15,
+    isActive: status === "authenticated",
+    onIdle: () => {
+      toast.error("Sesión cerrada por inactividad");
+      logout();
+    },
+  });
 
   useEffect(() => {
     if (status === "unauthenticated") {

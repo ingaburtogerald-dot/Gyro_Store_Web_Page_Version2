@@ -108,6 +108,10 @@ const folders = {
     productId ? `catalog/products/${safeId(productId)}` : `catalog/products/_sin-asignar/${datePartition()}`,
   templateImages: (templateId) => `catalog/templates/${safeId(templateId, 'sin-plantilla')}`,
   profilePhoto: (uid) => `users/profile/${safeId(uid)}`,
+  // Media de las diapositivas del Hero de la landing, agrupada por slide (como los
+  // productos) para que borrar un slide sea borrar su carpeta. El logo vive aparte
+  // en site/logo/. Ambas rutas site/… las conoce el barredor de huérfanos.
+  siteSlide: (slideId) => `site/slides/${safeId(slideId, 'sin-slide')}`,
   saleReceipt: () => `sales/receipts/${datePartition()}`,
   payment: () => `sales/payments/${datePartition()}`,
   paymentScreenshot: () => `sales/screenshots/${datePartition()}`,
@@ -132,15 +136,20 @@ async function uploadFile(buffer, folder, filename, contentType) {
 async function deleteFileByUrl(publicUrl) {
   if (!publicUrl || typeof publicUrl !== 'string') return;
   const prefix = `${R2_PUBLIC_URL}/`;
-  if (!R2_PUBLIC_URL || !publicUrl.startsWith(prefix)) return;
+  if (!R2_PUBLIC_URL || !publicUrl.startsWith(prefix)) {
+    console.warn(`[storage] deleteFileByUrl ignorado: la URL no empieza con el prefijo correcto. URL: ${publicUrl}, Prefijo esperado: ${prefix}`);
+    return;
+  }
   const key = decodeURI(publicUrl.slice(prefix.length));
+  console.log(`[storage] Intentando borrar archivo de R2. Key: ${key}`);
   try {
     await getClient().send(
       new DeleteObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key })
     );
+    console.log(`[storage] Borrado exitoso en R2: ${key}`);
   } catch (err) {
     // R2 no distingue "no existe": un delete de una key ausente igual responde 204.
-    console.error('Error al borrar de R2:', err.message);
+    console.error(`[storage] Error al borrar de R2 (${key}):`, err.message);
   }
 }
 

@@ -1,84 +1,184 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "@remix-run/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
+import { Play, Pause, ArrowRight, Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { AboutUsModal } from "~/components/layout/AboutUsModal";
-import { useGetCatalogQuery } from "~/store/api/catalogApi";
-import { getProductUrl, cn } from "~/lib/utils";
+import { SlideMedia, HeroSlideEditorModal } from "~/components/catalog/HeroSlideEditorModal";
+import { useGetLandingConfigQuery, useUpdateLandingConfigMutation } from "~/store/api/catalogApi";
+import { useAppSelector } from "~/store/hooks";
+import { selectIsAdmin, selectEditMode } from "~/store/slices/authSlice";
+import type { HeroSlide, LandingConfig } from "~/types/catalog";
+import { cn } from "~/lib/utils";
 
-// Definición de las diapositivas del slider
-interface SlideData {
-  id: number;
-  eyebrow: string;
-  title: string;
-  description: string;
-  videoSrc: string;
-  buttonText: string;
-  actionType: "modal" | "link";
+const MAX_SLIDES = 12;
+const EMPTY_LANDING: LandingConfig = { headerCategories: [], heroSlides: [] };
+
+function newBlankSlide(): HeroSlide {
+  return {
+    id: `slide-${Date.now()}`,
+    eyebrow: "NUEVO",
+    title: "Título del slide",
+    description: "Escribe aquí la descripción de esta diapositiva.",
+    mediaUrl: "",
+    mediaType: "image",
+    buttonText: "Ver más",
+    actionType: "link",
+    actionTarget: "/#catalogo",
+    locked: false,
+  };
 }
 
-const SLIDES: SlideData[] = [
-  {
-    id: 1,
-    eyebrow: "CALIDAD DE SOBRA",
-    title: "Gyro Store",
-    description: "Audífonos, adaptadores y accesorios tecnológicos que suenan por encima de su precio. Equipamiento premium en Managua.",
-    videoSrc: "/videos/gyro-promo.mp4",
-    buttonText: "Quiénes Somos",
-    actionType: "modal",
-  },
-  {
-    id: 2,
-    eyebrow: "MONITOREO PROFESIONAL",
-    title: "KZ EDX Pro",
-    description: "Sonido de alta resolución, graves potentes y diseño ergonómico. El favorito de músicos y entusiastas del audio en Nicaragua.",
-    videoSrc: "/videos/kz-edx-pro.mp4",
-    buttonText: "Comprar KZ EDX Pro",
-    actionType: "link",
-  },
-];
-
-export function Hero({ productCount = 0 }: { productCount?: number }) {
+export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [isAboutUsOpen, setIsAboutUsOpen] = useState(false);
+  const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
 
-  // Obtener catálogo para enlazar dinámicamente al producto KZ EDX Pro
-  const { data: products = [] } = useGetCatalogQuery();
-  
-  // Buscar el producto en base a su ID exacto para no confundirlo con el EDX Pro X
-  const kzProduct = products.find(p => p.id === "Fy3GdaLL2NtkR1ePArK5");
-  const kzLink = kzProduct ? getProductUrl(kzProduct.id, kzProduct.name) : "/";
+  const isAdmin = useAppSelector(selectIsAdmin);
+  const editMode = useAppSelector(selectEditMode);
+  const editing = isAdmin && editMode;
+
+  // Fuente de verdad en cliente: RTK (fresca tras guardar). El loader SSR solo
+  // siembra el primer render para que el Hero no parpadee.
+  const { data: landingData } = useGetLandingConfigQuery();
+  const landing = landingData ?? initialLanding ?? EMPTY_LANDING;
+  const slides = landing.heroSlides;
+
+  const [updateLanding, { isLoading: saving }] = useUpdateLandingConfigMutation();
+
+  // El índice activo nunca debe salirse del rango (slides puede crecer/menguar).
+  const safeIndex = slides.length ? Math.min(activeIndex, slides.length - 1) : 0;
+  const activeSlide = slides[safeIndex];
+  const editingSlide = useMemo(
+    () => slides.find((s) => s.id === editingSlideId) ?? null,
+    [slides, editingSlideId],
+  );
+
+  // La reproducción automática se pausa en modo edición para poder trabajar.
+  const autoPlaying = playing && !editing && slides.length > 1;
 
   const nextSlide = useCallback(() => {
-    setActiveIndex((prev) => (prev + 1) % SLIDES.length);
-  }, []);
+    setActiveIndex((prev) => (slides.length ? (prev + 1) % slides.length : 0));
+  }, [slides.length]);
 
   const handleDotClick = (idx: number) => {
     setActiveIndex(idx);
-    setPlaying(true); // Reanudar reproducción al interactuar manualmente
+    setPlaying(true);
   };
 
-  const activeSlide = SLIDES[activeIndex];
+  // Guarda el arreglo completo (Hero + orden del header intacto) en el backend.
+  async function commit(nextSlides: HeroSlide[]) {
+    try {
+      await updateLanding({ headerCategories: landing.headerCategories, heroSlides: nextSlides }).unwrap();
+    } catch (e) {
+      const msg = (e as { data?: { error?: string } })?.data?.error;
+      toast.error(msg || "No se pudieron guardar los cambios.");
+    }
+  }
+
+  function handleSaveSlide(updated: HeroSlide) {
+    commit(slides.map((s) => (s.id === updated.id ? updated : s))).then(() => {
+      setEditingSlideId(null);
+      toast.success("Diapositiva actualizada.");
+    });
+  }
+
+  function handleAddSlide() {
+    if (slides.length >= MAX_SLIDES) {
+      toast.error(`Máximo ${MAX_SLIDES} diapositivas.`);
+      return;
+    }
+    const slide = newBlankSlide();
+    commit([...slides, slide]).then(() => {
+      setActiveIndex(slides.length); // salta a la nueva
+      setEditingSlideId(slide.id); // abre el editor de inmediato
+    });
+  }
+
+  function handleDeleteSlide(idx: number) {
+    const slide = slides[idx];
+    if (!slide || slide.locked) return;
+    if (slides.length <= 1) {
+      toast.error("Debe quedar al menos una diapositiva.");
+      return;
+    }
+    commit(slides.filter((_, i) => i !== idx)).then(() => {
+      setActiveIndex((cur) => Math.max(0, Math.min(cur, slides.length - 2)));
+      toast.success("Diapositiva eliminada.");
+    });
+  }
+
+  // Intercambia el slide activo con su vecino. No se puede mover un slide bloqueado
+  // ni desplazar a uno bloqueado de su posición (la marca queda siempre primera).
+  function handleMove(dir: -1 | 1) {
+    const idx = safeIndex;
+    const target = idx + dir;
+    if (target < 0 || target >= slides.length) return;
+    if (slides[idx].locked || slides[target].locked) return;
+    const next = [...slides];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    commit(next).then(() => setActiveIndex(target));
+  }
+
+  const canMoveLeft = !!activeSlide && !activeSlide.locked && safeIndex > 0 && !slides[safeIndex - 1]?.locked;
+  const canMoveRight = !!activeSlide && !activeSlide.locked && safeIndex < slides.length - 1;
+
+  if (!activeSlide) {
+    // Sin slides configurados (caso extremo): no romper la home.
+    return null;
+  }
 
   return (
     <section className="mx-auto max-w-[1400px] w-full px-4 pt-6 pb-12">
       {/* ── CONTENEDOR PRINCIPAL ESTILO DBRAND ── */}
       <div className="relative w-full bg-[#111] border border-border/40 rounded-[2.5rem] overflow-hidden shadow-2xl">
+        {/* Controles de edición (solo admin en modo edición) */}
+        {editing && (
+          <div className="absolute right-4 top-4 z-30 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-2 py-1.5 backdrop-blur-md">
+            <button
+              onClick={() => handleMove(-1)}
+              disabled={!canMoveLeft || saving}
+              title="Mover a la izquierda"
+              className="grid h-8 w-8 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleMove(1)}
+              disabled={!canMoveRight || saving}
+              title="Mover a la derecha"
+              className="grid h-8 w-8 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <div className="mx-0.5 h-4 w-px bg-white/15" />
+            <button
+              onClick={() => setEditingSlideId(activeSlide.id)}
+              title="Editar diapositiva"
+              className="grid h-8 w-8 place-items-center rounded-full bg-accent/90 text-bg transition-colors hover:bg-accent"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleDeleteSlide(safeIndex)}
+              disabled={activeSlide.locked || slides.length <= 1 || saving}
+              title={activeSlide.locked ? "La diapositiva de marca no se puede eliminar" : "Eliminar diapositiva"}
+              className="grid h-8 w-8 place-items-center rounded-full text-white/80 transition-colors hover:bg-danger hover:text-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/80"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* Layout Split: Flex vertical en móvil, fila 50-50 en desktop */}
         <div className="flex flex-col md:flex-row min-h-[580px] md:h-[620px] items-stretch">
-          
-          {/* Lado Izquierdo (Multimedia: Video Promocional) */}
+
+          {/* Lado Izquierdo (Multimedia: imagen/GIF/video) */}
           <div className="w-full md:w-1/2 relative bg-black/50 overflow-hidden h-[300px] md:h-auto flex items-center justify-center border-b border-border/30 md:border-b-0 md:border-r border-border/30">
-            {/* Reproducción de video fluida con autoplay, loop e inicio silenciado */}
-            <video
-              key={activeSlide.videoSrc}
-              src={activeSlide.videoSrc}
-              autoPlay
-              muted
-              loop
-              playsInline
+            <SlideMedia
+              slide={activeSlide}
               className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out"
             />
             {/* Velo oscuro para armonía de colores */}
@@ -89,7 +189,7 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
           <div className="w-full md:w-1/2 p-8 sm:p-12 md:p-16 flex flex-col justify-center text-left relative z-10">
             <AnimatePresence mode="wait">
               <motion.div
-                key={activeIndex}
+                key={activeSlide.id}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -123,7 +223,7 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
                       <ArrowRight className="inline-block h-4 w-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                     </Button>
                   ) : (
-                    <Link to={kzLink} className="inline-block">
+                    <Link to={activeSlide.actionTarget || "/"} className="inline-block">
                       <Button
                         size="lg"
                         className="group relative overflow-hidden bg-gradient-to-r from-accent to-accent-2 text-bg font-bold py-3.5 px-8 rounded-xl shadow-md shadow-accent/15 transition-all transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 focus-visible:outline-none"
@@ -141,7 +241,7 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
         </div>
       </div>
 
-      {/* ── BARRA DE NAVEGACIÓN Y PROGRESO FLOtANTE (Estilo dbrand) ── */}
+      {/* ── BARRA DE NAVEGACIÓN Y PROGRESO FLOTANTE (Estilo dbrand) ── */}
       <div className="flex justify-center mt-6">
         <div className="flex items-center gap-3 bg-[#111] border border-border/40 px-4.5 py-2.5 rounded-full shadow-premium">
           {/* Botón Play/Pause */}
@@ -162,8 +262,8 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
 
           {/* Puntos / Barras de Progreso */}
           <div className="flex items-center gap-2">
-            {SLIDES.map((slide, idx) => {
-              const isActive = idx === activeIndex;
+            {slides.map((slide, idx) => {
+              const isActive = idx === safeIndex;
               return (
                 <button
                   key={slide.id}
@@ -175,11 +275,11 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
                   aria-label={`Ir al slide ${idx + 1}`}
                 >
                   {/* Animación del indicador de carga lineal */}
-                  {isActive && (
+                  {isActive && autoPlaying && (
                     <motion.div
-                      key={`${activeIndex}-${playing}`}
+                      key={`${safeIndex}-${autoPlaying}`}
                       initial={{ width: "0%" }}
-                      animate={playing ? { width: "100%" } : { width: "0%" }}
+                      animate={{ width: "100%" }}
                       transition={{ duration: 8, ease: "linear" }}
                       onAnimationComplete={nextSlide}
                       className="absolute inset-y-0 left-0 bg-accent-2 rounded-full"
@@ -188,12 +288,33 @@ export function Hero({ productCount = 0 }: { productCount?: number }) {
                 </button>
               );
             })}
+
+            {/* Agregar diapositiva (solo modo edición) */}
+            {editing && (
+              <button
+                onClick={handleAddSlide}
+                disabled={slides.length >= MAX_SLIDES || saving}
+                title={slides.length >= MAX_SLIDES ? `Máximo ${MAX_SLIDES} diapositivas` : "Agregar diapositiva"}
+                className="ml-1 grid h-6 w-6 place-items-center rounded-full border border-dashed border-white/30 text-white/70 transition-colors hover:border-accent hover:text-accent disabled:opacity-30"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Modal interactivo de Quiénes Somos */}
       <AboutUsModal open={isAboutUsOpen} onClose={() => setIsAboutUsOpen(false)} />
+
+      {/* Editor de diapositiva (modo edición) */}
+      <HeroSlideEditorModal
+        open={!!editingSlide}
+        slide={editingSlide}
+        onClose={() => setEditingSlideId(null)}
+        onSave={handleSaveSlide}
+        saving={saving}
+      />
     </section>
   );
 }
