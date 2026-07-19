@@ -115,6 +115,7 @@ module.exports = {
     payments: 'payments',
     commissionAdjustments: 'commission_adjustments',
     counters: 'counters',
+    analyticsEvents: 'analytics_events',
   },
 
   // CORS: orígenes permitidos en producción

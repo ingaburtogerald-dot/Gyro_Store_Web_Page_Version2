@@ -10,7 +10,6 @@ import { ComboSection } from "~/components/catalog/ComboSection";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
 import { FilterBar } from "~/components/filters/FilterBar";
 import { ActiveFilters } from "~/components/filters/ActiveFilters";
-import { FilterFab } from "~/components/catalog/FilterFab";
 import { FilterSheet } from "~/components/filters/FilterSheet";
 import type { CatalogProduct, Category, Combo, LandingConfig } from "~/store/api/catalogApi";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
@@ -151,12 +150,7 @@ export default function Index() {
     <>
       {/* El drawer de categorías (chip "Todo") ahora lo sirve el rail unificado del
           AppShell — fuente única del panel expandido para toda la app. */}
-      {!editing && (
-        <>
-          <FilterFab />
-          <FilterSheet />
-        </>
-      )}
+      {!editing && <FilterSheet />}
       <AnimatePresence initial={false}>
         {!hasFilters && (
           <motion.div key="hero" {...collapse}>

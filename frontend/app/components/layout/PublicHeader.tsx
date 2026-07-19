@@ -94,10 +94,10 @@ export function CartButton({ variant }: { variant?: "bar" }) {
       whileTap={{ scale: 0.92 }}
       onClick={() => dispatch(openCart())}
       aria-label={label}
-      className="relative grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="relative grid h-11 w-11 place-items-center text-muted transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <motion.span animate={controls} className="block">
-        <ShoppingBag className="h-[22px] w-[22px]" />
+        <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
       </motion.span>
       {/* Anillo "ping" al agregar */}
       <AnimatePresence>
@@ -148,11 +148,11 @@ function IconButton({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "grid h-11 w-11 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-        active ? "bg-surface-hover text-accent-2" : "text-muted hover:bg-surface-hover hover:text-accent-2",
+        "grid h-11 w-11 place-items-center transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+        active ? "opacity-100 text-accent-2" : "text-muted hover:opacity-70",
       )}
     >
-      <Icon className="h-[22px] w-[22px]" />
+      <Icon className="h-5 w-5" strokeWidth={1.5} />
     </button>
   );
 }
@@ -162,9 +162,18 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const search = useAppSelector((s) => s.ui.search);
+  // Categoría activa del catálogo → resalta la píldora correspondiente en la
+  // barra móvil (fuente de verdad compartida con la grilla y el resto de filtros).
+  const activeCategory = useAppSelector((s) => s.ui.activeCategory);
 
   // Búsqueda desplegable: por defecto oculta (solo la lupa).
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Centra la píldora activa al cambiar de categoría (útil al scrollear la barra móvil).
+  const activePillRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    activePillRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [activeCategory]);
 
   // Mega-menú (Apple/Razer): categoría cuyo panel de contenido está desplegado.
   const [openCat, setOpenCat] = useState<string | null>(null);
@@ -299,6 +308,13 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
     navigate("/");
   }
 
+  // "Todo" en la barra móvil: limpia el filtro y vuelve a la vista completa.
+  function goAll() {
+    dispatch(setCategory(null));
+    setOpenCat(null);
+    navigate("/");
+  }
+
   function openSearch() {
     setOpenCat(null);
     setSearchOpen((v) => !v);
@@ -313,7 +329,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
       <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-bg/80 backdrop-blur-xl">
         <div className="mx-auto flex h-17 w-full max-w-[1600px] items-center gap-4 px-4 md:px-8">
           {/* ── Logo (izquierda) — imagen ancha (80×40) que ya es la marca completa ── */}
-          <Logo asLink size={50} className="shrink-0" />
+          <Logo asLink size={50} className={cn("shrink-0", searchOpen && "hidden md:flex")} />
 
           {/* ── Zona central: navegación ⇄ búsqueda ──
               Ambas capas se superponen en posición absoluta y hacen cross-fade a la
@@ -398,19 +414,11 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                           onClick={() => toggleMenu(c.id)}
                           aria-expanded={openCat === c.id}
                           className={cn(
-                            "flex items-center gap-1 whitespace-nowrap rounded-full px-3.5 py-2 text-[14px] font-bold tracking-[-0.02em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-                            openCat === c.id ? "bg-surface-hover text-text" : "text-muted hover:bg-surface-hover hover:text-text",
+                            "flex items-center gap-1 whitespace-nowrap px-3.5 py-2 text-[14px] font-medium transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                            openCat === c.id ? "opacity-100 text-text" : "text-text/80 hover:opacity-70",
                           )}
                         >
                           {c.name}
-                          <motion.span
-                            aria-hidden
-                            animate={{ rotate: openCat === c.id ? 180 : 0 }}
-                            transition={{ duration: 0.25, ease: EASE }}
-                            className="grid place-items-center"
-                          >
-                            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
-                          </motion.span>
                         </button>
                       ))}
 
@@ -471,21 +479,76 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
               onClick={openSearch}
               active={searchOpen}
             />
-            <CartButton />
-            {/* Sesión: con usuario → menú (foto, nombre, Cerrar sesión); sin usuario → login. */}
-            {user ? (
-              <UserMenu />
-            ) : (
-              <Link
-                to="/login"
-                aria-label="Iniciar sesión"
-                className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                <User className="h-[44px] w-[22px]" />
-              </Link>
-            )}
+            <div className={cn("flex items-center gap-1", searchOpen && "hidden md:flex")}>
+              <CartButton />
+              {/* Sesión: con usuario → menú (foto, nombre, Cerrar sesión); sin usuario → login. */}
+              {user ? (
+                <UserMenu />
+              ) : (
+                <Link
+                  to="/login"
+                  aria-label="Iniciar sesión"
+                  className="grid h-11 w-11 place-items-center text-muted transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <User className="h-5 w-5" strokeWidth={1.5} />
+                </Link>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* ── Barra de categorías MÓVIL (pills deslizables) — solo <md ──
+            Navegación directa: tap filtra al instante llamando a goCategory (sin
+            abrir mega-menú). Vive dentro del <header> sticky, así que se pega arriba
+            al hacer scroll. Se oculta si la búsqueda está abierta o en modo edición
+            (los controles de reordenar del header son de escritorio). */}
+        {!searchOpen && !editing && categories.length > 0 && (
+          <nav aria-label="Categorías" className="border-t border-border/40 md:hidden">
+            <div
+              className={cn(
+                "flex items-center gap-2 overflow-x-auto snap-x px-4 py-2.5",
+                "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              )}
+            >
+              {/* Píldora "Todo": limpia el filtro. */}
+              <button
+                type="button"
+                onClick={goAll}
+                ref={activeCategory === null ? activePillRef : null}
+                aria-pressed={activeCategory === null}
+                className={cn(
+                  "shrink-0 whitespace-nowrap px-3.5 py-1.5 text-[13px] font-medium transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                  activeCategory === null
+                    ? "opacity-100 text-text"
+                    : "text-text/80 hover:opacity-70",
+                )}
+              >
+                Todo
+              </button>
+
+              {categories.map((c) => {
+                const active = activeCategory === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => goCategory(c.id)}
+                    ref={active ? activePillRef : null}
+                    aria-pressed={active}
+                    className={cn(
+                      "shrink-0 whitespace-nowrap px-3.5 py-1.5 text-[13px] font-medium transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                      active
+                        ? "opacity-100 text-text"
+                        : "text-text/80 hover:opacity-70",
+                    )}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        )}
 
         {/* ── Mega-menú (Apple/Razer): panel full-width con el contenido de la categoría ── */}
         <AnimatePresence>

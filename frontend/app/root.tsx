@@ -14,6 +14,7 @@ import { Toaster } from "sonner";
 import { store } from "~/store/store";
 import { useAuthBootstrap } from "~/hooks/useAuth";
 import { useTheme } from "~/hooks/useTheme";
+import { usePageviewTelemetry } from "~/hooks/usePageviewTelemetry";
 import { ForcePasswordChangeGate } from "~/components/auth/ForcePasswordChangeGate";
 import { AppShell } from "~/components/layout/AppShell";
 import { StorefrontShell } from "~/components/layout/StorefrontShell";
@@ -93,6 +94,10 @@ function AuthBootstrap() {
 export default function App() {
   const location = useLocation();
   const path = location.pathname;
+
+  // Registra el tráfico real (pageviews). Hook incondicional → antes de cualquier
+  // return; internamente excluye rutas de staff y se apaga en localhost.
+  usePageviewTelemetry();
 
   // Login: pantalla propia sin chrome.
   if (path.startsWith("/login")) {

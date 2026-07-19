@@ -43,18 +43,29 @@ export function FilterBar({ products }: { products: CatalogProduct[] }) {
   const { filtered } = useCatalogFilter(products);
   const count = filtered.length;
 
+  // Sticky bajo el header. En móvil el header es más alto (lleva la fila de
+  // categorías, md:hidden), así que el offset lo compensa; desde md vuelve a top-24.
   return (
-    <div className="sticky top-24 z-20 -mx-4 mb-5 px-4">
+    <div className="sticky top-[120px] z-20 -mx-4 mb-5 px-4 md:top-24">
       <div className="card-premium flex items-center justify-between gap-2 rounded-2xl px-3 py-2.5 sm:gap-3 sm:px-4">
-        {/* Botón de filtros (solo móvil) - Izquierda en móvil */}
+        {/* Botón de filtros (solo móvil) - Izquierda en móvil. Emparejado en altura
+            y estilo con "Ordenar"; la etiqueta va siempre visible (no ícono suelto)
+            y el botón se tiñe de acento cuando hay filtros activos. */}
         <div className="flex shrink-0 lg:hidden">
           <button
             type="button"
             onClick={() => dispatch(openFilterSheet())}
-            className="ease-expo relative inline-flex items-center gap-2 rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-sm font-semibold text-text transition duration-300 hover:border-accent/40"
+            aria-label="Abrir filtros"
+            className={cn(
+              "ease-expo relative inline-flex items-center gap-2 rounded-xl border bg-surface-2/60 px-3.5 py-2.5 text-sm font-semibold transition duration-300",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+              activeFilters > 0
+                ? "border-accent/50 text-accent-2"
+                : "border-border text-text hover:border-accent/40",
+            )}
           >
             <SlidersHorizontal className="h-4 w-4" />
-            <span className="hidden sm:inline">Filtros</span>
+            Filtros
             {activeFilters > 0 && (
               <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-xs font-bold tabular-nums text-bg">
                 {activeFilters}
@@ -190,7 +201,7 @@ function SortDropdown({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="ease-expo inline-flex items-center gap-2 rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-sm font-semibold text-text transition duration-300 hover:border-accent/40"
+        className="ease-expo inline-flex items-center gap-2 rounded-xl border border-border bg-surface-2/60 px-3.5 py-2.5 text-sm font-semibold text-text transition duration-300 hover:border-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <ArrowUpDown className="h-4 w-4 shrink-0 text-muted" />
         <span className="hidden text-muted sm:inline">Ordenar:</span>

@@ -30,6 +30,7 @@ import {
   Boxes,
   ReceiptText,
   ClipboardList,
+  Search,
 } from "lucide-react";
 import { Logo } from "~/components/ui/Logo";
 import { UserMenu } from "./UserMenu";
@@ -96,6 +97,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Análisis y sistema",
     items: [
       { to: "/admin/reportes", label: "Reportes", icon: BarChart3, roles: ["admin"] },
+      { to: "/admin/busquedas", label: "Búsquedas", icon: Search, roles: ["admin"] },
       {
         to: "/admin/logistica",
         label: "Gyro Logistics",
@@ -151,6 +153,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Estado ÚNICO del panel expandido (mismo flag que usa el chip "Todo" del
   // catálogo). Colapsado por defecto tanto logueado como no logueado.
   const expanded = useAppSelector((s) => s.ui.publicSidebarOpen);
+  const [isHovered, setIsHovered] = useState(false);
+  const isSidebarVisible = expanded || isHovered;
+
   const search = useAppSelector((s) => s.ui.search);
   const showSearch = location.pathname === "/";
 
@@ -188,11 +193,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     closePanel();
     navigate("/");
   }
-  function goHome() {
+  function handleGoHome() {
     dispatch(resetFilters());
     dispatch(setCategory(null));
     closePanel();
-    navigate("/");
   }
 
   return (
@@ -216,18 +220,20 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* ── RAIL DE ESCRITORIO (md+) ── */}
       <aside
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         className={cn(
           "fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-border bg-black transition-[width] duration-300 ease-out md:flex",
-          expanded ? "w-58 shadow-premium" : "w-[76px]",
+          isSidebarVisible ? "w-58 shadow-premium" : "w-[76px]",
         )}
         style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }}
       >
-        {expanded ? (
+        {isSidebarVisible ? (
           <>
             <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
               {user ? (
                 <span className="truncate text-sm font-extrabold tracking-tight text-white">
-                  Administracion
+                  Administración
                 </span>
               ) : (
                 <Link to="/" onClick={closePanel} className="transition-transform active:scale-95">
@@ -235,11 +241,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               )}
               <button
-                onClick={closePanel}
-                aria-label="Colapsar menú"
+                onClick={expanded ? closePanel : openPanel}
+                aria-label={expanded ? "Colapsar menú" : "Fijar menú"}
                 className="group grid h-9 w-9 place-items-center rounded-full border border-border/80 text-muted bg-transparent transition-all duration-300 hover:border-accent-2 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               >
-                <PanelLeftClose className="h-4.5 w-4.5 transition-transform duration-300 group-hover:-translate-x-0.5" />
+                {expanded ? (
+                  <PanelLeftClose className="h-4.5 w-4.5 transition-transform duration-300 group-hover:-translate-x-0.5" />
+                ) : (
+                  <PanelLeftOpen className="h-4.5 w-4.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                )}
               </button>
             </div>
             <div className="custom-scrollbar flex-1 overflow-y-auto px-3 py-4">
@@ -250,7 +260,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 authed={Boolean(user)}
                 reduce={Boolean(reduce)}
                 onGoCategory={goCategory}
-                onGoHome={goHome}
+                onGoHome={handleGoHome}
                 onNavigate={closePanel}
               />
             </div>
@@ -269,43 +279,66 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             </div>
             {/* Iconos de portales (solo con sesión) */}
-            <nav className="custom-scrollbar flex flex-1 flex-col items-center gap-1 overflow-y-auto py-3">
+            <nav className="custom-scrollbar flex flex-1 flex-col items-center overflow-y-auto py-4">
               {Boolean(user) && (
-                <button
-                  onClick={goHome}
-                  title="Ir al catálogo"
-                  className="group relative grid h-11 w-11 place-items-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                >
-                  <Store className="h-5 w-5" />
-                </button>
+                <div className="flex w-full flex-col items-center">
+                  {/* Espaciador exacto del Logo (80px + mb-6) */}
+                  <div className="mb-6 h-[80px]" aria-hidden="true" />
+                  
+                  {/* Espaciador exacto del título principal "Tienda" (línea ~24px + mb-2) */}
+                  <div className="mb-2 h-[24px]" aria-hidden="true" />
+                  
+                  <div className="flex w-full flex-col gap-3 items-center">
+                    {businessGroups.map((group) => (
+                      <div key={group.label} className="flex flex-col items-center w-full px-2">
+                        {businessGroups.length > 1 && group.label.toLowerCase() !== "tienda" && (
+                          /* Espaciador exacto del subtítulo del grupo (línea ~20px + mb-1) */
+                          <div className="mb-1 h-[20px]" aria-hidden="true" />
+                        )}
+                        <div className="flex flex-col gap-0.5 w-full items-center">
+                          {group.label.toLowerCase() === "tienda" && (
+                            <Link
+                              to="/"
+                              onClick={handleGoHome}
+                              title="Ir al catálogo"
+                              className="group relative grid h-9 w-9 place-items-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                            >
+                              <Store className="h-[18px] w-[18px]" />
+                            </Link>
+                          )}
+                          {group.items.map(({ to, label, icon: Icon }) => {
+                            const badge = badges[to] ?? 0;
+                            return (
+                              <NavLink
+                                key={to}
+                                to={to}
+                                title={label}
+                                className={({ isActive }) =>
+                                  cn(
+                                    "group relative grid h-9 w-9 place-items-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+                                    isActive ? "bg-accent/12 text-accent-2" : "text-white/70 hover:bg-white/10 hover:text-white",
+                                  )
+                                }
+                              >
+                                <Icon className="h-[18px] w-[18px]" />
+                                {badge > 0 && (
+                                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-warning ring-2 ring-surface" />
+                                )}
+                              </NavLink>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
-              {businessItems.map(({ to, label, icon: Icon }) => {
-                const badge = badges[to] ?? 0;
-                return (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    title={label}
-                    className={({ isActive }) =>
-                      cn(
-                        "group relative grid h-11 w-11 place-items-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
-                        isActive ? "bg-accent/12 text-accent-2" : "text-white/70 hover:bg-white/10 hover:text-white",
-                      )
-                    }
-                  >
-                    <Icon className="h-5 w-5" />
-                    {badge > 0 && (
-                      <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-warning ring-2 ring-surface" />
-                    )}
-                  </NavLink>
-                );
-              })}
             </nav>
           </>
         )}
 
         {/* Controles fijos SIEMPRE presentes */}
-        <RailControls expanded={expanded} canCRM={canCRM} user={user} roles={roles} />
+        <RailControls expanded={isSidebarVisible} canCRM={canCRM} user={user} roles={roles} />
       </aside>
 
       {/* ── DRAWER MÓVIL (panel expandido) ── */}
@@ -345,7 +378,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 authed={Boolean(user)}
                 reduce={Boolean(reduce)}
                 onGoCategory={goCategory}
-                onGoHome={goHome}
+                onGoHome={handleGoHome}
                 onNavigate={closePanel}
               />
             </div>
@@ -641,13 +674,14 @@ function RailPanelContent({
                 )}
                 <div className="flex flex-col gap-0.5">
                   {group.label.toLowerCase() === "tienda" && (
-                    <button
+                    <Link
+                      to="/"
                       onClick={onGoHome}
                       className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     >
                       <Store className="h-[18px] w-[18px] shrink-0" />
                       <span className="flex-1 text-left truncate">Ir al catálogo</span>
-                    </button>
+                    </Link>
                   )}
                   {group.items.map(({ to, label, icon: Icon }) => {
                     const badge = badges[to] ?? 0;

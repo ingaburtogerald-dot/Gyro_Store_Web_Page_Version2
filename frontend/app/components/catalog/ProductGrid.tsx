@@ -9,6 +9,9 @@ import { PackageSearch, Flame, LayoutGrid } from "lucide-react";
 import { ProductCard } from "~/components/product/ProductCard";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useCatalogFilter, isDeal } from "~/lib/useCatalogFilter";
+import { useSearchTelemetry } from "~/hooks/useSearchTelemetry";
+import { logResultClick } from "~/lib/searchTelemetry";
+import { useAppSelector } from "~/store/hooks";
 import { cn } from "~/lib/utils";
 
 // Regla determinista de tiles ANCHOS para romper la grilla uniforme (ver Bento):
@@ -28,6 +31,13 @@ const catalogWide =
 export function ProductGrid({ products, categories }: { products: CatalogProduct[]; categories: Category[] }) {
   // Filtrado + orden compartidos con la toolbar (una sola fuente de verdad).
   const { filtered, isDefault } = useCatalogFilter(products);
+
+  // Telemetría: registra la búsqueda activa (con debounce) junto con cuántos
+  // resultados arrojó — así el dashboard sabe qué se busca y qué NO tiene resultados.
+  useSearchTelemetry(filtered.length);
+
+  // Búsqueda activa → para atribuir el clic en un resultado (CTR).
+  const search = useAppSelector((s) => s.ui.search).trim();
 
   // ── Vista segmentada (home por defecto): SuperOfertas + Catálogo ──
   if (isDefault) {
@@ -70,7 +80,12 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
   }
   return (
     <div className="pb-12">
-      <Bento products={filtered} categories={categories} wideFn={catalogWide(filtered.length)} />
+      <Bento
+        products={filtered}
+        categories={categories}
+        wideFn={catalogWide(filtered.length)}
+        onProductClick={search ? (id) => logResultClick(search, id) : undefined}
+      />
     </div>
   );
 }
@@ -87,10 +102,13 @@ function Bento({
   products,
   categories,
   wideFn,
+  onProductClick,
 }: {
   products: CatalogProduct[];
   categories: Category[];
   wideFn?: (p: CatalogProduct, i: number) => boolean;
+  /** Se dispara al hacer clic en una tarjeta (usado para atribuir CTR de búsqueda). */
+  onProductClick?: (id: string) => void;
 }) {
   const isWide = wideFn ?? (() => false);
   return (
@@ -98,7 +116,11 @@ function Bento({
       {products.map((p, i) => {
         const wide = isWide(p, i);
         return (
-          <div key={p.id} className={cn(wide && "col-span-2")}>
+          <div
+            key={p.id}
+            className={cn(wide && "col-span-2")}
+            onClick={onProductClick ? () => onProductClick(p.id) : undefined}
+          >
             <ProductCard product={p} categories={categories} layout={wide ? "list" : "grid"} index={i} />
           </div>
         );

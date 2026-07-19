@@ -1,6 +1,7 @@
 // Sidebar de REFINAMIENTOS del storefront (solo escritorio ≥ lg): precio y toggles.
 // El orden vive en la CatalogToolbar; las categorías en la barra de chips
-// (CategoryChips). En móvil el flujo es FilterFab + FilterSheet. Todos editan el
+// (CategoryChips). En móvil el flujo es el botón "Filtros" de la toolbar (FilterBar)
+// + FilterSheet. Todos editan el
 // MISMO estado (uiSlice), así que los filtros sobreviven al cambiar de viewport.
 import { Tag, PackageCheck, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
