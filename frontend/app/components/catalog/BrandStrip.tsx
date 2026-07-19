@@ -3,9 +3,9 @@
 // al pasar el mouse y respeta prefers-reduced-motion (cae a una fila estática con
 // wrap). Máscara de desvanecido en ambos bordes para un acabado premium.
 //
-// ⚠️ DATOS: el catálogo aún no tiene un campo de marcas. `STORE_BRANDS` es un
-// PLACEHOLDER editable — reemplázalo con tus marcas reales (+ logos opcionales en
-// /public/brands). Si la lista queda vacía, la sección no se renderiza.
+// Marcas reales que el negocio distribuye (mismo texto que AboutUsModal.tsx —
+// única fuente de verdad de marca). Si algún día el catálogo trae logos, agregalos
+// acá vía `logo` (ruta en /public/brands); sin logo cae al nombre en texto.
 import { useReducedMotion } from "framer-motion";
 
 export interface Brand {
@@ -16,14 +16,11 @@ export interface Brand {
   href?: string;
 }
 
-// TODO: reemplazar con las marcas reales de Gyro Store (+ logos en /public/brands).
 export const STORE_BRANDS: Brand[] = [
   { name: "KZ" },
-  { name: "TRN" },
-  { name: "CCA" },
-  { name: "Baseus" },
-  { name: "UGREEN" },
-  { name: "Redragon" },
+  { name: "Attack Shark" },
+  { name: "Koouri" },
+  { name: "Aula" },
 ];
 
 function BrandPill({ brand, ariaHidden }: { brand: Brand; ariaHidden?: boolean }) {

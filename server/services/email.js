@@ -142,6 +142,40 @@ async function sendContactMessage({ to, name, email, phone, message }) {
   return true;
 }
 
+const FEEDBACK_COPY = {
+  bug: { label: 'Bug', icon: '🐛' },
+  idea: { label: 'Idea', icon: '💡' },
+  product: { label: 'Producto', icon: '📦' },
+};
+
+// Feedback público (bug/idea/producto) → llega al admin principal.
+async function sendFeedbackEmail({ type, message, userPhone }) {
+  if (!config.email.user) return false;
+  const to = config.adminEmails[0] || config.email.user;
+  const copy = FEEDBACK_COPY[type] || { label: type, icon: '📝' };
+
+  await createTransport().sendMail({
+    from: fromAddress(),
+    to,
+    subject: `Nuevo Feedback: ${copy.label}`,
+    html: wrap(`
+      ${header(`${copy.icon} Nuevo Feedback: ${copy.label}`)}
+      <div style="padding:32px;">
+        <div style="background:#12121a;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:20px;margin-bottom:20px;">
+          <p style="margin:0 0 6px;color:#717a9c;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Tipo</p>
+          <p style="margin:0 0 14px;font-weight:700;">${copy.icon} ${copy.label}</p>
+          <p style="margin:0 0 6px;color:#717a9c;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Teléfono</p>
+          <p style="margin:0;font-weight:700;color:#9aa0ff;">${userPhone || 'No proporcionado'}</p>
+        </div>
+        <p style="margin:0 0 6px;color:#717a9c;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Mensaje</p>
+        <p style="white-space:pre-wrap;">${message}</p>
+      </div>
+      ${footer()}
+    `),
+  });
+  return true;
+}
+
 const c$ = (n) => `C$${Math.round(n).toLocaleString('es-NI')}`;
 
 // Venta aprobada → notifica al vendedor con su comisión.
@@ -330,6 +364,7 @@ module.exports = {
   sendLocalInvite,
   sendGuestInvite,
   sendContactMessage,
+  sendFeedbackEmail,
   sendSaleApproved,
   sendSaleRejected,
   sendPaymentMade,

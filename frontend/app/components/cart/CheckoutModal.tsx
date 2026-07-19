@@ -11,6 +11,7 @@ import { checkoutSchema, type CheckoutInput } from "~/lib/validators";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { clearCart, closeCart, selectCartItems, selectCartTotal } from "~/store/slices/cartSlice";
 import { useCreatePublicOrderMutation } from "~/store/api/ordersApi";
+import { useValidateDiscountCodeMutation, type DiscountType } from "~/store/api/discountCodesApi";
 import { formatCordobas } from "~/lib/utils";
 
 export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -18,6 +19,33 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
   const items = useAppSelector(selectCartItems);
   const total = useAppSelector(selectCartTotal);
   const [createOrder, { isLoading }] = useCreatePublicOrderMutation();
+
+  // Código de descuento (incentivo por reseña): preview de solo lectura contra
+  // POST /discount-codes/validate — el canje real (que sí gasta un uso) ocurre
+  // recién al confirmar el pedido, en el mismo request que lo crea.
+  const [validateCode, { isLoading: validatingCode }] = useValidateDiscountCodeMutation();
+  const [codeInput, setCodeInput] = useState("");
+  const [appliedCode, setAppliedCode] = useState<{ code: string; type: DiscountType; value: number } | null>(null);
+  const [codeError, setCodeError] = useState<string | null>(null);
+
+  function changeCode(v: string) {
+    setCodeInput(v.toUpperCase());
+    setAppliedCode(null);
+    setCodeError(null);
+  }
+
+  async function applyCode() {
+    const code = codeInput.trim();
+    if (!code) return;
+    setCodeError(null);
+    try {
+      const result = await validateCode(code).unwrap();
+      setAppliedCode(result);
+    } catch (err: any) {
+      setAppliedCode(null);
+      setCodeError(err?.data?.error || "Código inválido.");
+    }
+  }
 
   const {
     register,
@@ -78,6 +106,7 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
     try {
       const result = await createOrder({
         ...data,
+        discountCode: appliedCode?.code,
         items: items.map((i) => ({
           // Línea de combo: manda comboId (el servidor revalida el precio del
           // paquete). Producto suelto: catalogId + variante.
@@ -90,6 +119,9 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
       }).unwrap();
 
       reset();
+      setCodeInput("");
+      setAppliedCode(null);
+      setCodeError(null);
       dispatch(clearCart());
       dispatch(closeCart());
       onClose();
@@ -189,6 +221,27 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
 
               <Field label="Nota (opcional)">
                 <input className="input" placeholder="Color, modelo, horario…" {...register("note")} />
+              </Field>
+
+              <Field label="¿Tenés un código de descuento?">
+                <div className="flex gap-2">
+                  <input
+                    className="input flex-1 uppercase"
+                    value={codeInput}
+                    onChange={(e) => changeCode(e.target.value)}
+                    placeholder="Ej. RESENA-JUAN10"
+                    maxLength={30}
+                  />
+                  <Button type="button" variant="outline" onClick={applyCode} loading={validatingCode} disabled={!codeInput.trim()}>
+                    Aplicar
+                  </Button>
+                </div>
+                {appliedCode && (
+                  <p className="mt-1.5 text-xs font-semibold text-accent-2">
+                    ✓ {appliedCode.type === "percent" ? `${appliedCode.value}%` : `C$${appliedCode.value}`} de descuento aplicado
+                  </p>
+                )}
+                {codeError && <p className="mt-1.5 text-xs text-danger">{codeError}</p>}
               </Field>
 
               <div className="flex items-center justify-between border-t border-border pt-3">

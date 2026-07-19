@@ -67,7 +67,7 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
                       setActiveImage((prev) => (prev - 1 + gallery.length) % gallery.length);
                     }
                   }}
-                  className="h-full w-full object-contain drop-shadow-2xl select-none transition-transform duration-150 ease-out"
+                  className="h-full w-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.15)] select-none transition-transform duration-150 ease-out"
                   style={{
                     viewTransitionName: `vt-product-${productId}`,
                     transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
@@ -114,7 +114,7 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
                 key={i}
                 onClick={() => setActiveImage(i)}
                 className={cn(
-                  "relative h-20 w-20 overflow-hidden rounded-none border bg-surface-2 transition-all hover:scale-105",
+                  "product-stage relative h-20 w-20 overflow-hidden rounded-none border transition-all hover:scale-105",
                   i === activeImage ? "border-accent ring-2 ring-accent ring-offset-2 ring-offset-bg opacity-100" : "border-border hover:border-accent/50 opacity-70 hover:opacity-100"
                 )}
               >

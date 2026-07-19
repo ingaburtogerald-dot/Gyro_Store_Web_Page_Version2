@@ -16,6 +16,13 @@ export const contactSchema = z.object({
 });
 export type ContactInput = z.infer<typeof contactSchema>;
 
+export const feedbackSchema = z.object({
+  type: z.enum(["bug", "idea", "product"]),
+  message: z.string().min(5, "Mensaje muy corto").max(2000),
+  userPhone: z.string().min(7, "Teléfono inválido").max(20).optional().or(z.literal("")),
+});
+export type FeedbackInput = z.infer<typeof feedbackSchema>;
+
 export const checkoutSchema = z
   .object({
     customerName: z.string().min(2, "Ingresa tu nombre").max(80),

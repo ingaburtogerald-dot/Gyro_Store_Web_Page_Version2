@@ -105,12 +105,12 @@ export default function ComboDetail() {
                   <Link
                     to={`/producto/${p.id}`}
                     prefetch="intent"
-                    className="aspect-square w-full overflow-hidden rounded-none bg-surface-2/40"
+                    className="product-stage aspect-square w-full overflow-hidden rounded-none"
                   >
                     {p.image ? (
                       <img src={p.image} alt={p.name} className="h-full w-full object-contain p-6" />
                     ) : (
-                      <div className="grid h-full place-items-center text-muted">
+                      <div className="grid h-full place-items-center text-black/20">
                         <ImageOff className="h-8 w-8" />
                       </div>
                     )}

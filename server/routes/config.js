@@ -43,14 +43,26 @@ const defaultBusiness = {
   }
 };
 
+const defaultCategories = [
+  { id: 'audifonos-kz', name: 'Audífonos In Ear', icon: '🎧' },
+  { id: 'accesorios-kz', name: 'Accesorios para audífonos KZ', icon: '🎚️' },
+  { id: 'adaptador-bt', name: 'Adaptador Bluetooth para audífonos KZ', icon: '📶' },
+  { id: 'accesorios-pc', name: 'Accesorios Para computadores', icon: '🖱️' },
+  { id: 'accesorios-moto', name: 'Accesorios Para moto', icon: '🏍️' },
+  { id: 'accesorios-gaming', name: 'Accesorios para gaming variados', icon: '🎮' },
+];
+
 router.get('/', asyncHandler(async (req, res) => {
   if (!configCache) {
-    const pricingDoc = await db.collection(APP_CONFIG).doc('pricing').get();
-    const pricing = pricingDoc.exists ? pricingDoc.data() : defaultPricing;
+    const [pricingDoc, bizDoc, catDoc] = await Promise.all([
+      db.collection(APP_CONFIG).doc('pricing').get(),
+      db.collection(APP_CONFIG).doc('business').get(),
+      db.collection(APP_CONFIG).doc('categories').get(),
+    ]);
 
-    // Consultamos bizDoc para que si el administrador actualizó WhatsApp/tipo de cambio en la BD, se refleje públicamente
-    const bizDoc = await db.collection(APP_CONFIG).doc('business').get();
+    const pricing = pricingDoc.exists ? pricingDoc.data() : defaultPricing;
     const biz = bizDoc.exists ? bizDoc.data() : {};
+    const categories = catDoc.exists ? catDoc.data().categories : defaultCategories;
 
     configCache = {
       storeName: biz.storeName || 'Gyro Store',
@@ -59,7 +71,7 @@ router.get('/', asyncHandler(async (req, res) => {
       currency: config.currency,
       exchangeRate: biz.exchangeRate || config.exchangeRate,
       wholesaleDiscounts: pricing.wholesaleDiscounts || defaultPricing.wholesaleDiscounts,
-      categories: config.categories,
+      categories,
       socialLinks: biz.socialLinks || {
         instagram: 'https://instagram.com/gyrostore',
         facebook: 'https://facebook.com/gyrostore',
@@ -92,6 +104,24 @@ router.put('/pricing', requireAdmin, asyncHandler(async (req, res) => {
   await db.collection(APP_CONFIG).doc('pricing').set({ wholesaleDiscounts });
   clearConfigCache();
   res.json({ ok: true });
+}));
+
+// PUT /api/config/categories - editar categorías (solo admin)
+router.put('/categories', requireAdmin, asyncHandler(async (req, res) => {
+  const { categories } = req.body;
+  if (!Array.isArray(categories)) {
+    return res.status(400).json({ error: 'La lista de categorías es inválida.' });
+  }
+  
+  const normalized = categories.map(cat => ({
+    id: String(cat.id || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+    name: String(cat.name || '').trim(),
+    icon: String(cat.icon || '').trim()
+  })).filter(cat => cat.id && cat.name);
+
+  await db.collection(APP_CONFIG).doc('categories').set({ categories: normalized });
+  clearConfigCache();
+  res.json({ ok: true, categories: normalized });
 }));
 
 // GET /api/config/business - costos fijos y otros configs (solo admin, ya que vendedores no deben ver costos fijos)

@@ -6,6 +6,7 @@ import { Logo } from "~/components/ui/Logo";
 import { SocialLink, TikTokIcon, SOCIAL_BRAND } from "~/components/ui/SocialIcon";
 import { Instagram, Facebook } from "lucide-react";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
+import { buildWhatsappUrl } from "~/lib/utils";
 
 interface AboutUsModalProps {
   open: boolean;
@@ -19,8 +20,8 @@ export function AboutUsModal({ open, onClose }: AboutUsModalProps) {
   const storeAddress = config?.storeAddress || "Managua, Nicaragua";
   const navigate = useNavigate();
 
-  const whatsappUrl = whatsapp 
-    ? `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Hola Gyro Store, vengo de la página web!")}`
+  const whatsappUrl = whatsapp
+    ? buildWhatsappUrl(whatsapp, "Hola Gyro Store, vengo de la página web!")
     : "#";
 
   const handleGoToCatalog = () => {
@@ -89,14 +90,14 @@ export function AboutUsModal({ open, onClose }: AboutUsModalProps) {
             <h3 className="font-bold text-text text-lg">Gerald Aburto</h3>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-3">Fundador de Gyro Store</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-sm">
-              <a 
-                href="https://wa.me/50585944758" 
-                target="_blank" 
+              <a
+                href={whatsappUrl}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 bg-[#25D366]/15 text-[#25D366] hover:bg-[#25D366]/25 transition-colors px-4 py-2 rounded-full font-semibold shadow-sm"
               >
                 <Phone className="h-4 w-4" />
-                +505 8594 4758
+                {whatsapp || "+505 8594 4758"}
               </a>
               <a 
                 href="mailto:ingaburtogerald@gmail.com" 

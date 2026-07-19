@@ -318,7 +318,7 @@ function MegaMenu({
                 role="menuitem"
                 className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface-2/60 transition-all hover:border-accent/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                <div className="aspect-square overflow-hidden bg-surface">
+                <div className="product-stage aspect-square overflow-hidden">
                   {p.images?.[0] ? (
                     <img
                       src={p.images[0]}
@@ -327,7 +327,7 @@ function MegaMenu({
                       className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="grid h-full place-items-center text-muted">
+                    <div className="grid h-full place-items-center text-black/20">
                       <ImageOff className="h-5 w-5" />
                     </div>
                   )}

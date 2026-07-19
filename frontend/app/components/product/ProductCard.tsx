@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Link } from "@remix-run/react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ShoppingCart, ImageOff } from "lucide-react";
+import { ShoppingCart, ImageOff, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { QuickAddSheet } from "./QuickAddSheet";
 import { Button } from "~/components/ui/Button";
-import type { CatalogProduct, Category } from "~/store/api/catalogApi";
+import { useGetConfigQuery, type CatalogProduct, type Category } from "~/store/api/catalogApi";
 import { useAppDispatch } from "~/store/hooks";
 import { addItem, openCart } from "~/store/slices/cartSlice";
-import { formatCordobas, cn, getProductUrl } from "~/lib/utils";
+import { formatCordobas, cn, getProductUrl, buildWhatsappUrl } from "~/lib/utils";
 
 const MAX_PILLS = 3;
 
@@ -25,6 +25,7 @@ export function ProductCard({
   index?: number;
 }) {
   const dispatch = useAppDispatch();
+  const { data: config } = useGetConfigQuery();
   const reduce = useReducedMotion();
   const category = categories.find((c) => c.id === product.category);
   const image = product.images?.[0];
@@ -71,6 +72,19 @@ export function ProductCard({
     toast.success("Agregado al carrito");
   }
 
+  // "Pedir por WhatsApp": camino de compra directo, sin pasar por el carrito —
+  // el mensaje trae nombre, precio y el link a la ficha. Si está agotado, el
+  // mensaje pide que avisen cuando vuelva a haber stock (no se pierde el lead).
+  function handleWhatsAppOrder(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = typeof window !== "undefined" ? window.location.origin + getProductUrl(product.id, product.name) : "";
+    const message = soldOut
+      ? `Hola, quiero que me avisen cuando vuelva a haber stock de: ${product.name}. ${url}`
+      : `Hola, quiero: ${product.name} — ${formatCordobas(product.price)}. ${url}`;
+    window.open(buildWhatsappUrl(config?.whatsapp ?? "50585944758", message), "_blank", "noopener,noreferrer");
+  }
+
   // ── Escenario de la imagen (Link al detalle) ──
   // Grid: foto a tope del borde superior → rounded-t-xl. List: panel inset → rounded-xl.
   const Stage = (
@@ -80,8 +94,11 @@ export function ProductCard({
       viewTransition
       aria-label={product.name}
       className={cn(
-        "product-stage ease-expo relative block overflow-hidden bg-surface-2",
-        isList ? "aspect-square h-full w-full shrink-0 rounded-xl" : "aspect-square w-full rounded-t-xl",
+        "product-stage ease-expo relative block overflow-hidden",
+        // Grid: el stage claro se apila sobre el cuerpo oscuro (nombre/precio) — un
+        // hairline sutil marca el "sello" entre ambos (tile de e-commerce). List: el
+        // stage ya es un panel aparte (rounded-xl completo), no hace falta.
+        isList ? "aspect-square h-full w-full shrink-0 rounded-xl" : "aspect-square w-full rounded-t-xl border-b border-black/5",
       )}
     >
       <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
@@ -112,14 +129,17 @@ export function ProductCard({
           loading={index < 4 ? "eager" : "lazy"}
           decoding="async"
           className={cn(
-            "ease-expo h-full w-full object-contain p-6 transition duration-[600ms] will-change-transform",
+            "ease-expo h-full w-full object-contain p-6 drop-shadow-[0_6px_16px_rgba(0,0,0,0.12)] transition duration-[600ms] will-change-transform",
             "group-hover:scale-[1.06]",
-            soldOut && "opacity-60 grayscale"
+            // opacity-70 (no 60): sobre el stage claro, un producto YA claro
+            // (audífonos blancos, cables) + gris + más transparencia podía casi
+            // desaparecer. El badge "Agotado" ya comunica el estado igual.
+            soldOut && "opacity-70 grayscale"
           )}
           style={{ viewTransitionName: `vt-product-${product.id}` } as React.CSSProperties}
         />
       ) : (
-        <div className="grid h-full place-items-center text-muted">
+        <div className="grid h-full place-items-center text-black/20">
           <ImageOff className="h-8 w-8" />
         </div>
       )}
@@ -181,16 +201,29 @@ export function ProductCard({
   );
 
   const Cta = (
-    <Button
-      variant="primary"
-      onClick={handleCta}
-      disabled={soldOut}
-      aria-haspopup={needsPicker ? "dialog" : undefined}
-      className="h-11 w-full"
-    >
-      <ShoppingCart className="h-4 w-4" />
-      {soldOut ? "Agotado" : "Agregar"}
-    </Button>
+    <div className="flex items-center gap-2">
+      <Button
+        variant="primary"
+        onClick={handleCta}
+        disabled={soldOut}
+        aria-haspopup={needsPicker ? "dialog" : undefined}
+        className="h-11 flex-1"
+      >
+        <ShoppingCart className="h-4 w-4" />
+        {soldOut ? "Agotado" : "Agregar"}
+      </Button>
+      {/* Secundario/ghost: nunca se deshabilita, ni agotado — "avísame" sigue
+          siendo un lead que no queremos perder. */}
+      <button
+        type="button"
+        onClick={handleWhatsAppOrder}
+        aria-label={soldOut ? `Avísame cuando ${product.name} esté disponible, por WhatsApp` : `Pedir ${product.name} por WhatsApp`}
+        title={soldOut ? "Avísame por WhatsApp" : "Pedir por WhatsApp"}
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-whatsapp/30 bg-whatsapp/10 text-whatsapp transition-colors hover:bg-whatsapp/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp/60"
+      >
+        <MessageCircle className="h-[18px] w-[18px]" />
+      </button>
+    </div>
   );
 
   const motionProps = {

@@ -3,16 +3,17 @@
 // carrito de un clic. Comparte el look "card-premium" con ProductCard.
 import { Link } from "@remix-run/react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ShoppingCart, ImageOff, Sparkles } from "lucide-react";
+import { ShoppingCart, ImageOff, Sparkles, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import type { Combo } from "~/store/api/catalogApi";
+import { useGetConfigQuery, type Combo } from "~/store/api/catalogApi";
 import { useAppDispatch } from "~/store/hooks";
 import { addItem, openCart } from "~/store/slices/cartSlice";
 import { comboToCartItem } from "~/lib/combo";
-import { formatCordobas, cn } from "~/lib/utils";
+import { formatCordobas, cn, buildWhatsappUrl } from "~/lib/utils";
 
 export function ComboCard({ combo, index = 0 }: { combo: Combo; index?: number }) {
   const dispatch = useAppDispatch();
+  const { data: config } = useGetConfigQuery();
   const reduce = useReducedMotion();
 
   function addToCart(e: React.MouseEvent) {
@@ -21,6 +22,14 @@ export function ComboCard({ combo, index = 0 }: { combo: Combo; index?: number }
     dispatch(addItem(comboToCartItem(combo)));
     dispatch(openCart());
     toast.success("Combo agregado al carrito");
+  }
+
+  function orderByWhatsApp(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = typeof window !== "undefined" ? `${window.location.origin}/combo/${combo.id}` : "";
+    const message = `Hola, quiero el combo: ${combo.name} — ${formatCordobas(combo.price)}. ${url}`;
+    window.open(buildWhatsappUrl(config?.whatsapp ?? "50585944758", message), "_blank", "noopener,noreferrer");
   }
 
   const motionProps = {
@@ -41,9 +50,12 @@ export function ComboCard({ combo, index = 0 }: { combo: Combo; index?: number }
       )}
     >
       <Link to={`/combo/${combo.id}`} prefetch="intent" aria-label={combo.name} className="block">
-        {/* Escenario: las 2 fotos con el "+" al centro */}
-        <div className="relative flex items-center gap-2 rounded-none bg-surface-2/40 p-3">
-          <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-none bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent ring-1 ring-accent/30 backdrop-blur-md">
+        {/* Escenario: las 2 fotos con el "+" al centro. Hairline abajo: marca el
+            "sello" entre el stage claro y el cuerpo oscuro (nombre/precio). */}
+        <div className="product-stage relative flex items-center gap-2 rounded-none border-b border-black/5 p-3">
+          {/* Sólido (no bg-accent/15 translúcido): sobre el stage claro, ese wash
+              quedaba en ~2:1 de contraste — por debajo del mínimo AA (4.5:1). */}
+          <span className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-none bg-accent px-2 py-0.5 text-[11px] font-bold text-bg">
             <Sparkles className="h-3 w-3" /> Combo
           </span>
           {combo.products.map((p, i) => (
@@ -58,7 +70,7 @@ export function ComboCard({ combo, index = 0 }: { combo: Combo; index?: number }
                     className="ease-expo h-full w-full object-contain p-3 transition duration-[600ms] group-hover:scale-[1.06]"
                   />
                 ) : (
-                  <div className="grid h-full place-items-center text-muted">
+                  <div className="grid h-full place-items-center text-black/20">
                     <ImageOff className="h-7 w-7" />
                   </div>
                 )}
@@ -94,19 +106,30 @@ export function ComboCard({ combo, index = 0 }: { combo: Combo; index?: number }
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={addToCart}
-            aria-label={`Agregar combo ${combo.name} al carrito`}
-            className={cn(
-              "ease-expo flex h-11 w-full items-center justify-center gap-2 rounded-none text-sm font-bold transition duration-300 active:translate-y-px active:scale-[0.98]",
-              "bg-accent text-bg hover:bg-accent-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-            )}
-          >
-            <ShoppingCart className="h-4 w-4" />
-            Agregar combo
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={addToCart}
+              aria-label={`Agregar combo ${combo.name} al carrito`}
+              className={cn(
+                "ease-expo flex h-11 flex-1 items-center justify-center gap-2 rounded-none text-sm font-bold transition duration-300 active:translate-y-px active:scale-[0.98]",
+                "bg-accent text-bg hover:bg-accent-hover",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+              )}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Agregar combo
+            </button>
+            <button
+              type="button"
+              onClick={orderByWhatsApp}
+              aria-label={`Pedir combo ${combo.name} por WhatsApp`}
+              title="Pedir por WhatsApp"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-none border border-whatsapp/30 bg-whatsapp/10 text-whatsapp transition-colors hover:bg-whatsapp/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp/60"
+            >
+              <MessageCircle className="h-[18px] w-[18px]" />
+            </button>
+          </div>
         </div>
       </div>
     </motion.article>

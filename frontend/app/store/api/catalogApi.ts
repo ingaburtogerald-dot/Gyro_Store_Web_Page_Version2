@@ -86,6 +86,10 @@ export const catalogApi = baseApi.injectEndpoints({
       query: () => "/config",
       providesTags: ["Config"],
     }),
+    updateCategories: build.mutation<{ ok: boolean; categories: Category[] }, Category[]>({
+      query: (categories) => ({ url: "/config/categories", method: "PUT", body: { categories } }),
+      invalidatesTags: ["Config"],
+    }),
 
     // ── Landing editable (Hero + orden del header) ──
     getLandingConfig: build.query<LandingConfig, void>({
@@ -286,6 +290,7 @@ export interface CatalogItemInput {
 
 export const {
   useGetConfigQuery,
+  useUpdateCategoriesMutation,
   useGetLandingConfigQuery,
   useUpdateLandingConfigMutation,
   useUploadHeroSlideMutation,

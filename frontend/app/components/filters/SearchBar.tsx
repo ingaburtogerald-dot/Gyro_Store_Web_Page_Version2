@@ -159,15 +159,18 @@ export function SearchBar({
             placeholder={idle ? "" : "Buscar productos…"}
             aria-label="Buscar productos"
             className={cn(
-              "w-full bg-transparent pr-10 text-[15px] font-medium text-text outline-none placeholder:text-muted",
+              // text-[16px] en móvil evita el zoom automático de Safari iOS al enfocar
+              // (dispara con font-size <16px); md: conserva el tamaño original.
+              "w-full bg-transparent pr-10 text-[16px] md:text-[15px] font-medium text-text outline-none placeholder:text-muted",
               "[&::-webkit-search-cancel-button]:appearance-none",
               tall ? "h-14" : "h-12",
             )}
           />
 
-          {/* Placeholder "vivo": rota sugerencias reales solo cuando el input está en reposo. */}
+          {/* Placeholder "vivo": rota sugerencias reales solo cuando el input está en reposo.
+              Mismo tamaño que el input real (arriba) para que no "salte" al escribir. */}
           {idle && (
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center overflow-hidden text-[15px] text-muted">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center overflow-hidden text-[16px] md:text-[15px] text-muted">
               <span className="mr-1">Buscar</span>
               <AnimatePresence mode="wait">
                 <motion.span

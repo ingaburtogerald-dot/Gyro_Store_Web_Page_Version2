@@ -86,11 +86,11 @@ export function CartDrawer() {
                     const isCombo = Boolean(item.comboId);
                     return (
                       <div key={key} className="flex gap-3 rounded-xl border border-border bg-bg p-3">
-                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-2">
+                        <div className="product-stage h-16 w-16 shrink-0 overflow-hidden rounded-lg">
                           {item.image ? (
                             <img src={item.image} alt="" className="h-full w-full object-cover" />
                           ) : (
-                            <div className="grid h-full place-items-center text-muted">
+                            <div className="grid h-full place-items-center text-black/20">
                               <ImageOff className="h-5 w-5" />
                             </div>
                           )}

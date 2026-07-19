@@ -34,6 +34,30 @@ const contactSchema = z.object({
   message: z.string().min(5).max(2000),
 });
 
+// Código de descuento (admin crea, ej. incentivo por reseña en Google/Facebook).
+// `code` se normaliza a mayúsculas SIN espacios en la ruta (no acá) y se usa como
+// id del doc en Firestore → unicidad gratis, sin query extra.
+const discountCodeSchema = z.object({
+  code: z.string().trim().min(3, 'Mínimo 3 caracteres').max(30, 'Máximo 30 caracteres')
+    .regex(/^[a-zA-Z0-9-]+$/, 'Solo letras, números y guiones'),
+  type: z.enum(['percent', 'fixed']),
+  value: z.coerce.number().positive('Debe ser mayor a 0'),
+  maxUses: z.coerce.number().int().nonnegative().optional().default(1), // 0 = ilimitado
+  expiresAt: z.string().optional().or(z.literal('')), // fecha ISO (yyyy-mm-dd) o vacío = sin vencimiento
+  note: z.string().max(200).optional().default(''),
+}).refine((d) => d.type !== 'percent' || d.value <= 100, {
+  message: 'Un descuento por porcentaje no puede superar 100%',
+  path: ['value'],
+});
+
+// Feedback público (bug / idea / producto). El teléfono es opcional: solo lo
+// validamos si viene (no forzamos a dar contacto para reportar algo).
+const feedbackSchema = z.object({
+  type: z.enum(['bug', 'idea', 'product']),
+  message: z.string().min(5, 'Mensaje muy corto').max(2000),
+  userPhone: z.string().min(7, 'Teléfono inválido').max(20).optional().or(z.literal('')),
+});
+
 // Registro de una compra en China (un producto por registro; comparte lote).
 const purchaseSchema = z.object({
   purchaseDate: z.string().min(1, 'Fecha requerida'),
@@ -142,6 +166,8 @@ module.exports = {
   saleItemsSchema,
   createUserSchema,
   contactSchema,
+  feedbackSchema,
+  discountCodeSchema,
   purchaseSchema,
   migratedItemSchema,
   arrivalSchema,

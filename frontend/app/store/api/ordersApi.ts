@@ -18,6 +18,8 @@ export interface PublicOrderPayload {
   /** Link de Google Maps con el pin GPS del cliente (opcional). */
   locationUrl?: string;
   note?: string;
+  /** Incentivo por reseña — se revalida y descuenta un uso en el servidor. */
+  discountCode?: string;
   items: PublicOrderItem[];
 }
 
@@ -25,6 +27,7 @@ export interface PublicOrderResult {
   id: string;
   subtotal: number;
   discount: number;
+  codeDiscount: number;
   total: number;
   whatsappUrl: string;
 }

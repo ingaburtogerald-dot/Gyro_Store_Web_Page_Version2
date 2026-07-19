@@ -13,8 +13,8 @@
 import { useMemo } from "react";
 import Fuse from "fuse.js";
 import type { CatalogProduct } from "~/store/api/catalogApi";
+import { useGetConfigQuery } from "~/store/api/catalogApi";
 import { useAppSelector } from "~/store/hooks";
-import { BASE_CATEGORIES } from "~/lib/categories";
 
 export const isDeal = (p: CatalogProduct) =>
   Boolean(p.isPromo) || (p.compareAtPrice ?? 0) > p.price;
@@ -26,12 +26,14 @@ export interface CatalogFilterResult {
   isDefault: boolean;
 }
 
-// Nombre visible de cada categoría por su id: `product.category` es un id
-// ("audifonos-kz"), pero el usuario teclea el nombre ("audífonos"). Con este mapa
-// Fuse puede emparejar por categoría además de por el nombre del producto.
-const CATEGORY_NAME_BY_ID = new Map(BASE_CATEGORIES.map((c) => [c.id, c.name]));
-
 export function useCatalogFilter(products: CatalogProduct[]): CatalogFilterResult {
+  const { data: config } = useGetConfigQuery();
+  const baseCategories = config?.categories || [];
+
+  const categoryNameById = useMemo(() => {
+    return new Map(baseCategories.map((c) => [c.id, c.name]));
+  }, [baseCategories]);
+
   const category = useAppSelector((s) => s.ui.activeCategory);
   const search = useAppSelector((s) => s.ui.search).trim();
   const priceMin = useAppSelector((s) => s.ui.priceMin);
@@ -49,18 +51,24 @@ export function useCatalogFilter(products: CatalogProduct[]): CatalogFilterResul
     const docs = products.map((p) => ({
       product: p,
       name: p.name,
-      category: CATEGORY_NAME_BY_ID.get(p.category) ?? p.category,
+      category: categoryNameById.get(p.category) ?? p.category,
     }));
     return new Fuse(docs, {
       keys: [
         { name: "name", weight: 0.7 },
         { name: "category", weight: 0.3 },
       ],
-      threshold: 0.35, // tolerante a erratas sin abrir demasiado el abanico
+      threshold: 0.25, // más estricto que antes (0.35): menos falsos positivos, conserva algo de tolerancia a erratas
       ignoreLocation: true, // el término puede estar en cualquier parte del texto
       minMatchCharLength: 2,
+      // useExtendedSearch: el tokenizer de Fuse ya separa la query por espacios y
+      // exige que TODAS las palabras aparezcan (AND), cada una con coincidencia
+      // difusa independiente — resuelve "zapatos rojos" sin perder tolerancia a
+      // erratas por palabra (no hace falta prefijar con ' — eso forzaría substring
+      // exacto y anularía la tolerancia a errores de tipeo).
+      useExtendedSearch: true,
     });
-  }, [products]);
+  }, [products, categoryNameById]);
 
   const filtered = useMemo(() => {
     // 1. Conjunto base: con búsqueda → orden por relevancia difusa; sin búsqueda →
