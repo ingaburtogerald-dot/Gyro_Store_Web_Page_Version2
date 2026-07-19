@@ -18,16 +18,23 @@ import { usePageviewTelemetry } from "~/hooks/usePageviewTelemetry";
 import { ForcePasswordChangeGate } from "~/components/auth/ForcePasswordChangeGate";
 import { AppShell } from "~/components/layout/AppShell";
 import { StorefrontShell } from "~/components/layout/StorefrontShell";
+import { FeedbackFab } from "~/components/layout/FeedbackFab";
+import { WhatsAppFab } from "~/components/layout/WhatsAppFab";
 import tailwind from "~/styles/globals.css?url";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: tailwind },
   { rel: "icon", type: "image/jpeg", href: "/logo.jpg" },
   { rel: "apple-touch-icon", href: "/logo.jpg" },
-  // Inter (fuente única) se carga vía @import en globals.css. Estos preconnect
-  // aceleran esa descarga a Google Fonts.
+  // Inter (fuente única): <link> de primer nivel (no @import anidado en globals.css)
+  // para que el navegador la descubra y pida en paralelo, no en cadena tras bajar
+  // y parsear el CSS de la app. preconnect acelera la conexión a ambos hosts.
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap",
+  },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -60,17 +67,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <ForcePasswordChangeGate>
             {children}
           </ForcePasswordChangeGate>
-          {/* Colores vía tokens: el toast sigue al tema activo (oscuro/claro) */}
+          {/* Dark Premium: tarjeta translúcida + blur, borde de acento grueso a la
+              izquierda por estado (éxito/error/aviso/info) — legible al instante,
+              estilo macOS/Vercel. Abajo a la derecha: no compite con el header ni
+              con el rail, y es donde el ojo aterriza tras una acción. */}
           <Toaster
-            position="top-left"
+            position="bottom-right"
             duration={5000}
             theme="dark"
             closeButton
             toastOptions={{
-              style: {
-                background: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-                color: "var(--color-text)",
+              classNames: {
+                toast:
+                  "rounded-2xl border border-white/10 bg-surface-2/90 backdrop-blur-md shadow-2xl shadow-black/50 p-4",
+                title: "text-[15px] font-bold text-text",
+                description: "text-sm text-muted mt-0.5",
+                success: "border-l-4 border-l-accent",
+                error: "border-l-4 border-l-danger",
+                warning: "border-l-4 border-l-warning",
+                info: "border-l-4 border-l-info",
+                closeButton: "bg-surface-2 border border-white/10 text-muted hover:text-text",
+                actionButton: "bg-accent text-bg font-semibold hover:bg-accent-hover",
+                cancelButton: "bg-surface text-muted hover:text-text",
               },
             }}
           />
@@ -113,17 +131,32 @@ export default function App() {
     );
   }
 
-  // Ficha de producto: trae su propia navegación contextual (ProductTopNav),
-  // que reemplaza al header — sin shell para no duplicar cabeceras.
+  // Ficha de producto: trae su propio breadcrumb + acciones (producto.$id.tsx),
+  // sin shell, para no duplicar cabeceras. Sin WhatsAppFab acá: en móvil ya hay
+  // una barra de compra fija con su propio CTA de WhatsApp específico del
+  // producto ("Comprar al por mayor", mensaje prellenado) — el FAB genérico
+  // (abajo-izquierda) se solaparía con esa barra y sería redundante.
   if (path.startsWith("/producto")) {
-    return <Outlet />;
+    return (
+      <>
+        <Outlet />
+        <FeedbackFab />
+      </>
+    );
   }
 
   // Storefront público (home, combos, contacto): header full-width (Apple/Razer).
+  // FeedbackFab va FUERA de StorefrontShell (no como children de <motion.main>):
+  // framer-motion deja un `transform` inline incluso en reposo, que rompe
+  // `position: fixed` en los descendientes (los ancla al ancestro, no al viewport).
   return (
-    <StorefrontShell>
-      <Outlet />
-    </StorefrontShell>
+    <>
+      <StorefrontShell>
+        <Outlet />
+      </StorefrontShell>
+      <FeedbackFab />
+      <WhatsAppFab />
+    </>
   );
 }
 

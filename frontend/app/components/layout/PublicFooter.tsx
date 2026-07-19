@@ -1,14 +1,9 @@
 // Footer del catálogo (centrado, minimalista): foto del negocio + nombre, señales de
 // confianza, ubicación, y barra inferior con derechos reservados y crédito.
-import { MapPin, Truck, ShieldCheck, Wallet } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { Logo } from "~/components/ui/Logo";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
-
-const TRUST = [
-  { icon: Truck, label: "Envío en Managua" },
-  { icon: Wallet, label: "Pago contra entrega" },
-  { icon: ShieldCheck, label: "Garantía en cada compra" },
-];
+import { TRUST_SIGNALS } from "~/lib/trustSignals";
 
 export function PublicFooter() {
   const { data: config } = useGetConfigQuery();
@@ -28,7 +23,7 @@ export function PublicFooter() {
 
         {/* Señales de confianza */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm text-muted">
-          {TRUST.map(({ icon: Icon, label }) => (
+          {TRUST_SIGNALS.map(({ icon: Icon, label }) => (
             <span key={label} className="inline-flex items-center gap-2">
               <Icon className="h-4 w-4 text-accent-2" /> {label}
             </span>

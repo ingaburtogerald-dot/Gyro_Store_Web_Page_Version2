@@ -32,7 +32,7 @@ export function FrequentlyBoughtTogetherCard({
       <div className="mb-5 flex items-center justify-center gap-2 sm:gap-4">
         {/* Main Product */}
         <div className="flex flex-1 flex-col items-center gap-2">
-          <div className="h-20 w-20 rounded-none border border-border bg-surface p-2">
+          <div className="product-stage h-20 w-20 rounded-none border border-border p-2">
             <img
               src={mainProduct.images?.[0] || ""}
               alt=""
@@ -55,7 +55,7 @@ export function FrequentlyBoughtTogetherCard({
 
         {/* Cross Product */}
         <div className="flex flex-1 flex-col items-center gap-2">
-          <div className="h-20 w-20 rounded-none border border-border bg-surface p-2">
+          <div className="product-stage h-20 w-20 rounded-none border border-border p-2">
             <img
               src={crossProduct.images?.[0] || ""}
               alt=""

@@ -132,12 +132,12 @@ function ComboCard({
 
       <div className="mt-4 flex items-end justify-between border-t border-border pt-3">
         <div>
-          <p className="text-[11px] text-muted">Precio del paquete</p>
+          <p className="text-xs text-muted">Precio del paquete</p>
           <p className="font-heading text-lg font-bold text-accent leading-none tabular-nums">
             {formatCordobas(combo.price)}
           </p>
           {combo.savings > 0 && (
-            <p className="mt-0.5 text-[11px] text-muted">
+            <p className="mt-0.5 text-xs text-muted">
               Ahorro <span className="tabular-nums">{formatCordobas(combo.savings)}</span>
             </p>
           )}

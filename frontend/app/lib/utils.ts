@@ -37,8 +37,12 @@ export function cordobasFromUsd(usd: number): string {
 }
 
 // Genera un mensaje de WhatsApp y devuelve la URL wa.me lista para abrir.
+// wa.me exige solo dígitos en el número; el admin puede guardar el WhatsApp con
+// formato humano ("+505 8594 4758") desde Configuración — se limpia acá para que
+// TODOS los que llaman a esta función queden protegidos sin tocar cada sitio.
 export function buildWhatsappUrl(phone: string, message: string): string {
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  const digits = phone.replace(/\D/g, "");
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }
 
 // Crea un slug amigable para la URL (ej: "KZ EDX Pro X" -> "kz-edx-pro-x")

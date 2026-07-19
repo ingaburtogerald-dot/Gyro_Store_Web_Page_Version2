@@ -1,6 +1,9 @@
 /* Inter — fuente ÚNICA de toda la app (headings + body). Pesos 400/500/600/700.
-   Los @import de URL deben ir antes que cualquier otra regla CSS. */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+   El @import de Google Fonts se movió a un <link rel="stylesheet"> en root.tsx:
+   dentro de un @import de CSS es render-blocking en cadena (baja este archivo →
+   lo parsea → recién ahí descubre y pide la hoja de Google Fonts → y esa hoja
+   recién ahí referencia los .woff2). Como <link> de primer nivel, el navegador
+   lo descubre y lo pide en paralelo con este mismo archivo desde el <head>. */
 @import "tailwindcss";
 @import "react-day-picker/style.css";
 
@@ -18,6 +21,9 @@
   --color-surface-2: #151d2f;
   --color-surface-hover: #1c2740;
   --color-border: rgba(148, 184, 255, 0.09);
+  /* Vitrina de producto: off-white deliberado (NO #fff puro — un producto blanco
+     "desaparecería" sobre blanco puro). Tile claro fijo, no depende del tema. */
+  --color-product-stage: #f4f4f5;
 
   /* Acentos — Esmeralda / Verde tech */
   --color-accent: #10b981;
@@ -260,12 +266,18 @@
   background-color: #92a7a3;
 }
 
-/* Escenario del producto (catálogo premium): la imagen "flota" sobre un foco
-   radial sutil del acento. Reemplaza la caja gris plana por profundidad real. */
+/* Escenario del producto: vitrina de e-commerce (Amazon/dbrand/Apple) — tile claro
+   UNIFORME para toda foto de producto, sin importar si el archivo trae fondo
+   transparente o blanco incrustado (ej. "KZ AZ10"): el off-white es indulgente con
+   ambos. Deliberadamente claro sobre la app oscura — no depende del tema.
+   Profundidad neutra (vignette + inset ring), CERO tinte de acento: debe leer como
+   vitrina, no como JPG pegado. Fuente única — no dupliques este look por componente,
+   solo herédalo (ver globals.css §Bloque 1 del task de unificación de stages). */
 @utility product-stage {
+  background-color: var(--color-product-stage);
   background-image:
-    radial-gradient(120% 100% at 50% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 62%);
-  background-color: var(--color-surface-2);
+    radial-gradient(120% 100% at 50% 100%, rgba(0, 0, 0, 0.05), transparent 65%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 /* Curva de salida exponencial: entradas rápidas que desaceleran con elegancia. */

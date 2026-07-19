@@ -13,6 +13,8 @@ const { db, FieldValue, Timestamp } = require('../firebase');
 const config = require('../config');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { requireAdmin } = require('../middleware/auth');
+const { telemetryLimiter } = require('../middleware/rateLimiter');
+const logger = require('../utils/logger');
 
 const COL = config.collections.analyticsEvents;
 const MAX_QUERY_LEN = 120;
@@ -25,6 +27,41 @@ const TOP_LIMIT = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const dayKey = (date) => date.toISOString().slice(0, 10); // "AAAA-MM-DD" en UTC
 
+// ── Deduplicación de pageviews (evita contar recargas como visitas nuevas) ──
+// Ventana deslizante de 30 min en memoria (proceso único en Render, ver server/index.js).
+// Clave preferida: sessionId (sessionStorage del cliente) + page — identifica la
+// pestaña real y evita el problema de IP compartida (CGNAT/redes móviles/oficina)
+// que colapsaría visitas de personas distintas. Si el cliente no manda sessionId
+// (bloqueado, bot), se usa IP + page como respaldo. `req.ip` ya resuelve la IP real
+// del cliente gracias a `app.set('trust proxy', 1)` en server/index.js.
+const PAGEVIEW_DEDUPE_WINDOW_MS = 30 * 60 * 1000;
+const PAGEVIEW_DEDUPE_CLEANUP_MS = 10 * 60 * 1000;
+const recentPageviews = new Map(); // clave → timestamp (ms) de expiración
+
+// Purga periódica en vez de un setTimeout por clave: evita acumular miles de
+// temporizadores activos bajo tráfico alto.
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, expiresAt] of recentPageviews) {
+    if (expiresAt <= now) recentPageviews.delete(key);
+  }
+}, PAGEVIEW_DEDUPE_CLEANUP_MS).unref();
+
+function pageviewDedupeKey(req, sessionId, page) {
+  return sessionId ? `sid:${sessionId}:${page}` : `ip:${req.ip}:${page}`;
+}
+
+// true si esta (sesión|IP) ya visitó `page` dentro de los últimos 30 min. Cada hit
+// (nuevo o repetido) reinicia la ventana — es una expiración deslizante, no fija.
+function isDuplicatePageview(req, sessionId, page) {
+  const key = pageviewDedupeKey(req, sessionId, page);
+  const now = Date.now();
+  const expiresAt = recentPageviews.get(key);
+  const isDuplicate = Boolean(expiresAt && expiresAt > now);
+  recentPageviews.set(key, now + PAGEVIEW_DEDUPE_WINDOW_MS);
+  return isDuplicate;
+}
+
 // Extrae el id de producto de una ruta de ficha: "/producto/<slug>--<id>".
 function productIdFromPage(page) {
   if (!page || !page.startsWith('/producto/')) return null;
@@ -33,17 +70,57 @@ function productIdFromPage(page) {
   return id || null;
 }
 
+// ── Caché de "populares" (GET /popular, público) ──
+// Se sirve en el home a CADA visitante, así que se cachea 1h en memoria para no
+// gastar una lectura de Firestore por carga de página (proceso único en Render).
+const POPULAR_LIMIT = 12;
+const POPULAR_DAYS = 30;
+const POPULAR_CACHE_TTL_MS = 60 * 60 * 1000;
+let popularCache = { data: null, timestamp: 0 };
+
+// Popularidad = vistas de ficha (pageview a /producto/:id) + clics desde búsqueda,
+// sumados. Solo clics sería un embudo demasiado angosto (requiere que el usuario
+// busque Y haga clic en un resultado); la mayoría del tráfico a una ficha llega
+// navegando el catálogo, no buscando.
+async function computePopularProductIds() {
+  const cutoff = Timestamp.fromMillis(Date.now() - POPULAR_DAYS * DAY_MS);
+  const snap = await db
+    .collection(COL)
+    .where('timestamp', '>=', cutoff)
+    .orderBy('timestamp', 'desc')
+    .limit(ANALYTICS_CAP)
+    .get();
+
+  const scoreByProduct = new Map();
+  const bump = (id) => id && scoreByProduct.set(id, (scoreByProduct.get(id) || 0) + 1);
+
+  snap.forEach((doc) => {
+    const d = doc.data();
+    if (d.type === 'pageview') bump(productIdFromPage(d.page));
+    else if (d.clickedProductId) bump(d.clickedProductId);
+  });
+
+  return [...scoreByProduct.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, POPULAR_LIMIT)
+    .map(([productId]) => productId);
+}
+
 // POST /api/search-events
 // Body búsqueda:  { type:'search', query, resultsCount, sessionId? }
 // Body pageview:  { type:'pageview', page, sessionId? }
 // Devuelve { id } (útil para marcar el clic de un resultado más tarde — CTR).
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', telemetryLimiter, asyncHandler(async (req, res) => {
   const type = req.body?.type === 'pageview' ? 'pageview' : 'search';
   const sessionId = String(req.body?.sessionId ?? '').slice(0, 64) || null;
 
   if (type === 'pageview') {
     const page = String(req.body?.page ?? '').trim().slice(0, MAX_PAGE_LEN);
     if (!page.startsWith('/')) return res.json({ ok: true, skipped: true });
+
+    // Recarga/reingreso a la misma página dentro de los 30 min → no ensucia Firestore.
+    if (isDuplicatePageview(req, sessionId, page)) return res.json({ ok: true, skipped: true });
+
     const ref = await db.collection(COL).add({
       type: 'pageview',
       page,
@@ -75,7 +152,7 @@ router.post('/', asyncHandler(async (req, res) => {
 
 // POST /api/search-events/:id/click
 // Marca qué producto abrió el usuario tras esa búsqueda (CTR).
-router.post('/:id/click', asyncHandler(async (req, res) => {
+router.post('/:id/click', telemetryLimiter, asyncHandler(async (req, res) => {
   const clickedProductId = String(req.body?.clickedProductId ?? '').slice(0, MAX_ID_LEN);
   if (!clickedProductId) return res.status(400).json({ error: 'Falta clickedProductId.' });
 
@@ -83,6 +160,27 @@ router.post('/:id/click', asyncHandler(async (req, res) => {
   // con solo este campo (aceptable: es telemetría best-effort, no dato crítico).
   await db.collection(COL).doc(req.params.id).set({ clickedProductId }, { merge: true });
   res.json({ ok: true });
+}));
+
+// GET /api/search-events/popular  (público — lo consume el home vía SSR)
+// Devuelve hasta 12 ids de producto ordenados por popularidad (30 días). Cacheado
+// 1h en memoria: bajo tráfico normal, el loader del home nunca toca Firestore.
+router.get('/popular', asyncHandler(async (req, res) => {
+  const now = Date.now();
+  if (popularCache.data && now - popularCache.timestamp < POPULAR_CACHE_TTL_MS) {
+    return res.json({ ok: true, productIds: popularCache.data, cached: true });
+  }
+
+  try {
+    const productIds = await computePopularProductIds();
+    popularCache = { data: productIds, timestamp: now };
+    return res.json({ ok: true, productIds, cached: false });
+  } catch (err) {
+    // Best-effort: si Firestore falla, sirve caché vencida antes que romper el home.
+    if (popularCache.data) return res.json({ ok: true, productIds: popularCache.data, cached: true, stale: true });
+    logger.error('popular_products_failed', { message: err.message });
+    return res.json({ ok: true, productIds: [] });
+  }
 }));
 
 // GET /api/search-events/analytics?days=30  (SOLO admin)

@@ -11,18 +11,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@remix-run/react";
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
-import { ShoppingBag, Search, User, X, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ShoppingBag, Search, User, X, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Plus, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "~/components/ui/Logo";
 import { SearchBar } from "~/components/filters/SearchBar";
 import { CartDrawer } from "~/components/cart/CartDrawer";
+import { CategoriesDrawer } from "./CategoriesDrawer";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "~/hooks/useAuth";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { hydrate, openCart, selectCartCount } from "~/store/slices/cartSlice";
 import { setSearch, setCategory } from "~/store/slices/uiSlice";
 import { selectIsAdmin, selectEditMode } from "~/store/slices/authSlice";
-import { useGetCatalogQuery, useGetLandingConfigQuery, useUpdateLandingConfigMutation } from "~/store/api/catalogApi";
+import { useGetCatalogQuery, useGetLandingConfigQuery, useUpdateLandingConfigMutation, useGetConfigQuery } from "~/store/api/catalogApi";
 import { buildCategoryTree } from "~/lib/categories";
 import { cn, getProductUrl, formatCordobas } from "~/lib/utils";
 import type { Category } from "~/types/catalog";
@@ -94,10 +95,10 @@ export function CartButton({ variant }: { variant?: "bar" }) {
       whileTap={{ scale: 0.92 }}
       onClick={() => dispatch(openCart())}
       aria-label={label}
-      className="relative grid h-11 w-11 place-items-center text-muted transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="relative grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <motion.span animate={controls} className="block">
-        <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
+        <ShoppingBag className="h-[22px] w-[22px]" />
       </motion.span>
       {/* Anillo "ping" al agregar */}
       <AnimatePresence>
@@ -148,11 +149,11 @@ function IconButton({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "grid h-11 w-11 place-items-center transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-        active ? "opacity-100 text-accent-2" : "text-muted hover:opacity-70",
+        "grid h-11 w-11 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+        active ? "bg-surface-hover text-accent-2" : "text-muted hover:bg-surface-hover hover:text-accent-2",
       )}
     >
-      <Icon className="h-5 w-5" strokeWidth={1.5} />
+      <Icon className="h-[22px] w-[22px]" />
     </button>
   );
 }
@@ -162,18 +163,13 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const search = useAppSelector((s) => s.ui.search);
-  // Categoría activa del catálogo → resalta la píldora correspondiente en la
-  // barra móvil (fuente de verdad compartida con la grilla y el resto de filtros).
-  const activeCategory = useAppSelector((s) => s.ui.activeCategory);
 
   // Búsqueda desplegable: por defecto oculta (solo la lupa).
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Centra la píldora activa al cambiar de categoría (útil al scrollear la barra móvil).
-  const activePillRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    activePillRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-  }, [activeCategory]);
+  // Drawer de categorías (solo móvil): el mega-menú de abajo es hidden md:flex,
+  // así que en <md esta es la única forma de navegar categorías desde el header.
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   // Mega-menú (Apple/Razer): categoría cuyo panel de contenido está desplegado.
   const [openCat, setOpenCat] = useState<string | null>(null);
@@ -188,7 +184,8 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
   // Categorías del catálogo (fuente única compartida con el rail). `allCategories`
   // = las que tienen productos en inventario (candidatas para el header).
   const { data: products = [] } = useGetCatalogQuery();
-  const allCategories = useMemo(() => buildCategoryTree(products), [products]);
+  const { data: config } = useGetConfigQuery();
+  const allCategories = useMemo(() => buildCategoryTree(products, config?.categories || []), [products, config?.categories]);
 
   // Orden/visibilidad elegidos por el admin (doc landing_page). Vacío = mostrar
   // todas en su orden natural (compatibilidad con el comportamiento anterior).
@@ -308,13 +305,6 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
     navigate("/");
   }
 
-  // "Todo" en la barra móvil: limpia el filtro y vuelve a la vista completa.
-  function goAll() {
-    dispatch(setCategory(null));
-    setOpenCat(null);
-    navigate("/");
-  }
-
   function openSearch() {
     setOpenCat(null);
     setSearchOpen((v) => !v);
@@ -329,7 +319,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
       <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-bg/80 backdrop-blur-xl">
         <div className="mx-auto flex h-17 w-full max-w-[1600px] items-center gap-4 px-4 md:px-8">
           {/* ── Logo (izquierda) — imagen ancha (80×40) que ya es la marca completa ── */}
-          <Logo asLink size={50} className={cn("shrink-0", searchOpen && "hidden md:flex")} />
+          <Logo asLink size={50} className="shrink-0" />
 
           {/* ── Zona central: navegación ⇄ búsqueda ──
               Ambas capas se superponen en posición absoluta y hacen cross-fade a la
@@ -343,7 +333,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.28, ease: EASE }}
-                  className="absolute inset-x-0 mx-auto w-full max-w-3xl"
+                  className="absolute inset-x-0 mx-auto hidden w-full max-w-3xl md:block"
                 >
                   <SearchBar
                     value={search}
@@ -414,11 +404,19 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                           onClick={() => toggleMenu(c.id)}
                           aria-expanded={openCat === c.id}
                           className={cn(
-                            "flex items-center gap-1 whitespace-nowrap px-3.5 py-2 text-[14px] font-medium transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-                            openCat === c.id ? "opacity-100 text-text" : "text-text/80 hover:opacity-70",
+                            "flex items-center gap-1 whitespace-nowrap rounded-full px-3.5 py-2 text-[14px] font-bold tracking-[-0.02em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                            openCat === c.id ? "bg-surface-hover text-text" : "text-muted hover:bg-surface-hover hover:text-text",
                           )}
                         >
                           {c.name}
+                          <motion.span
+                            aria-hidden
+                            animate={{ rotate: openCat === c.id ? 180 : 0 }}
+                            transition={{ duration: 0.25, ease: EASE }}
+                            className="grid place-items-center"
+                          >
+                            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.5} />
+                          </motion.span>
                         </button>
                       ))}
 
@@ -471,84 +469,65 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
             </AnimatePresence>
           </div>
 
-          {/* ── Iconos (derecha): Search · Cart · Login ── */}
+          {/* ── Iconos (derecha): Categorías (solo móvil) · Search · Cart · Login ── */}
           <div className="flex shrink-0 items-center gap-1">
+            {/* Solo <md: el mega-menú de categorías de arriba es hidden md:flex, así
+                que en móvil esta es la única entrada a categorías desde el header. */}
+            <div className="md:hidden">
+              <IconButton
+                icon={LayoutGrid}
+                label="Categorías"
+                onClick={() => setCategoriesOpen(true)}
+              />
+            </div>
             <IconButton
               icon={searchOpen ? X : Search}
               label={searchOpen ? "Cerrar búsqueda" : "Buscar"}
               onClick={openSearch}
               active={searchOpen}
             />
-            <div className={cn("flex items-center gap-1", searchOpen && "hidden md:flex")}>
-              <CartButton />
-              {/* Sesión: con usuario → menú (foto, nombre, Cerrar sesión); sin usuario → login. */}
-              {user ? (
-                <UserMenu />
-              ) : (
-                <Link
-                  to="/login"
-                  aria-label="Iniciar sesión"
-                  className="grid h-11 w-11 place-items-center text-muted transition-opacity hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >
-                  <User className="h-5 w-5" strokeWidth={1.5} />
-                </Link>
-              )}
-            </div>
+            <CartButton />
+            {/* Sesión: con usuario → menú (foto, nombre, Cerrar sesión); sin usuario → login. */}
+            {user ? (
+              <UserMenu />
+            ) : (
+              <Link
+                to="/login"
+                aria-label="Iniciar sesión"
+                className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <User className="h-[22px] w-[22px]" />
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* ── Barra de categorías MÓVIL (pills deslizables) — solo <md ──
-            Navegación directa: tap filtra al instante llamando a goCategory (sin
-            abrir mega-menú). Vive dentro del <header> sticky, así que se pega arriba
-            al hacer scroll. Se oculta si la búsqueda está abierta o en modo edición
-            (los controles de reordenar del header son de escritorio). */}
-        {!searchOpen && !editing && categories.length > 0 && (
-          <nav aria-label="Categorías" className="border-t border-border/40 md:hidden">
-            <div
-              className={cn(
-                "flex items-center gap-2 overflow-x-auto snap-x px-4 py-2.5",
-                "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-              )}
+        {/* ── Búsqueda MÓVIL (<md): overlay a pantalla completa bajo el header, no la
+            fila compartida con logo/iconos — 100% del ancho para escribir cómodo.
+            En md+ la búsqueda sigue viviendo en la fila central (bloque de arriba). ── */}
+        <AnimatePresence>
+          {searchOpen && (
+            <motion.div
+              key="mobile-search-panel"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.24, ease: EASE }}
+              className="absolute inset-x-0 top-full z-40 border-b border-border/50 bg-bg/95 px-4 py-4 shadow-premium backdrop-blur-xl md:hidden"
             >
-              {/* Píldora "Todo": limpia el filtro. */}
-              <button
-                type="button"
-                onClick={goAll}
-                ref={activeCategory === null ? activePillRef : null}
-                aria-pressed={activeCategory === null}
-                className={cn(
-                  "shrink-0 whitespace-nowrap px-3.5 py-1.5 text-[13px] font-medium transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-                  activeCategory === null
-                    ? "opacity-100 text-text"
-                    : "text-text/80 hover:opacity-70",
-                )}
-              >
-                Todo
-              </button>
-
-              {categories.map((c) => {
-                const active = activeCategory === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => goCategory(c.id)}
-                    ref={active ? activePillRef : null}
-                    aria-pressed={active}
-                    className={cn(
-                      "shrink-0 whitespace-nowrap px-3.5 py-1.5 text-[13px] font-medium transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-                      active
-                        ? "opacity-100 text-text"
-                        : "text-text/80 hover:opacity-70",
-                    )}
-                  >
-                    {c.name}
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-        )}
+              <SearchBar
+                value={search}
+                onChange={(v) => dispatch(setSearch(v))}
+                onClear={() => dispatch(setSearch(""))}
+                onSubmit={() => navigate("/")}
+                variant="pill"
+                withPanel
+                autoFocus
+                size="lg"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Mega-menú (Apple/Razer): panel full-width con el contenido de la categoría ── */}
         <AnimatePresence>
@@ -589,7 +568,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                         onClick={() => setOpenCat(null)}
                         className="group/card flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-surface/40 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:bg-surface-2/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       >
-                        <div className="grid aspect-square place-items-center overflow-hidden bg-surface-2/50 p-3">
+                        <div className="product-stage grid aspect-square place-items-center overflow-hidden p-3">
                           {p.images?.[0] ? (
                             <img
                               src={p.images[0]}
@@ -598,8 +577,8 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                               className="h-full w-full object-contain transition-transform duration-300 group-hover/card:scale-105"
                             />
                           ) : (
-                            <span className="grid h-full w-full place-items-center rounded-lg bg-surface-2 text-muted">
-                              <Search className="h-5 w-5 opacity-40" />
+                            <span className="grid h-full w-full place-items-center text-black/20">
+                              <Search className="h-5 w-5" />
                             </span>
                           )}
                         </div>
@@ -654,6 +633,9 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
           />
         )}
       </AnimatePresence>
+
+      {/* Drawer de categorías (móvil): un solo origen, compartido con ProductTopNav. */}
+      <CategoriesDrawer open={categoriesOpen} onClose={() => setCategoriesOpen(false)} />
 
       {/* Drawer del carrito: un solo origen para todas las páginas públicas. */}
       <CartDrawer />

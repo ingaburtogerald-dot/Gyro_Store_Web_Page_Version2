@@ -8,7 +8,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { ProductCard } from "./ProductCard";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
-import { cn, getProductUrl } from "~/lib/utils";
+import { cn, getProductUrl, formatCordobas } from "~/lib/utils";
 
 export function ProductCarousel({
   title,
@@ -72,10 +72,19 @@ export function ProductCarousel({
                 disabled={!enabled}
                 aria-label={dir === -1 ? "Anterior" : "Siguiente"}
                 className={cn(
-                  "ease-expo grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-surface text-muted transition",
-                  "hover:border-white/25 hover:text-text active:scale-95",
-                  "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/10 disabled:hover:text-muted",
+                  "ease-expo grid h-10 w-10 place-items-center rounded-full transition active:scale-95",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                  // showcase (dbrand "Popular Devices"): círculo claro sólido + flecha oscura.
+                  // product (resto de carruseles): outline sutil sobre superficie oscura (sin cambios).
+                  showcase
+                    ? cn(
+                        "bg-white/90 text-bg hover:bg-white",
+                        "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white/90",
+                      )
+                    : cn(
+                        "border border-white/10 bg-surface text-muted hover:border-white/25 hover:text-text",
+                        "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/10 disabled:hover:text-muted",
+                      ),
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -126,14 +135,17 @@ export function ProductCarousel({
 }
 
 // Tile editorial grande (estilo dbrand "Popular Devices"): foto protagonista en un
-// stage rounded-2xl + nombre y descripción corta. Sin precio ni CTA — es descubrimiento;
-// el tap lleva a la ficha, donde vive la conversión. DESIGN.md §4/§6 (hairline, sin glow).
+// stage rounded-2xl + nombre, precio y descripción corta. Sin CTA — es descubrimiento;
+// el tap lleva a la ficha, donde vive la conversión. El precio SÍ va (mercado sensible
+// al precio: sin él, el visitante no puede evaluar el tile y no convierte). DESIGN.md §4/§6.
 function ShowcaseCard({ product, index }: { product: CatalogProduct; index: number }) {
   const reduce = useReducedMotion();
   const image = product.images?.[0];
   const description = product.description
     ? String(product.description).replace(/<[^>]*>?/gm, "").trim()
     : "";
+  const compareAt = product.compareAtPrice ?? 0;
+  const onSale = compareAt > product.price;
 
   return (
     <motion.article
@@ -150,29 +162,38 @@ function ShowcaseCard({ product, index }: { product: CatalogProduct; index: numb
         aria-label={product.name}
         className="block focus-visible:outline-none"
       >
-        {/* Stage de imagen: nunca blanco puro (bg-surface-2), hairline que se aclara. */}
-        <div className="ease-expo product-stage relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-surface-2 transition-colors duration-300 group-hover:border-white/25">
+        {/* Stage de imagen: hereda el tile claro unificado (product-stage), con
+            padding generoso para que el producto respire. */}
+        <div className="ease-expo product-stage relative aspect-[4/5] overflow-hidden rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_20px_48px_-16px_rgba(0,0,0,0.5)]">
           {image ? (
             <img
               src={image}
               alt={product.name}
               loading={index < 4 ? "eager" : "lazy"}
               decoding="async"
-              className="ease-expo h-full w-full object-contain p-6 transition-transform duration-[600ms] will-change-transform group-hover:scale-[1.06]"
+              className="ease-expo h-full w-full object-contain p-8 drop-shadow-[0_6px_16px_rgba(0,0,0,0.12)] transition-transform duration-[600ms] will-change-transform group-hover:scale-[1.06] sm:p-10"
               style={{ viewTransitionName: `vt-product-${product.id}` } as React.CSSProperties}
             />
           ) : (
-            <div className="grid h-full place-items-center text-muted">
+            <div className="grid h-full place-items-center text-black/15">
               <ImageOff className="h-8 w-8" />
             </div>
           )}
         </div>
 
-        <h3 className="mt-4 text-xl font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2">
+        <h3 className="mt-4 text-xl font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2 sm:text-2xl">
           {product.name}
         </h3>
+        <div className="mt-1.5 flex items-baseline gap-2">
+          <span className="text-lg font-extrabold tabular-nums text-accent-2">{formatCordobas(product.price)}</span>
+          {onSale && (
+            <span className="text-sm text-muted line-through tabular-nums">{formatCordobas(compareAt)}</span>
+          )}
+        </div>
+        {/* line-clamp-3 en móvil: menos altura por tarjeta en el carrusel showcase
+            (aspect-[4/5] ya es alto de por sí). Desktop conserva 4 líneas. */}
         {description && (
-          <p className="mt-2 line-clamp-4 max-w-[400px] text-sm font-light leading-relaxed text-pretty text-muted">
+          <p className="mt-2 line-clamp-3 sm:line-clamp-4 max-w-[400px] text-sm font-light leading-relaxed text-pretty text-muted">
             {description}
           </p>
         )}

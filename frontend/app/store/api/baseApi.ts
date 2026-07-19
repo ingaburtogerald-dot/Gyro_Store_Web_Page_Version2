@@ -39,6 +39,8 @@ export const baseApi = createApi({
     "Contact",
     "Activity",
     "SearchAnalytics",
+    "Feedback",
+    "DiscountCode",
   ],
   endpoints: () => ({}),
 });

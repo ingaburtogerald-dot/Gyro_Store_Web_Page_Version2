@@ -31,6 +31,8 @@ import {
   ReceiptText,
   ClipboardList,
   Search,
+  Lightbulb,
+  Ticket,
 } from "lucide-react";
 import { Logo } from "~/components/ui/Logo";
 import { UserMenu } from "./UserMenu";
@@ -52,7 +54,7 @@ import {
 import { hydrate } from "~/store/slices/cartSlice";
 import { useGetAgendaQuery } from "~/store/api/contactsApi";
 import { useGetSalesPaginatedQuery, useGetPublicOrdersQuery } from "~/store/api/salesApi";
-import { useGetCatalogQuery } from "~/store/api/catalogApi";
+import { useGetCatalogQuery, useGetConfigQuery } from "~/store/api/catalogApi";
 import type { Category } from "~/types/catalog";
 import { buildCategoryTree } from "~/lib/categories";
 import { isDue } from "~/components/admin/crm/crmMeta";
@@ -81,6 +83,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Tienda",
     items: [
       { to: "/admin/catalogo", label: "Gestión de Catálogo", icon: Boxes, roles: ["admin"] },
+      { to: "/admin/codigos-descuento", label: "Códigos de descuento", icon: Ticket, roles: ["admin"] },
       { to: "/admin/facturacion", label: "Facturación", icon: ReceiptText, roles: ["admin", "cashier"] },
     ],
   },
@@ -98,6 +101,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/admin/reportes", label: "Reportes", icon: BarChart3, roles: ["admin"] },
       { to: "/admin/busquedas", label: "Búsquedas", icon: Search, roles: ["admin"] },
+      { to: "/admin/feedback", label: "Feedback", icon: Lightbulb, roles: ["admin"] },
       {
         to: "/admin/logistica",
         label: "Gyro Logistics",
@@ -187,7 +191,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // Categorías globales (para el rail). El endpoint es público y cacheado por RTK.
   const { data: products = [] } = useGetCatalogQuery();
-  const categories = buildCategoryTree(products);
+  const { data: config } = useGetConfigQuery();
+  const categories = buildCategoryTree(products, config?.categories || []);
 
   // Portales visibles según rol (sin el catálogo público, que es la propia tienda).
   const canSee = (item: NavItem) =>

@@ -1,11 +1,19 @@
-// Editor de catálogo — formulario largo scrolleable (estilo Shopify).
-// Sin wizard: 4 tarjetas (General · Multimedia · Precios · Variantes). La
-// disponibilidad ya NO se togglea a mano: se deriva del stock del SKU mapeado.
+// Editor de catálogo — estilo Shopify/Linear premium.
+//   · Nuevo producto (!editId): wizard de 4 pasos (Info básica → Opciones →
+//     Multimedia → Variantes) con barra de progreso animada y transición
+//     deslizante entre pasos.
+//   · Editar (editId): las mismas 4 secciones, pero como acordeón (sin scroll
+//     infinito, acceso directo a cualquier bloque).
+// La disponibilidad ya NO se togglea a mano: se deriva del stock del SKU mapeado.
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Eye, EyeOff, Info, Image as ImageIcon, Tag, Layers, SlidersHorizontal, Check } from "lucide-react";
+import { Eye, EyeOff, Info, Image as ImageIcon, Layers, SlidersHorizontal, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
+import { ComboBox, type ComboBoxOption } from "~/components/ui/ComboBox";
+import { FloatingInput, FloatingTextarea } from "~/components/ui/FloatingField";
+import { WizardProgress, type WizardStepMeta } from "./WizardProgress";
+import { GlassSection } from "./GlassSection";
 import { ColorImageManager } from "./ColorImageManager";
 import { VariantMappingTable } from "./VariantMappingTable";
 import {
@@ -22,6 +30,15 @@ import {
 } from "~/store/api/catalogApi";
 import { FormDrawerLayout } from "~/components/ui/FormDrawerLayout";
 import { cn } from "~/lib/utils";
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+const STEPS: WizardStepMeta[] = [
+  { key: "info", label: "Info básica", icon: Info },
+  { key: "opciones", label: "Opciones", icon: SlidersHorizontal },
+  { key: "media", label: "Multimedia", icon: ImageIcon },
+  { key: "variantes", label: "Variantes", icon: Layers },
+];
 
 export function CatalogEditorDrawer({
   open,
@@ -52,7 +69,11 @@ export function CatalogEditorDrawer({
   const [variantMappings, setVariantMappings] = useState<VariantMappings>({});
   // Opciones que este producto ofrece por eje (poda estructural). { conector: ["Tipo C"], color: [...] }
   const [axisOptions, setAxisOptions] = useState<Record<string, string[]>>({});
-  const [submitted, setSubmitted] = useState(false); // resalta campos inválidos tras intentar guardar
+  const [submitted, setSubmitted] = useState(false); // resalta campos inválidos tras intentar guardar/avanzar
+
+  // Wizard (solo al crear): paso actual + dirección para la transición deslizante.
+  const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(1);
 
   const { data: templates = [] } = useGetTemplatesQuery(undefined, { skip: !open });
   const { data: template } = useGetTemplateQuery(templateId, { skip: !templateId });
@@ -69,6 +90,16 @@ export function CatalogEditorDrawer({
   const colorsForImages = useMemo(
     () => (colorAxis ? (axisOptions[colorAxis.key] ?? colorAxis.options) : ["General"]),
     [colorAxis, axisOptions],
+  );
+
+  // Opciones del combobox de Categoría/Plantilla (ícono grande en el disparador).
+  const categoryOptions = useMemo<ComboBoxOption[]>(
+    () => (config?.categories ?? []).map((c) => ({ value: c.id, label: c.name, icon: c.icon })),
+    [config],
+  );
+  const templateOptions = useMemo<ComboBoxOption[]>(
+    () => templates.filter((t) => !category || t.category === category).map((t) => ({ value: t.id, label: t.name })),
+    [templates, category],
   );
 
   // Alterna si el producto ofrece una opción (preserva el orden de la plantilla).
@@ -91,6 +122,8 @@ export function CatalogEditorDrawer({
   useEffect(() => {
     if (!open) return;
     setSubmitted(false);
+    setStep(0);
+    setDirection(1);
     if (editId && detail) {
       setName(detail.name);
       setDescription(detail.description || "");
@@ -172,8 +205,32 @@ export function CatalogEditorDrawer({
     return combos.map((c) => c.join(" / "));
   }, [effectiveAxes]);
 
-  const priceInvalid = submitted && (Number(basePrice) || 0) <= 0;
   const nameInvalid = submitted && !name.trim();
+  const categoryInvalid = submitted && !category;
+  const templateInvalid = submitted && !templateId;
+
+  // Paso 1 (Info básica) es el único con requisitos duros antes de avanzar —
+  // el resto del wizard depende de que exista plantilla.
+  function step1Valid(): boolean {
+    return Boolean(name.trim() && category && templateId);
+  }
+
+  function goNext() {
+    if (step === 0 && !step1Valid()) {
+      setSubmitted(true);
+      toast.error("Completa nombre, categoría y plantilla para continuar.");
+      return;
+    }
+    setDirection(1);
+    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  }
+
+  function goBack() {
+    setDirection(-1);
+    setStep((s) => Math.max(s - 1, 0));
+  }
+
+  const completedSteps = useMemo(() => new Set(Array.from({ length: step }, (_, i) => i)), [step]);
 
   async function save() {
     setSubmitted(true);
@@ -227,6 +284,155 @@ export function CatalogEditorDrawer({
     }
   }
 
+  // ── Contenido de cada paso/sección (compartido entre wizard y acordeón) ──
+  function renderInfoFields() {
+    return (
+      <>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Categoría">
+            <ComboBox
+              options={categoryOptions}
+              value={category}
+              onChange={setCategory}
+              placeholder="Selecciona una categoría…"
+              searchPlaceholder="Buscar categoría…"
+              invalid={categoryInvalid}
+            />
+          </Field>
+          <Field label="Plantilla">
+            <ComboBox
+              options={templateOptions}
+              value={templateId}
+              onChange={changeTemplate}
+              placeholder="Selecciona una plantilla…"
+              searchPlaceholder="Buscar plantilla…"
+              emptyText="No hay plantillas para esta categoría."
+              invalid={templateInvalid}
+            />
+          </Field>
+        </div>
+        <FloatingInput label="Nombre" value={name} onChange={(e) => setName(e.target.value)} invalid={nameInvalid} />
+        <FloatingTextarea label="Descripción" value={description} onChange={(e) => setDescription(e.target.value)} />
+
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+          <ToggleRow label="Producto en promoción" on={isPromo} onToggle={togglePromo} />
+          <AnimatePresence initial={false}>
+            {isPromo && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: EASE }}
+                style={{ overflow: "hidden" }}
+              >
+                <div className="pt-3.5">
+                  <FloatingInput
+                    label="Precio de comparación"
+                    type="number"
+                    min="0"
+                    value={compareAtPrice}
+                    onChange={(e) => setCompareAtPrice(e.target.value)}
+                  />
+                  <p className="mt-1.5 text-xs text-muted">Se mostrará tachado sobre el precio de venta.</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </>
+    );
+  }
+
+  function renderOptionsFields() {
+    if (!template) {
+      return (
+        <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted">
+          Selecciona una plantilla para ver sus opciones.
+        </p>
+      );
+    }
+    return (
+      <div className="space-y-3">
+        {template.axes.map((axis) => {
+          const included = axisOptions[axis.key] ?? axis.options;
+          return (
+            <div key={axis.key}>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted/90">{axis.label}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {axis.options.map((opt) => {
+                  const on = included.includes(opt);
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      role="switch"
+                      aria-checked={on}
+                      onClick={() => toggleAxisOption(axis.key, opt, axis.options)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-xs font-semibold transition-all",
+                        on
+                          ? "border-transparent bg-gradient-accent text-white shadow-sm shadow-accent/25"
+                          : "border-border bg-surface-2 text-muted opacity-70 hover:border-accent/40 hover:text-text hover:opacity-100",
+                      )}
+                    >
+                      {on
+                        ? <Check className="h-3.5 w-3.5 shrink-0" />
+                        : <span className="h-3 w-3 shrink-0 rounded-full border border-current" />}
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const mediaSubtitle = colorAxis ? "Fotos por color (máx 10 c/u) + video." : "Fotos del producto (máx 10) + video.";
+
+  function renderMediaFields() {
+    return (
+      <>
+        <ColorImageManager
+          colors={colorsForImages}
+          imagesByColor={imagesByColor}
+          onChange={setImagesByColor}
+          upload={uploadFiles}
+          uploading={uploading}
+        />
+        <div>
+          <FloatingInput label="Video de TikTok (URL)" value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} />
+          <p className="mt-1.5 text-xs text-muted/60">Ej. https://www.tiktok.com/@.../video/...</p>
+        </div>
+      </>
+    );
+  }
+
+  function renderVariantFields() {
+    return template ? (
+      <VariantMappingTable
+        axes={effectiveAxes}
+        variantMappings={variantMappings}
+        onChange={setVariantMappings}
+        inventory={inventory}
+        basePrice={Number(basePrice) || 0}
+        isLoading={loadingInv}
+      />
+    ) : (
+      <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted">
+        Elige una plantilla en el primer paso para generar las variantes.
+      </p>
+    );
+  }
+
+  const slideVariants = {
+    enter: (dir: number) => ({ x: dir >= 0 ? 36 : -36, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir >= 0 ? -36 : 36, opacity: 0 }),
+  };
+
   return (
     <FormDrawerLayout
       open={open}
@@ -247,140 +453,85 @@ export function CatalogEditorDrawer({
         </button>
       }
       footer={
-        <div className="flex w-full items-center justify-between gap-3">
-          <p className="text-xs text-muted/60">Los cambios afectarán a todas las versiones del producto.</p>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={save} loading={creating || updating}>
-              <Check className="mr-2 h-4 w-4" /> {editId ? "Guardar" : "Crear producto"}
-            </Button>
+        editId ? (
+          <div className="flex w-full items-center justify-between gap-3">
+            <p className="text-xs text-muted/60">Los cambios afectarán a todas las versiones del producto.</p>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={onClose}>Cancelar</Button>
+              <Button onClick={save} loading={creating || updating}>
+                <Check className="mr-2 h-4 w-4" /> Guardar
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex w-full items-center justify-between gap-3">
+            <Button variant="outline" onClick={step === 0 ? onClose : goBack}>
+              {step === 0 ? "Cancelar" : "Atrás"}
+            </Button>
+            {step < STEPS.length - 1 ? (
+              <Button onClick={goNext}>Siguiente</Button>
+            ) : (
+              <Button onClick={save} loading={creating || updating}>
+                <Check className="mr-2 h-4 w-4" /> Crear producto
+              </Button>
+            )}
+          </div>
+        )
       }
     >
-      <div className="space-y-4">
-        {/* ── Tarjeta 1: Información general ── */}
-        <SectionCard icon={Info} title="Información general" subtitle="Nombre, categoría y plantilla base.">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Categoría">
-              <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                <option value="">Selecciona…</option>
-                {config?.categories.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Plantilla">
-              <select className="input" value={templateId} onChange={(e) => changeTemplate(e.target.value)}>
-                <option value="">Selecciona una plantilla…</option>
-                {templates.filter((t) => !category || t.category === category).map((t) => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </select>
-                    </Field>
-                  </div>
-                  <Field label="Nombre">
-                    <input className={cn("input", nameInvalid && "border-danger focus:border-danger")} value={name} onChange={(e) => setName(e.target.value)} />
-                  </Field>
-                  <Field label="Descripción">
-                    <textarea className="input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Descripción detallada del producto…" />
-                  </Field>
-                </SectionCard>
-
-                {/* ── Tarjeta 2: Opciones que ofrece este producto ── */}
-                {template && (
-                  <SectionCard icon={SlidersHorizontal} title="Opciones del producto" subtitle="Enciende solo lo que este producto ofrece. Lo apagado no existe para el cliente.">
-                    <div className="space-y-3">
-                      {template.axes.map((axis) => {
-                        const included = axisOptions[axis.key] ?? axis.options;
-                        return (
-                          <div key={axis.key}>
-                            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted/90">{axis.label}</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {axis.options.map((opt) => {
-                                const on = included.includes(opt);
-                                return (
-                                  <button
-                                    key={opt}
-                                    type="button"
-                                    role="switch"
-                                    aria-checked={on}
-                                    onClick={() => toggleAxisOption(axis.key, opt, axis.options)}
-                                    className={cn(
-                                      "inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-xs font-semibold transition-all",
-                                      on
-                                        ? "border-transparent bg-gradient-accent text-white shadow-sm shadow-accent/25"
-                                        : "border-border bg-surface-2 text-muted opacity-70 hover:border-accent/40 hover:text-text hover:opacity-100",
-                                    )}
-                                  >
-                                    {on
-                                      ? <Check className="h-3.5 w-3.5 shrink-0" />
-                                      : <span className="h-3 w-3 shrink-0 rounded-full border border-current" />}
-                                    {opt}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </SectionCard>
-                )}
-
-                {/* ── Tarjeta 3: Multimedia ── */}
-                <SectionCard icon={ImageIcon} title="Multimedia" subtitle={colorAxis ? "Fotos por color (máx 10 c/u) + video." : "Fotos del producto (máx 10) + video."}>
-                  <ColorImageManager
-                    colors={colorsForImages}
-                    imagesByColor={imagesByColor}
-                    onChange={setImagesByColor}
-                    upload={uploadFiles}
-                    uploading={uploading}
-                  />
-                  <Field label="Video de TikTok (URL)">
-                    <input className="input" value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://www.tiktok.com/@.../video/..." />
-                  </Field>
-                </SectionCard>
-
-
-                {/* ── Tarjeta 5: Variantes y SKU ── */}
-                <SectionCard icon={Layers} title="Variantes y SKU" subtitle="Asigna un SKU a cada variante. El stock y la disponibilidad se leen del inventario en vivo.">
-                  {template ? (
-                    <VariantMappingTable
-                      axes={effectiveAxes}
-                      variantMappings={variantMappings}
-                      onChange={setVariantMappings}
-                      inventory={inventory}
-                      basePrice={Number(basePrice) || 0}
-                      isLoading={loadingInv}
-                    />
-                  ) : (
-                    <p className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted">
-                      Elige una plantilla en la Tarjeta 1 para generar las variantes.
-                    </p>
-                  )}
-                </SectionCard>
-      </div>
-    </FormDrawerLayout>
-  );
-}
-
-// ── Tarjeta de sección: header con ícono + cuerpo. Reusa el material glass. ──
-function SectionCard({ icon: Icon, title, subtitle, children }: {
-  icon: React.ElementType; title: string; subtitle?: string; children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-card border border-border bg-surface shadow-premium">
-      <header className="flex items-start gap-3 border-b border-border px-5 py-4">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent-2">
-          <Icon className="h-[18px] w-[18px]" />
-        </span>
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-text">{title}</h3>
-          {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
+      {editId ? (
+        <div className="space-y-4">
+          <GlassSection icon={Info} title="Información general" subtitle="Nombre, categoría y plantilla base." collapsible defaultOpen>
+            {renderInfoFields()}
+          </GlassSection>
+          <GlassSection icon={SlidersHorizontal} title="Opciones del producto" subtitle="Enciende solo lo que este producto ofrece. Lo apagado no existe para el cliente." collapsible>
+            {renderOptionsFields()}
+          </GlassSection>
+          <GlassSection icon={ImageIcon} title="Multimedia" subtitle={mediaSubtitle} collapsible>
+            {renderMediaFields()}
+          </GlassSection>
+          <GlassSection icon={Layers} title="Variantes y SKU" subtitle="Asigna un SKU a cada variante. El stock y la disponibilidad se leen del inventario en vivo." collapsible>
+            {renderVariantFields()}
+          </GlassSection>
         </div>
-      </header>
-      <div className="space-y-4 p-5">{children}</div>
-    </section>
+      ) : (
+        <div>
+          <WizardProgress steps={STEPS} current={step} completed={completedSteps} />
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: EASE }}
+            >
+              {step === 0 && (
+                <GlassSection icon={Info} title="Info básica" subtitle="Nombre, categoría y plantilla base.">
+                  {renderInfoFields()}
+                </GlassSection>
+              )}
+              {step === 1 && (
+                <GlassSection icon={SlidersHorizontal} title="Opciones" subtitle="Enciende solo lo que este producto ofrece. Lo apagado no existe para el cliente.">
+                  {renderOptionsFields()}
+                </GlassSection>
+              )}
+              {step === 2 && (
+                <GlassSection icon={ImageIcon} title="Multimedia" subtitle={mediaSubtitle}>
+                  {renderMediaFields()}
+                </GlassSection>
+              )}
+              {step === 3 && (
+                <GlassSection icon={Layers} title="Variantes y SKU" subtitle="Asigna un SKU a cada variante. El stock y la disponibilidad se leen del inventario en vivo.">
+                  {renderVariantFields()}
+                </GlassSection>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      )}
+    </FormDrawerLayout>
   );
 }
 

@@ -24,7 +24,10 @@ export function StorefrontShell({ children }: { children: ReactNode }) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        className="flex-1 p-4 md:p-6"
+        // pb-24 en móvil: sin footer en este shell, el último renglón de la grilla
+        // quedaría bajo FeedbackFab/WhatsAppFab (fixed, ~72px de zona táctil c/u en
+        // sus esquinas). md:p-6 restaura el padding original desde el breakpoint.
+        className="flex-1 p-4 pb-24 md:p-6"
       >
         {children}
       </motion.main>

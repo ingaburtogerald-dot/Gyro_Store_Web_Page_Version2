@@ -11,7 +11,7 @@ const logger = require('./utils/logger');
 
 require('./firebase'); // inicializa Firebase Admin
 
-const { apiLimiter, telemetryLimiter } = require('./middleware/rateLimiter');
+const { apiLimiter } = require('./middleware/rateLimiter');
 const { sanitizeBody } = require('./utils/sanitize');
 
 const app = express();
@@ -67,7 +67,14 @@ app.use('/api/logistics', require('./routes/logistics'));
 app.use('/api/installments', require('./routes/installments'));
 app.use('/api/followups', require('./routes/followups'));
 app.use('/api/contacts', require('./routes/contacts'));
-app.use('/api/search-events', telemetryLimiter, require('./routes/searchEvents'));
+app.use('/api/feedback', require('./routes/feedback'));
+app.use('/api/discount-codes', require('./routes/discountCodes'));
+// telemetryLimiter se aplica DENTRO del router, solo a los POST de escritura (ver
+// searchEvents.js) — GET /popular y GET /analytics quedan bajo el límite general de
+// la API. Si telemetryLimiter cubriera toda la ruta, el fetch SSR de /popular desde
+// el propio loader (origen = el propio servidor, IP = 127.0.0.1 a ojos de Express)
+// compartiría su cupo entre TODAS las cargas de home de TODOS los visitantes.
+app.use('/api/search-events', require('./routes/searchEvents'));
 
 // 404 para endpoints de API no encontrados
 app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint no encontrado.' }));

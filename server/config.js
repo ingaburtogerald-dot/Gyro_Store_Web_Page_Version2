@@ -66,14 +66,6 @@ module.exports = {
   // Tipo de cambio fijo USD → Córdobas
   exchangeRate: Number(process.env.EXCHANGE_RATE) || 37,
 
-  // Categorías del catálogo con su ícono emoji (reciclado del proyecto anterior).
-  categories: [
-    { id: 'audifonos-kz', name: 'Audífonos KZ in-ear', icon: '🎧' },
-    { id: 'adaptador-bt', name: 'Adaptador Bluetooth para audífonos KZ', icon: '📶' },
-    { id: 'accesorios-kz', name: 'Accesorios para audífonos KZ', icon: '🎚️' },
-    { id: 'accesorios-pc', name: 'Accesorios para computadora', icon: '🖱️' },
-  ],
-
   // Costos fijos por defecto (porcentajes configurables desde el admin → app_config)
   costosFijos: { publicidad: 10, servicios: 5, utiles: 5, garantias: 5 },
 
@@ -116,6 +108,8 @@ module.exports = {
     commissionAdjustments: 'commission_adjustments',
     counters: 'counters',
     analyticsEvents: 'analytics_events',
+    feedback: 'feedback',
+    discountCodes: 'discount_codes',
   },
 
   // CORS: orígenes permitidos en producción

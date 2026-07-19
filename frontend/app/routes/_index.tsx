@@ -4,9 +4,14 @@ import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-r
 import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { Container } from "~/components/layout/Container";
 import { Hero } from "~/components/catalog/Hero";
+import { TrustStrip } from "~/components/catalog/TrustStrip";
+import { PublicFooter } from "~/components/layout/PublicFooter";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { ProductCarousel } from "~/components/product/ProductCarousel";
 import { ComboSection } from "~/components/catalog/ComboSection";
+import { SocialProof } from "~/components/catalog/SocialProof";
+import { LeadCapture, ExitIntentPopup } from "~/components/catalog/LeadCapture";
+import { OurStoryStrip } from "~/components/catalog/OurStoryStrip";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
 import { FilterBar } from "~/components/filters/FilterBar";
 import { ActiveFilters } from "~/components/filters/ActiveFilters";
@@ -26,24 +31,43 @@ export const headers: HeadersFunction = () => ({
   "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
 });
 
+const POPULAR_COUNT = 12;
+
+// Fisher-Yates: usado solo para el relleno aleatorio del carrusel de populares
+// cuando aún no hay suficiente dato orgánico (telemetría nueva o catálogo chico).
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const origin = new URL(request.url).origin;
   let products: CatalogProduct[] = [];
   let categories: Category[] = [];
   let combos: Combo[] = [];
   let landing: LandingConfig | null = null;
+  let popularProductIds: string[] = [];
   try {
-    const [pRes, cRes, comboRes, landingRes] = await Promise.all([
+    const [pRes, cRes, comboRes, landingRes, popularRes] = await Promise.all([
       fetch(`${origin}/api/catalog`),
       fetch(`${origin}/api/config`),
       fetch(`${origin}/api/combos`),
       fetch(`${origin}/api/config/landing_page`),
+      fetch(`${origin}/api/search-events/popular`),
     ]);
     if (pRes.ok) products = (await pRes.json()) as CatalogProduct[];
     if (cRes.ok) categories = ((await cRes.json()) as { categories?: Category[] }).categories ?? [];
     if (comboRes.ok) combos = (await comboRes.json()) as Combo[];
     if (landingRes.ok) landing = (await landingRes.json()) as LandingConfig;
-    
+    if (popularRes.ok) {
+      const popularData = (await popularRes.json()) as { productIds?: string[] };
+      popularProductIds = popularData.productIds ?? [];
+    }
+
     // Categorías de la tienda. FUENTE ÚNICA DE VERDAD: el `id` de cada categoría
     // DEBE ser el valor real de `product.category` que devuelve la API. Así el chip
     // activo, las subcategorías y el filtro de la grilla hablan el mismo idioma
@@ -73,13 +97,31 @@ export async function loader({ request }: LoaderFunctionArgs) {
   } catch {
     // Si la API falla, la página igual renderiza (grilla vacía con su estado vacío).
   }
-  return { origin, products, categories, combos, landing };
+
+  // "Artículos Populares": productos reales más vistos/clicados (30 días, ver
+  // GET /api/search-events/popular) en el orden que llegaron del backend. Si aún no
+  // hay suficiente dato orgánico, se rellena con productos aleatorios del catálogo
+  // (sin duplicar) hasta completar 12. Solo candidatos con imagen: el carrusel
+  // showcase depende de ella.
+  const eligible = products.filter((p) => p.images?.[0]);
+  const eligibleById = new Map(eligible.map((p) => [p.id, p]));
+  const popularProducts: CatalogProduct[] = popularProductIds
+    .map((id) => eligibleById.get(id))
+    .filter((p): p is CatalogProduct => Boolean(p));
+
+  if (popularProducts.length < POPULAR_COUNT) {
+    const chosenIds = new Set(popularProducts.map((p) => p.id));
+    const fillers = shuffle(eligible.filter((p) => !chosenIds.has(p.id)));
+    popularProducts.push(...fillers.slice(0, POPULAR_COUNT - popularProducts.length));
+  }
+
+  return { origin, products, categories, combos, landing, popularProducts };
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const origin = data?.origin ?? "";
   const img = `${origin}/logo.jpg`;
-  const title = "Gyro Store";
+  const title = "Gyro Store — Audífonos KZ y accesorios tech en Managua";
   const description = "Audífonos KZ, adaptadores Bluetooth y accesorios para PC en Managua, Nicaragua.";
   return [
     { title },
@@ -98,7 +140,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
 };
 
 export default function Index() {
-  const { products, categories, combos, landing } = useLoaderData<typeof loader>();
+  const { products, categories, combos, landing, popularProducts } = useLoaderData<typeof loader>();
   const dispatch = useAppDispatch();
   const isAdmin = useAppSelector(selectIsAdmin);
   const editMode = useAppSelector(selectEditMode);
@@ -155,6 +197,7 @@ export default function Index() {
         {!hasFilters && (
           <motion.div key="hero" {...collapse}>
             <Hero initialLanding={landing} />
+            <TrustStrip />
           </motion.div>
         )}
       </AnimatePresence>
@@ -167,11 +210,12 @@ export default function Index() {
               <ProductCarousel
                 title="Artículos Populares"
                 subtitle="Los favoritos de la tienda"
-                products={products.filter((p) => p.images?.[0]).slice(0, 12)}
+                products={popularProducts}
                 categories={categories}
                 variant="showcase"
               />
               <ComboSection combos={combos} />
+              <SocialProof />
             </motion.div>
           )}
         </AnimatePresence>
@@ -185,7 +229,23 @@ export default function Index() {
             <ProductGrid products={products} categories={categories} />
           </div>
         )}
+
+        {!editing && (
+          <div className="space-y-8 pb-10 pt-2">
+            <OurStoryStrip />
+            <LeadCapture />
+          </div>
+        )}
       </Container>
+
+      {/* Antes solo vivía en /contacto — el visitante que nunca sale de la home
+          nunca lo veía. Confianza + ubicación al cierre de la página. */}
+      <PublicFooter />
+
+      {/* Se dispara una sola vez por sesión al detectar intención de salida
+          (mouse hacia la barra de pestañas/URL) — no depende de hasFilters, así
+          que sigue activo aunque el visitante ya esté filtrando el catálogo. */}
+      {!editing && <ExitIntentPopup />}
     </>
   );
 }

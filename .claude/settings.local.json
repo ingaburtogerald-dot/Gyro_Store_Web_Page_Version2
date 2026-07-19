@@ -15,7 +15,16 @@
       "Bash(curl -s http://localhost:3000/api/health)",
       "PowerShell(Get-Command node)",
       "PowerShell(Get-Command npx)",
-      "PowerShell(node --version)"
+      "PowerShell(node --version)",
+      "Bash(node --check server/routes/searchEvents.js)",
+      "Bash(git status *)",
+      "Bash(git checkout *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"port3000: %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"port5173: %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s http://localhost:5173/ -o /tmp/home.html -w \"status:%{http_code} size:%{size_download}\\\\n\")",
+      "Read(//tmp/**)",
+      "Bash(curl -s http://localhost:5173/ -o /tmp/home2.html -w \"status:%{http_code}\\\\n\")"
     ]
   }
 }

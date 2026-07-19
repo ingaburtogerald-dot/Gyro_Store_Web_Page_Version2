@@ -2,15 +2,15 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "@remix-run/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Play, Pause, ArrowRight, Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Play, Pause, ArrowRight, MessageCircle, Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { AboutUsModal } from "~/components/layout/AboutUsModal";
 import { SlideMedia, HeroSlideEditorModal } from "~/components/catalog/HeroSlideEditorModal";
-import { useGetLandingConfigQuery, useUpdateLandingConfigMutation } from "~/store/api/catalogApi";
+import { useGetLandingConfigQuery, useUpdateLandingConfigMutation, useGetConfigQuery } from "~/store/api/catalogApi";
 import { useAppSelector } from "~/store/hooks";
 import { selectIsAdmin, selectEditMode } from "~/store/slices/authSlice";
 import type { HeroSlide, LandingConfig } from "~/types/catalog";
-import { cn } from "~/lib/utils";
+import { cn, buildWhatsappUrl } from "~/lib/utils";
 
 const MAX_SLIDES = 12;
 const EMPTY_LANDING: LandingConfig = { headerCategories: [], heroSlides: [] };
@@ -48,6 +48,14 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
 
   const [updateLanding, { isLoading: saving }] = useUpdateLandingConfigMutation();
 
+  // CTA "Ordenar por WhatsApp": mismo helper y misma fuente (config.whatsapp) que
+  // el resto del storefront — nunca un número hardcodeado.
+  const { data: config } = useGetConfigQuery();
+  const whatsappOrderUrl = buildWhatsappUrl(
+    config?.whatsapp ?? "50585944758",
+    "Hola Gyro Store, quiero hacer un pedido",
+  );
+
   // El índice activo nunca debe salirse del rango (slides puede crecer/menguar).
   const safeIndex = slides.length ? Math.min(activeIndex, slides.length - 1) : 0;
   const activeSlide = slides[safeIndex];
@@ -66,6 +74,15 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
   const prevSlide = useCallback(() => {
     setActiveIndex((prev) => (slides.length ? (prev - 1 + slides.length) % slides.length : 0));
   }, [slides.length]);
+
+  // Temporizador para reproducción automática
+  useEffect(() => {
+    if (!autoPlaying) return;
+    const timer = setTimeout(() => {
+      nextSlide();
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [autoPlaying, safeIndex, nextSlide]);
 
   const handleDotClick = (idx: number) => {
     setActiveIndex(idx);
@@ -176,11 +193,13 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
           </div>
         )}
 
-        {/* Layout Split: Flex vertical en móvil, fila 50-50 en desktop */}
-        <div className="flex flex-col md:flex-row min-h-[580px] md:h-[620px] items-stretch">
+        {/* Layout Split: Flex vertical en móvil, fila 50-50 en desktop.
+            min-h más bajo + imagen más chica en móvil: el CTA debe entrar en el
+            fold (375×667 con header de 69px visible) sin tocar el layout ≥md. */}
+        <div className="flex flex-col md:flex-row min-h-[440px] md:h-[620px] items-stretch">
 
           {/* Lado Izquierdo (Multimedia: imagen/GIF/video) */}
-          <div className="w-full md:w-1/2 relative bg-black/50 overflow-hidden h-[300px] md:h-auto flex items-center justify-center border-b border-border/30 md:border-b-0 md:border-r border-border/30">
+          <div className="w-full md:w-1/2 relative bg-black/50 overflow-hidden h-[220px] sm:h-[260px] md:h-auto flex items-center justify-center border-b border-border/30 md:border-b-0 md:border-r border-border/30">
             <SlideMedia
               slide={activeSlide}
               className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out"
@@ -190,7 +209,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
           </div>
 
           {/* Lado Derecho (Información del Slide) */}
-          <div className="w-full md:w-1/2 p-8 sm:p-12 md:p-16 flex flex-col justify-center text-left relative z-10">
+          <div className="w-full md:w-1/2 p-6 sm:p-10 md:p-16 flex flex-col justify-center text-left relative z-10">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeSlide.id}
@@ -198,7 +217,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="space-y-6"
+                className="space-y-4 sm:space-y-6"
               >
                 {/* Eyebrow / Subtítulo superior */}
                 <span className="inline-block text-xs font-black uppercase tracking-[0.2em] text-accent-2">
@@ -206,7 +225,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                 </span>
 
                 {/* Título Protagonista */}
-                <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-white leading-[0.95] text-balance">
+                <h1 className="font-heading text-3xl sm:text-4xl md:text-6xl font-black tracking-tight text-white leading-[0.95] text-balance">
                   {activeSlide.title}
                 </h1>
 
@@ -215,26 +234,46 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                   {activeSlide.description}
                 </p>
 
-                {/* Acción Principal */}
+                {/* Jerarquía de venta EN CÓDIGO (no en la data de landing_page) — siempre
+                    presente sin importar el slide activo: Primario = Ver catálogo,
+                    Secundario = Ordenar por WhatsApp. La acción propia del slide (incluida
+                    "Quiénes Somos" del slide de marca, locked) queda como link terciario:
+                    ya no compite por atención con los dos caminos de venta reales.
+                    Apilados en móvil, en fila desde sm. */}
                 <div className="pt-4">
-                  {activeSlide.actionType === "modal" ? (
-                    <Button
-                      size="lg"
-                      onClick={() => setIsAboutUsOpen(true)}
-                      className="group relative overflow-hidden bg-gradient-to-r from-accent to-accent-2 text-bg font-bold py-3.5 px-8 rounded-xl shadow-md shadow-accent/15 transition-all transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 focus-visible:outline-none"
-                    >
-                      {activeSlide.buttonText}
-                      <ArrowRight className="inline-block h-4 w-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Button>
-                  ) : (
-                    <Link to={activeSlide.actionTarget || "/"} className="inline-block">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Link to="/#catalogo" className="inline-block">
                       <Button
                         size="lg"
-                        className="group relative overflow-hidden bg-gradient-to-r from-accent to-accent-2 text-bg font-bold py-3.5 px-8 rounded-xl shadow-md shadow-accent/15 transition-all transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 focus-visible:outline-none"
+                        className="w-full sm:w-auto group relative overflow-hidden bg-gradient-to-r from-accent to-accent-2 text-bg font-bold py-3.5 px-8 rounded-xl shadow-md shadow-accent/15 transition-all transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 focus-visible:outline-none"
                       >
-                        {activeSlide.buttonText}
+                        Ver catálogo
                         <ArrowRight className="inline-block h-4 w-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                       </Button>
+                    </Link>
+
+                    <a href={whatsappOrderUrl} target="_blank" rel="noopener noreferrer" className="inline-block">
+                      <Button size="lg" variant="whatsapp" className="w-full sm:w-auto">
+                        <MessageCircle className="h-4 w-4" />
+                        Ordenar por WhatsApp
+                      </Button>
+                    </a>
+                  </div>
+
+                  {activeSlide.actionType === "modal" ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsAboutUsOpen(true)}
+                      className="mt-3.5 inline-block text-sm font-semibold text-white/60 underline decoration-white/25 underline-offset-4 transition-colors hover:text-white"
+                    >
+                      {activeSlide.buttonText}
+                    </button>
+                  ) : (
+                    <Link
+                      to={activeSlide.actionTarget || "/"}
+                      className="mt-3.5 inline-block text-sm font-semibold text-white/60 underline decoration-white/25 underline-offset-4 transition-colors hover:text-white"
+                    >
+                      {activeSlide.buttonText}
                     </Link>
                   )}
                 </div>
@@ -248,11 +287,12 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
       {/* ── BARRA DE NAVEGACIÓN Y PROGRESO FLOTANTE (Estilo dbrand) ── */}
       <div className="flex justify-center mt-6">
         <div className="flex items-center gap-3 bg-[#111] border border-border/40 px-4.5 py-2.5 rounded-full shadow-premium">
-          {/* Botón Play/Pause */}
+          {/* Botón Play/Pause — área táctil 44px en móvil (WCAG 2.5.5), compacta en desktop */}
           <button
             onClick={() => setPlaying(!playing)}
-            className="grid h-7 w-7 place-items-center rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none"
+            className="grid h-11 w-11 md:h-7 md:w-7 place-items-center rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             title={playing ? "Pausar presentación" : "Reanudar presentación"}
+            aria-label={playing ? "Pausar presentación" : "Reanudar presentación"}
           >
             {playing ? (
               <Pause className="h-3.5 w-3.5 fill-white text-white" />
@@ -273,37 +313,43 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                   prevSlide();
                   setPlaying(false);
                 }}
-                className="grid h-7 w-7 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none"
+                className="grid h-11 w-11 md:h-7 md:w-7 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 title="Anterior"
+                aria-label="Diapositiva anterior"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
             )}
 
-            <div className="flex items-center gap-2 mx-1">
+            <div className="flex items-center gap-1 mx-1">
               {slides.map((slide, idx) => {
                 const isActive = idx === safeIndex;
                 return (
+                  // Botón = zona táctil de 44px de alto (invisible); el pastel visible
+                  // adentro sigue siendo h-2.5 — no se agranda el look, solo el hitbox.
                   <button
                     key={slide.id}
                     onClick={() => handleDotClick(idx)}
-                    className={cn(
-                      "h-2.5 rounded-full transition-all duration-300 relative overflow-hidden bg-white/15",
-                      isActive ? "w-11" : "w-2.5 hover:bg-white/35"
-                    )}
+                    className="group flex h-11 items-center px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-full"
                     aria-label={`Ir al slide ${idx + 1}`}
                   >
-                    {/* Animación del indicador de carga lineal */}
-                    {isActive && autoPlaying && (
-                      <motion.div
-                        key={`${safeIndex}-${autoPlaying}`}
-                        initial={{ width: "0%" }}
-                        animate={{ width: "100%" }}
-                        transition={{ duration: 8, ease: "linear" }}
-                        onAnimationComplete={nextSlide}
-                        className="absolute inset-y-0 left-0 bg-accent-2 rounded-full"
-                      />
-                    )}
+                    <span
+                      className={cn(
+                        "h-2.5 rounded-full transition-all duration-300 relative overflow-hidden bg-white/15",
+                        isActive ? "w-11" : "w-2.5 group-hover:bg-white/35"
+                      )}
+                    >
+                      {/* Animación del indicador de carga lineal */}
+                      {isActive && autoPlaying && (
+                        <motion.div
+                          key={`${safeIndex}-${autoPlaying}`}
+                          initial={{ width: "0%" }}
+                          animate={{ width: "100%" }}
+                          transition={{ duration: 8, ease: "linear" }}
+                          className="absolute inset-y-0 left-0 bg-accent-2 rounded-full"
+                        />
+                      )}
+                    </span>
                   </button>
                 );
               })}
@@ -316,8 +362,9 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                   nextSlide();
                   setPlaying(false);
                 }}
-                className="grid h-7 w-7 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none"
+                className="grid h-11 w-11 md:h-7 md:w-7 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 title="Siguiente"
+                aria-label="Siguiente diapositiva"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -329,6 +376,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                 onClick={handleAddSlide}
                 disabled={slides.length >= MAX_SLIDES || saving}
                 title={slides.length >= MAX_SLIDES ? `Máximo ${MAX_SLIDES} diapositivas` : "Agregar diapositiva"}
+                aria-label={slides.length >= MAX_SLIDES ? `Máximo ${MAX_SLIDES} diapositivas` : "Agregar diapositiva"}
                 className="ml-1 grid h-6 w-6 place-items-center rounded-full border border-dashed border-white/30 text-white/70 transition-colors hover:border-accent hover:text-accent disabled:opacity-30"
               >
                 <Plus className="h-3.5 w-3.5" />

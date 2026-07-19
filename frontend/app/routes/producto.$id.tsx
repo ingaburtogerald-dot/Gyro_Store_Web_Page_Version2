@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useParams, Link, useLoaderData } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, ImageOff, MessageCircle, ShoppingCart, ShoppingBag, X, ShieldCheck, Check, Bike, Package, Banknote, TrendingUp, Share2, Sparkles, List } from "lucide-react";
+import { ChevronRight, ImageOff, MessageCircle, ShoppingCart, ShoppingBag, X, ShieldCheck, Check, Bike, Package, Banknote, TrendingUp, Share2, Sparkles, List, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { PublicFooter } from "~/components/layout/PublicFooter";
+import { CategoriesDrawer } from "~/components/layout/CategoriesDrawer";
 import { VariantPicker, type VariantSelection } from "~/components/product/VariantPicker";
 import { TikTokButton } from "~/components/product/TikTokButton";
 import { Button } from "~/components/ui/Button";
@@ -111,6 +112,10 @@ export default function ProductDetail() {
   const { product, catalog, categories } = useLoaderData<typeof loader>();
   const dispatch = useAppDispatch();
   const { data: config } = useGetConfigQuery();
+  // Esta ficha no monta PublicHeader (tiene su propio breadcrumb) — sin esto, un
+  // usuario móvil no tenía forma de elegir OTRA categoría desde acá, solo "Catálogo"
+  // (todo el catálogo sin filtrar). Mismo drawer que usa PublicHeader.
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   // Estado UI
   const [selection, setSelection] = useState<VariantSelection | null>(null);
@@ -205,9 +210,11 @@ export default function ProductDetail() {
     }
   };
 
+  // Mensaje con precio + link a la ficha: el vendedor cotiza sin ida y vuelta.
+  const pageUrl = typeof window !== "undefined" ? window.location.href : "";
   const whatsappUrl = buildWhatsappUrl(
     config?.whatsapp ?? "50585944758",
-    `Hola Gyro Store 👋, me interesa: ${selectedVariant ? selectedVariant.name : baseName}`,
+    `Hola Gyro Store 👋, quiero: ${selectedVariant ? selectedVariant.name : baseName} — ${formatCordobas(unitPrice)}. ${pageUrl}`,
   );
 
   return (
@@ -215,20 +222,35 @@ export default function ProductDetail() {
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 md:pb-12">
         {/* Migas de pan (breadcrumbs) minimalistas. La columna de la imagen es sticky,
-            así que no hace falta un botón "Volver" flotante. */}
-        <nav aria-label="Migas de pan" className="mb-6 flex items-center gap-1.5 text-sm text-muted">
-          <Link to="/" className="transition-colors hover:text-text">Inicio</Link>
-          <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
-          <Link to="/" className="transition-colors hover:text-text">Catálogo</Link>
-          {baseName && (
-            <>
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
-              <span className="max-w-[55vw] truncate font-medium text-text/90" aria-current="page">
-                {baseName}
-              </span>
-            </>
-          )}
-        </nav>
+            así que no hace falta un botón "Volver" flotante. El botón "Categorías"
+            (solo <md) es el único camino a OTRA categoría desde esta ficha: esta
+            página no monta PublicHeader/mega-menú en ningún breakpoint, y "Catálogo"
+            de al lado lleva a la vista sin filtrar, no a elegir una categoría. */}
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <nav aria-label="Migas de pan" className="flex min-w-0 items-center gap-1.5 text-sm text-muted">
+            <Link to="/" className="transition-colors hover:text-text">Inicio</Link>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
+            <Link to="/" className="transition-colors hover:text-text">Catálogo</Link>
+            {baseName && (
+              <>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
+                <span className="max-w-[40vw] truncate font-medium text-text/90 sm:max-w-[55vw]" aria-current="page">
+                  {baseName}
+                </span>
+              </>
+            )}
+          </nav>
+          <button
+            type="button"
+            onClick={() => setCategoriesOpen(true)}
+            aria-label="Categorías"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:hidden"
+          >
+            <LayoutGrid className="h-5 w-5" />
+          </button>
+        </div>
+
+        <CategoriesDrawer open={categoriesOpen} onClose={() => setCategoriesOpen(false)} />
 
         {!product ? (
           <p className="py-24 text-center text-muted">Producto no encontrado.</p>

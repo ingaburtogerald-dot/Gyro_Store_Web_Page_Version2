@@ -13,6 +13,7 @@ const CATALOG = config.collections.catalog;
 const PRODUCTS = config.collections.products;
 const PUBLIC_ORDERS = config.collections.publicOrders;
 const { getComboEnrichedById } = require('./combos');
+const { redeemDiscountCode } = require('./discountCodes');
 
 const orderSchema = z.object({
   customerName: z.string().min(2).max(80),
@@ -21,6 +22,9 @@ const orderSchema = z.object({
   address: z.string().max(200).optional().default(''),
   locationUrl: z.string().max(300).optional().default(''),
   note: z.string().max(500).optional().default(''),
+  // Incentivo por reseña (Google/Facebook) — opcional. Se revalida y se descuenta
+  // un uso acá mismo, atómico con la creación del pedido (ver redeemDiscountCode).
+  discountCode: z.string().max(30).optional().default(''),
   // Cada línea es un producto (catalogId) o un combo (comboId); el loop valida
   // que traiga uno de los dos.
   items: z
@@ -85,7 +89,8 @@ function buildWhatsappMessage(order) {
 
   msg += `${div}\n`;
   msg += `Subtotal:  ${money(order.subtotal)}\n`;
-  if (order.discount > 0) msg += `🏷️ Descuento:  -${money(order.discount)}\n`;
+  if (order.discount > 0) msg += `🏷️ Descuento por volumen:  -${money(order.discount)}\n`;
+  if (order.codeDiscount > 0) msg += `🎟️ Código ${order.discountCode}:  -${money(order.codeDiscount)}\n`;
   msg += `💰 *TOTAL:  ${money(order.total)}*\n`;
   msg += `${div}\n`;
   msg += '_¡Gracias! Quedo atento(a) para coordinar el pago._ 🙌';
@@ -168,7 +173,24 @@ router.post('/public', asyncHandler(async (req, res) => {
     }
   } catch { /* usa 0% si falla */ }
   const discount = discountPercent > 0 ? productSubtotal * (discountPercent / 100) : 0;
-  const total = subtotal - discount;
+  const afterVolumeDiscount = subtotal - discount;
+
+  // Código de descuento (incentivo por reseña) — se revalida y se descuenta un uso
+  // ACÁ, dentro del mismo request que crea el pedido. Nunca se confía en un preview
+  // previo del cliente (POST /discount-codes/validate es solo de lectura).
+  let codeDiscount = 0;
+  let discountCode = '';
+  if (data.discountCode) {
+    const redeemed = await redeemDiscountCode(data.discountCode);
+    if (!redeemed.ok) {
+      return res.status(400).json({ error: redeemed.error || 'Código de descuento inválido.' });
+    }
+    discountCode = redeemed.code;
+    codeDiscount = redeemed.type === 'percent'
+      ? afterVolumeDiscount * (redeemed.value / 100)
+      : Math.min(redeemed.value, afterVolumeDiscount);
+  }
+  const total = afterVolumeDiscount - codeDiscount;
 
   const order = {
     customerName: data.customerName,
@@ -180,6 +202,8 @@ router.post('/public', asyncHandler(async (req, res) => {
     items,
     subtotal,
     discount,
+    discountCode,
+    codeDiscount,
     total,
     createdAt: FieldValue.serverTimestamp(),
   };
@@ -187,7 +211,7 @@ router.post('/public', asyncHandler(async (req, res) => {
   const whatsappUrl = buildWhatsappMessage(order);
   const ref = await db.collection(PUBLIC_ORDERS).add({ ...order, whatsappUrl });
 
-  res.status(201).json({ id: ref.id, subtotal, discount, total, whatsappUrl });
+  res.status(201).json({ id: ref.id, subtotal, discount, codeDiscount, total, whatsappUrl });
 }));
 
 // Forma pública de un pedido del catálogo (oculta nada sensible; ya es admin-only).
@@ -204,6 +228,8 @@ function publicOrderView(doc) {
     items: o.items || [],
     subtotal: o.subtotal || 0,
     discount: o.discount || 0,
+    discountCode: o.discountCode || '',
+    codeDiscount: o.codeDiscount || 0,
     total: o.total || 0,
     contacted: o.contacted || false,
     contactedAt: o.contactedAt?.toDate?.()?.toISOString() || null,
