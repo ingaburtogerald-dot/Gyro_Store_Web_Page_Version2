@@ -5,7 +5,7 @@
 // situ a panel completo. Los controles fijos (carrito, tema, cuenta) viven SIEMPRE
 // en el rail — el header queda libre (solo buscador). En móvil el rail se convierte
 // en una barra inferior al alcance del pulgar + un drawer para el panel expandido.
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "@remix-run/react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
@@ -156,6 +156,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [isHovered, setIsHovered] = useState(false);
   const isSidebarVisible = expanded || isHovered;
 
+  // Intención de hover: pequeño retardo al abrir (evita expandir por un roce) y otro
+  // mayor al cerrar (evita el parpadeo si el mouse sale un instante o cruza un hueco).
+  const hoverTimers = useRef<{ open?: number; close?: number }>({});
+  function handleRailEnter() {
+    window.clearTimeout(hoverTimers.current.close);
+    hoverTimers.current.open = window.setTimeout(() => setIsHovered(true), 120);
+  }
+  function handleRailLeave() {
+    window.clearTimeout(hoverTimers.current.open);
+    hoverTimers.current.close = window.setTimeout(() => setIsHovered(false), 260);
+  }
+  useEffect(() => () => {
+    window.clearTimeout(hoverTimers.current.open);
+    window.clearTimeout(hoverTimers.current.close);
+  }, []);
+
   const search = useAppSelector((s) => s.ui.search);
   const showSearch = location.pathname === "/";
 
@@ -218,124 +234,56 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       </AnimatePresence>
 
-      {/* ── RAIL DE ESCRITORIO (md+) ── */}
+      {/* ── RAIL DE ESCRITORIO (md+) ──
+          UN SOLO árbol de contenido (RailPanelContent): al pasar el hover, el ancho
+          se desliza y las ETIQUETAS/encabezados se revelan con fade — los iconos
+          quedan fijos a la izquierda (px-3), así que NO saltan. */}
       <aside
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleRailEnter}
+        onMouseLeave={handleRailLeave}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-border bg-black transition-[width] duration-300 ease-out md:flex",
+          "fixed inset-y-0 left-0 z-50 hidden flex-col overflow-hidden border-r border-border bg-black transition-[width] duration-300 ease-out md:flex",
           isSidebarVisible ? "w-58 shadow-premium" : "w-[76px]",
         )}
         style={{ transitionTimingFunction: "cubic-bezier(0.16,1,0.3,1)" }}
       >
-        {isSidebarVisible ? (
-          <>
-            <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
-              {user ? (
-                <span className="truncate text-sm font-extrabold tracking-tight text-white">
-                  Administración
-                </span>
-              ) : (
-                <Link to="/" onClick={closePanel} className="transition-transform active:scale-95">
-                  <Logo size={30} />
-                </Link>
-              )}
-              <button
-                onClick={expanded ? closePanel : openPanel}
-                aria-label={expanded ? "Colapsar menú" : "Fijar menú"}
-                className="group grid h-9 w-9 place-items-center rounded-full border border-border/80 text-muted bg-transparent transition-all duration-300 hover:border-accent-2 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-              >
-                {expanded ? (
-                  <PanelLeftClose className="h-4.5 w-4.5 transition-transform duration-300 group-hover:-translate-x-0.5" />
-                ) : (
-                  <PanelLeftOpen className="h-4.5 w-4.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                )}
-              </button>
-            </div>
-            <div className="custom-scrollbar flex-1 overflow-y-auto px-3 py-4">
-              <RailPanelContent
-                categories={categories}
-                businessGroups={businessGroups}
-                badges={badges}
-                authed={Boolean(user)}
-                reduce={Boolean(reduce)}
-                onGoCategory={goCategory}
-                onGoHome={handleGoHome}
-                onNavigate={closePanel}
-              />
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Colapsado: botón Desplegar */}
-            <div className="flex h-16 shrink-0 items-center justify-center border-b border-border">
-              <button
-                onClick={openPanel}
-                title="Desplegar menú"
-                aria-label="Desplegar menú"
-                className="group grid h-9 w-9 place-items-center rounded-full border border-border/80 text-muted bg-transparent transition-all duration-300 hover:border-accent-2 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-              >
-                <PanelLeftOpen className="h-4.5 w-4.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-              </button>
-            </div>
-            {/* Iconos de portales (solo con sesión) */}
-            <nav className="custom-scrollbar flex flex-1 flex-col items-center overflow-y-auto py-4">
-              {Boolean(user) && (
-                <div className="flex w-full flex-col items-center">
-                  {/* Espaciador exacto del Logo (80px + mb-6) */}
-                  <div className="mb-6 h-[80px]" aria-hidden="true" />
-                  
-                  {/* Espaciador exacto del título principal "Tienda" (línea ~24px + mb-2) */}
-                  <div className="mb-2 h-[24px]" aria-hidden="true" />
-                  
-                  <div className="flex w-full flex-col gap-3 items-center">
-                    {businessGroups.map((group) => (
-                      <div key={group.label} className="flex flex-col items-center w-full px-2">
-                        {businessGroups.length > 1 && group.label.toLowerCase() !== "tienda" && (
-                          /* Espaciador exacto del subtítulo del grupo (línea ~20px + mb-1) */
-                          <div className="mb-1 h-[20px]" aria-hidden="true" />
-                        )}
-                        <div className="flex flex-col gap-0.5 w-full items-center">
-                          {group.label.toLowerCase() === "tienda" && (
-                            <Link
-                              to="/"
-                              onClick={handleGoHome}
-                              title="Ir al catálogo"
-                              className="group relative grid h-9 w-9 place-items-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                            >
-                              <Store className="h-[18px] w-[18px]" />
-                            </Link>
-                          )}
-                          {group.items.map(({ to, label, icon: Icon }) => {
-                            const badge = badges[to] ?? 0;
-                            return (
-                              <NavLink
-                                key={to}
-                                to={to}
-                                title={label}
-                                className={({ isActive }) =>
-                                  cn(
-                                    "group relative grid h-9 w-9 place-items-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
-                                    isActive ? "bg-accent/12 text-accent-2" : "text-white/70 hover:bg-white/10 hover:text-white",
-                                  )
-                                }
-                              >
-                                <Icon className="h-[18px] w-[18px]" />
-                                {badge > 0 && (
-                                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-warning ring-2 ring-surface" />
-                                )}
-                              </NavLink>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </nav>
-          </>
-        )}
+        {/* Header: título que se revela + botón fijar/colapsar (siempre visible). */}
+        <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate pl-1 text-sm font-extrabold tracking-tight text-white transition-opacity duration-200",
+              isSidebarVisible ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          >
+            {user ? "Administración" : <Logo size={30} />}
+          </span>
+          <button
+            onClick={expanded ? closePanel : openPanel}
+            aria-label={expanded ? "Colapsar menú" : "Fijar menú"}
+            className="group grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border/80 bg-transparent text-muted transition-all duration-300 hover:border-accent-2 hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          >
+            {expanded ? (
+              <PanelLeftClose className="h-4.5 w-4.5 transition-transform duration-300 group-hover:-translate-x-0.5" />
+            ) : (
+              <PanelLeftOpen className="h-4.5 w-4.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+            )}
+          </button>
+        </div>
+
+        <div className="custom-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
+          <RailPanelContent
+            categories={categories}
+            businessGroups={businessGroups}
+            badges={badges}
+            authed={Boolean(user)}
+            reduce={Boolean(reduce)}
+            collapsed={!isSidebarVisible}
+            hideLogo
+            onGoCategory={goCategory}
+            onGoHome={handleGoHome}
+            onNavigate={closePanel}
+          />
+        </div>
 
         {/* Controles fijos SIEMPRE presentes */}
         <RailControls expanded={isSidebarVisible} canCRM={canCRM} user={user} roles={roles} />
@@ -557,6 +505,8 @@ function RailPanelContent({
   badges,
   authed,
   reduce,
+  collapsed = false,
+  hideLogo = false,
   onGoCategory,
   onGoHome,
   onNavigate,
@@ -566,15 +516,24 @@ function RailPanelContent({
   badges: Record<string, number>;
   authed: boolean;
   reduce: boolean;
+  /** Rail de escritorio colapsado: oculta etiquetas/encabezados (los iconos quedan). */
+  collapsed?: boolean;
+  /** Oculta el logo grande interno (el rail de escritorio ya tiene su propio header). */
+  hideLogo?: boolean;
   onGoCategory: (id: string | null) => void;
   onGoHome: () => void;
   onNavigate: () => void;
 }) {
   const [openCat, setOpenCat] = useState<string | null>(null);
 
+  // Clase de revelado: en colapsado las etiquetas/encabezados se desvanecen (pero
+  // conservan su hueco → los iconos no saltan). whitespace-nowrap evita que el texto
+  // haga wrap mientras el ancho se anima.
+  const reveal = cn("whitespace-nowrap transition-opacity duration-200", collapsed && "pointer-events-none opacity-0");
+
   return (
     <div>
-      {authed && (
+      {authed && !hideLogo && (
         <div className="mb-6 px-3">
           <Link to="/" onClick={onNavigate} className="transition-transform active:scale-95 inline-block">
             <Logo size={80} />
@@ -583,7 +542,7 @@ function RailPanelContent({
       )}
 
       {/* Categorías */}
-      {!authed && categories.length > 0 && (
+      {!authed && !collapsed && categories.length > 0 && (
         <section className="mb-6">
           <p className="mb-2 px-3 text-[15px] font-extrabold uppercase tracking-wider text-white">Categorías</p>
           <ul className="flex flex-col">
@@ -663,12 +622,12 @@ function RailPanelContent({
       {/* Mi negocio (solo con sesión) */}
       {authed && businessGroups.length > 0 && (
         <section className="mb-6">
-          <p className="mb-2 px-3 text-[15px] font-black uppercase tracking-wider text-white">Tienda</p>
+          <p className={cn("mb-2 px-3 text-[15px] font-black uppercase tracking-wider text-white", reveal)}>Tienda</p>
           <div className="flex flex-col gap-3">
             {businessGroups.map((group) => (
               <div key={group.label}>
                 {businessGroups.length > 1 && group.label.toLowerCase() !== "tienda" && (
-                  <p className="mb-1 px-3 text-[14px] font-extrabold uppercase tracking-wider text-white">
+                  <p className={cn("mb-1 px-3 text-[14px] font-extrabold uppercase tracking-wider text-white", reveal)}>
                     {group.label}
                   </p>
                 )}
@@ -680,7 +639,7 @@ function RailPanelContent({
                       className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     >
                       <Store className="h-[18px] w-[18px] shrink-0" />
-                      <span className="flex-1 text-left truncate">Ir al catálogo</span>
+                      <span className={cn("flex-1 text-left truncate", reveal)}>Ir al catálogo</span>
                     </Link>
                   )}
                   {group.items.map(({ to, label, icon: Icon }) => {
@@ -690,17 +649,24 @@ function RailPanelContent({
                         key={to}
                         to={to}
                         onClick={onNavigate}
+                        title={label}
                         className={({ isActive }) =>
                           cn(
-                            "group flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                            "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
                             isActive ? "bg-accent/12 font-bold text-accent-2" : "text-white hover:bg-white/10",
                           )
                         }
                       >
-                        <Icon className="h-[18px] w-[18px] shrink-0" />
-                        <span className="flex-1 truncate">{label}</span>
+                        <span className="relative shrink-0">
+                          <Icon className="h-[18px] w-[18px]" />
+                          {/* Colapsado: el conteo no cabe → un punto sobre el icono. */}
+                          {collapsed && badge > 0 && (
+                            <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-warning ring-2 ring-black" />
+                          )}
+                        </span>
+                        <span className={cn("flex-1 truncate", reveal)}>{label}</span>
                         {badge > 0 && (
-                          <span className="rounded-pill bg-warning/15 px-1.5 text-[11px] font-bold leading-4 text-warning">
+                          <span className={cn("rounded-pill bg-warning/15 px-1.5 text-[11px] font-bold leading-4 text-warning", reveal)}>
                             {badge}
                           </span>
                         )}
@@ -716,24 +682,26 @@ function RailPanelContent({
 
       {/* Ayuda e información */}
       <section className="border-t border-border pt-5">
-        <p className="mb-2 px-3 text-[15px] font-black uppercase tracking-wider text-white">Ayuda e información</p>
+        <p className={cn("mb-2 px-3 text-[15px] font-black uppercase tracking-wider text-white", reveal)}>Ayuda e información</p>
         <div className="flex flex-col">
           <Link
             to="/contacto"
             onClick={onNavigate}
+            title="Contacto"
             className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <MessageCircle className="h-[18px] w-[18px] shrink-0 text-white transition-colors group-hover:text-white" />
-            <span className="transition-transform duration-300 group-hover:translate-x-0.5 font-medium">Contacto</span>
+            <span className={cn("whitespace-nowrap font-medium transition-all duration-300 group-hover:translate-x-0.5", collapsed && "pointer-events-none opacity-0")}>Contacto</span>
           </Link>
           {!authed && (
             <Link
               to="/login"
               onClick={onNavigate}
+              title="Acceso Colaboradores"
               className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Shield className="h-[18px] w-[18px] shrink-0 text-white transition-colors group-hover:text-white" />
-              <span className="transition-transform duration-300 group-hover:translate-x-0.5 font-medium">Acceso Colaboradores</span>
+              <span className={cn("whitespace-nowrap font-medium transition-all duration-300 group-hover:translate-x-0.5", collapsed && "pointer-events-none opacity-0")}>Acceso Colaboradores</span>
             </Link>
           )}
         </div>
