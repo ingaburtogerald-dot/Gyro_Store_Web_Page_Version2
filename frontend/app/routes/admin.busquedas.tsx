@@ -4,7 +4,7 @@
 // Tráfico por artículo.
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, PackageX, Search, Eye, Hash, Ban, BarChart3 } from "lucide-react";
+import { TrendingUp, PackageX, Search, Eye, Hash, Ban, BarChart3, X, Smartphone, Monitor, MousePointerClick, Bot } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -21,7 +21,7 @@ import { RequireRole } from "~/components/admin/RequireRole";
 import { Skeleton } from "~/components/ui/Skeleton";
 import { cn } from "~/lib/utils";
 import { useGetCatalogQuery } from "~/store/api/catalogApi";
-import { useGetSearchAnalyticsQuery, type SearchAnalytics } from "~/store/api/searchAnalyticsApi";
+import { useGetSearchAnalyticsQuery, useGetSearchSessionsQuery, useGetRawSearchesQuery, type SearchAnalytics } from "~/store/api/searchAnalyticsApi";
 
 const RANGES = [
   { days: 7, label: "7 días" },
@@ -34,6 +34,8 @@ const COL_SEARCHES = "var(--color-accent)"; // verde — búsquedas
 
 export default function AdminBusquedas() {
   const [days, setDays] = useState(30);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchDrawerOpen, setSearchDrawerOpen] = useState(false);
   const { data, isLoading, isFetching } = useGetSearchAnalyticsQuery({ days });
   const { data: products = [] } = useGetCatalogQuery();
 
@@ -81,7 +83,7 @@ export default function AdminBusquedas() {
             aria-busy={isFetching}
             className={cn("space-y-6 transition-opacity duration-200", isFetching && "pointer-events-none opacity-50")}
           >
-            <Totals data={data} />
+            <Totals data={data} onOpenSessions={() => setDrawerOpen(true)} onOpenSearches={() => setSearchDrawerOpen(true)} />
             <TrafficVsSearchChart data={data} mounted={mounted} />
             <div className="grid gap-4 lg:grid-cols-2">
               <TopSearchesPanel data={data} />
@@ -95,23 +97,32 @@ export default function AdminBusquedas() {
             )}
           </motion.div>
         )}
+        <SessionsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} days={days} />
+        <SearchesLogDrawer open={searchDrawerOpen} onClose={() => setSearchDrawerOpen(false)} days={days} />
       </div>
     </RequireRole>
   );
 }
 
 // ── Totales ───────────────────────────────────────────────────────────────
-function Totals({ data }: { data: SearchAnalytics }) {
+function Totals({ data, onOpenSessions, onOpenSearches }: { data: SearchAnalytics; onOpenSessions?: () => void; onOpenSearches?: () => void; }) {
   const items = [
-    { icon: Eye, label: "Visitas", value: data.totals.pageviews, tone: "violet" as const },
-    { icon: Hash, label: "Búsquedas", value: data.totals.searches, tone: "accent" as const },
+    { icon: Eye, label: "Visitas", value: data.totals.pageviews, tone: "violet" as const, onClick: onOpenSessions },
+    { icon: Hash, label: "Búsquedas", value: data.totals.searches, tone: "accent" as const, onClick: onOpenSearches },
     { icon: Search, label: "Términos únicos", value: data.totals.uniqueTerms, tone: "accent" as const },
     { icon: Ban, label: "Sin resultados", value: data.totals.zeroResultTerms, tone: "warning" as const },
   ];
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {items.map((it) => (
-        <div key={it.label} className="card-premium flex items-center gap-3 rounded-card p-4">
+        <div 
+          key={it.label} 
+          onClick={it.onClick}
+          className={cn(
+            "card-premium flex items-center gap-3 rounded-card p-4 transition-colors",
+            it.onClick ? "cursor-pointer hover:border-accent/40 hover:bg-surface-hover" : ""
+          )}
+        >
           <span
             className={cn(
               "grid h-10 w-10 shrink-0 place-items-center rounded-xl",
@@ -377,6 +388,228 @@ function LoadingState() {
         <Skeleton className="h-72 rounded-card" />
         <Skeleton className="h-72 rounded-card" />
       </div>
+    </div>
+  );
+}
+
+// ── Sessions Drawer ───────────────────────────────────────────────────────
+function SessionsDrawer({ open, onClose, days }: { open: boolean; onClose: () => void; days: number }) {
+  const { data, isLoading } = useGetSearchSessionsQuery({ days }, { skip: !open });
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="flex h-full w-full max-w-xl flex-col bg-bg shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border p-4 bg-surface/50 backdrop-blur-md">
+          <div>
+            <h2 className="text-xl font-bold text-text">Registro de Sesiones</h2>
+            <p className="text-xs text-muted">Secuencia de acciones por usuario</p>
+          </div>
+          <button onClick={onClose} className="rounded-full bg-surface-2 p-2 text-muted hover:text-text hover:bg-border transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {isLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-40 rounded-card" />
+              <Skeleton className="h-40 rounded-card" />
+            </div>
+          ) : !data?.sessions?.length ? (
+            <EmptyRows text="No hay sesiones registradas en este rango." />
+          ) : (
+            data.sessions.map((s) => (
+              <div key={s.id} className="card-premium relative overflow-hidden rounded-card border border-border bg-surface shadow-premium">
+                {/* Header de la sesión */}
+                <div className="border-b border-border/50 bg-surface-2/30 px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-semibold text-text" title={s.userAgent}>
+                          {s.userAgent || "Navegador desconocido"}
+                        </p>
+                        {s.isNewVisitor !== undefined && (
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider shrink-0",
+                            s.isNewVisitor ? "bg-accent/15 text-accent" : "bg-badge/15 text-badge"
+                          )}>
+                            {s.isNewVisitor ? "NUEVO" : "RECURRENTE"}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="font-mono bg-border/50 px-1.5 py-0.5 rounded text-[10px] text-muted">
+                          ID: {s.id.slice(0, 8)}
+                        </span>
+                        
+                        {s.entryType && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] border border-border/50 text-muted font-medium">
+                            {s.entryType === "direct_landing" ? "Tráfico Directo" : "Clic Interno"}
+                          </span>
+                        )}
+                        
+                        {s.utmSource && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20" title={`Campaña: ${s.utmCampaign || 'N/A'}`}>
+                            Ads: {s.utmSource} {s.utmMedium && `/ ${s.utmMedium}`}
+                          </span>
+                        )}
+                        
+                        {!s.utmSource && s.referrer && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-surface-2 text-muted font-medium border border-border/50 truncate max-w-[150px]" title={s.referrer}>
+                            De: {s.referrer.replace(/^https?:\/\//, '').split('/')[0]}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-2 text-[11px] text-muted font-light">
+                        {new Date(s.startTime).toLocaleDateString("es-NI", { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent">
+                      {s.actions.length} acciones
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timeline */}
+                <div className="p-5">
+                  <ul className="relative space-y-6 before:absolute before:inset-y-2 before:left-[15px] before:w-[2px] before:bg-border/60 pl-2">
+                    {s.actions.map((act, i) => (
+                      <li key={i} className="relative pl-8">
+                        <span className={cn(
+                          "absolute left-[-5px] top-0.5 grid h-6 w-6 place-items-center rounded-full ring-4 ring-surface",
+                          act.type === 'pageview' ? "bg-badge/15 text-badge" : "bg-accent/15 text-accent"
+                        )}>
+                          {act.type === 'pageview' ? <Eye className="h-3 w-3" /> : <Search className="h-3 w-3" />}
+                        </span>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
+                          <div className="text-sm font-medium text-text">
+                            {act.type === 'pageview' ? (
+                              <span className="flex items-center gap-2">
+                                <span className="text-muted font-normal">Visitó:</span>
+                                <span className="text-accent-2 truncate">{act.page}</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2">
+                                <span className="text-muted font-normal">Buscó:</span>
+                                <span>"{act.query}"</span>
+                                <span className={cn(
+                                  "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                  act.resultsCount === 0 ? "bg-warning/15 text-warning" : "bg-accent/10 text-accent"
+                                )}>
+                                  {act.resultsCount} res
+                                </span>
+                              </span>
+                            )}
+                          </div>
+                          <span className="shrink-0 text-xs text-muted tabular-nums">
+                            {new Date(act.timestamp).toLocaleTimeString("es-NI", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── Searches Log Drawer ───────────────────────────────────────────────────────
+function SearchesLogDrawer({ open, onClose, days }: { open: boolean; onClose: () => void; days: number }) {
+  const { data, isLoading } = useGetRawSearchesQuery({ days }, { skip: !open });
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="flex h-full w-full max-w-2xl flex-col bg-bg shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border p-4 bg-surface/50 backdrop-blur-md">
+          <div>
+            <h2 className="text-xl font-bold text-text">Historial de Búsquedas</h2>
+            <p className="text-xs text-muted">Auditoría en crudo (Defensive Programming)</p>
+          </div>
+          <button onClick={onClose} className="rounded-full bg-surface-2 p-2 text-muted hover:text-text hover:bg-border transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {isLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-20 rounded-card" />
+              <Skeleton className="h-20 rounded-card" />
+            </div>
+          ) : !data?.searches?.length ? (
+            <EmptyRows text="No hay búsquedas registradas en este rango." />
+          ) : (
+            <div className="space-y-3">
+              {data.searches.map((s) => (
+                <div key={s.id} className="card-premium flex items-center justify-between gap-4 rounded-xl border border-border bg-surface p-4 shadow-premium transition-colors hover:bg-surface-hover">
+                  
+                  {/* Info Búsqueda y Fecha */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-base font-bold text-text">
+                        "{s.query}"
+                      </p>
+                      {s.clickedProductId && (
+                        <span className="flex shrink-0 items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent" title="El usuario hizo clic en un resultado">
+                          <MousePointerClick className="h-3 w-3" /> CTR
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 flex items-center gap-2 text-xs text-muted">
+                      <span>{new Date(s.timestamp).toLocaleDateString("es-NI", { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>•</span>
+                      <span className="font-mono bg-border/50 px-1.5 py-0.5 rounded text-[10px]">{s.ip}</span>
+                    </p>
+                  </div>
+
+                  {/* Resultados (Badge) */}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <span className={cn(
+                      "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wider",
+                      s.resultsCount === 0 ? "bg-warning/15 text-warning" : "bg-badge/15 text-badge"
+                    )}>
+                      {s.resultsCount} res
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[10px] font-medium text-muted uppercase tracking-wider">
+                      {s.deviceType === 'Mobile' ? <Smartphone className="h-3.5 w-3.5 text-accent-2" /> :
+                       s.deviceType === 'Desktop' ? <Monitor className="h-3.5 w-3.5 text-accent-2" /> :
+                       <Bot className="h-3.5 w-3.5 text-warning" />}
+                      {s.deviceType}
+                    </span>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

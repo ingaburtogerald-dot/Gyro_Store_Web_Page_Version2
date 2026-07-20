@@ -10,9 +10,12 @@ const { db, FieldValue } = require('../firebase');
 const config = require('../config');
 const { requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
+const storage = require('../services/storage');
+const { imageUpload } = require('../utils/upload');
 
 const COMBOS = config.collections.combos;
 const CATALOG = config.collections.catalog;
+const upload = imageUpload({ maxSizeMb: 15 });
 
 // Imagen de portada de un ítem del catálogo: sus imágenes propias o, si no hay,
 // las de cualquier color (misma lógica que enrich() del catálogo).
@@ -52,6 +55,9 @@ function enrichCombo(combo, productsById) {
   return {
     id: combo.id,
     name: combo.name || products.map((p) => p.name).join(' + '),
+    // Foto propia (opcional): si no se subió ninguna, la card/detalle arman el
+    // split con products[0]/products[1].image — eso NO vive acá, es presentación.
+    image: combo.image || '',
     productIds: combo.productIds || [],
     price,
     active: combo.active !== false,
@@ -78,6 +84,8 @@ async function buildComboFields(body, productsById) {
   const ids = Array.isArray(body.productIds)
     ? [...new Set(body.productIds.map((s) => String(s || '').trim()).filter(Boolean))]
     : [];
+  // Vacío ⇒ sin foto propia (la card/detalle arman el split de los 2 productos).
+  const image = typeof body.image === 'string' ? body.image.trim() : '';
 
   if (ids.length !== 2) return { error: 'Un combo debe tener exactamente 2 productos distintos.' };
   if (!(price > 0)) return { error: 'El precio del paquete debe ser mayor a 0.' };
@@ -91,6 +99,7 @@ async function buildComboFields(body, productsById) {
       productIds: ids,
       price,
       active: body.active !== false,
+      image,
     },
   };
 }
@@ -140,6 +149,20 @@ router.get('/:id', asyncHandler(async (req, res) => {
   res.json(combo);
 }));
 
+// POST /api/combos/upload — sube la foto propia (opcional) de un combo. Igual
+// que las fotos de producto: optimiza a WebP y la agrupa en catalog/combos/<id>/.
+// Un combo nuevo (sin guardar aún) todavía no tiene id → cae a un bucket
+// temporal por fecha, mismo patrón que productImages sin productId.
+router.post('/upload', requireAdmin, upload.single('file'), asyncHandler(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se envió ninguna imagen.' });
+  const folder = storage.folders.comboImage(req.body?.comboId);
+  const opt = await storage.optimizeImageBuffer(req.file.buffer);
+  const ext = opt.ext ?? (req.file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
+  const contentType = opt.contentType ?? req.file.mimetype;
+  const url = await storage.uploadFile(opt.buffer, folder, `combo-${Date.now()}${ext}`, contentType);
+  res.status(201).json({ ok: true, url });
+}));
+
 // POST /api/combos — crea un combo.
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const productsById = await loadProductsById();
@@ -158,13 +181,21 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 // PUT /api/combos/:id — edita un combo.
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(COMBOS).doc(req.params.id);
-  if (!(await ref.get()).exists) return res.status(404).json({ error: 'Combo no encontrado.' });
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: 'Combo no encontrado.' });
 
   const productsById = await loadProductsById();
   const { fields, error } = await buildComboFields(req.body, productsById);
   if (error) return res.status(400).json({ error });
 
+  const oldImage = snap.data()?.image || '';
   await ref.update({ ...fields, updatedAt: FieldValue.serverTimestamp() });
+
+  // Si la foto cambió (o se quitó), borra la anterior de R2. No-op seguro si no
+  // pertenece al bucket. Nunca toca las fotos de los productos referenciados —
+  // esas son de ellos, no del combo.
+  if (oldImage && oldImage !== fields.image) await storage.deleteFileByUrl(oldImage);
+
   res.json(enrichCombo({ id: req.params.id, ...fields }, productsById));
 }));
 
@@ -179,8 +210,13 @@ router.patch('/:id/active', requireAdmin, asyncHandler(async (req, res) => {
 // DELETE /api/combos/:id — elimina un combo.
 router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(COMBOS).doc(req.params.id);
-  if (!(await ref.get()).exists) return res.status(404).json({ error: 'Combo no encontrado.' });
+  const snap = await ref.get();
+  if (!snap.exists) return res.status(404).json({ error: 'Combo no encontrado.' });
+  const image = snap.data()?.image || '';
   await ref.delete();
+  // Borra la foto propia del combo (si tenía). Los productos referenciados no
+  // se tocan — su foto les pertenece a ellos, no al combo.
+  if (image) await storage.deleteFileByUrl(image);
   res.json({ ok: true });
 }));
 

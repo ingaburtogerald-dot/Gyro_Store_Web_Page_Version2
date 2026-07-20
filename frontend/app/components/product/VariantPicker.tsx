@@ -230,13 +230,13 @@ export function VariantPicker({
                       onClick={() => pick(axis, opt)}
                       aria-pressed={isSel}
                       className={cn(
-                        "flex min-w-[5rem] items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all active:scale-95",
+                        "flex min-w-[5rem] items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all active:scale-95",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
                         isSel
-                          ? "border-accent bg-accent/10 text-text shadow-sm shadow-accent/10 ring-1 ring-accent"
+                          ? "border-accent bg-accent/5 text-accent shadow-sm ring-1 ring-accent"
                           : enabled
-                            ? "border-border bg-surface-2 text-muted hover:border-accent/40 hover:text-text"
-                            : "cursor-not-allowed border-border/30 bg-surface-2/45 text-muted/30 line-through",
+                            ? "border-border/60 bg-surface-2 text-muted hover:border-accent hover:text-accent hover:bg-surface-hover"
+                            : "cursor-not-allowed border-border/30 bg-surface-2/30 text-muted/30 line-through",
                       )}
                     >
                       {isSel && <Check className="h-4 w-4 shrink-0 text-accent" />}

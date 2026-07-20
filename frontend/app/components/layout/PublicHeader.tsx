@@ -23,7 +23,13 @@ import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { hydrate, openCart, selectCartCount } from "~/store/slices/cartSlice";
 import { setSearch, setCategory } from "~/store/slices/uiSlice";
 import { selectIsAdmin, selectEditMode } from "~/store/slices/authSlice";
-import { useGetCatalogQuery, useGetLandingConfigQuery, useUpdateLandingConfigMutation, useGetConfigQuery } from "~/store/api/catalogApi";
+import {
+  useGetCatalogQuery,
+  useGetLandingConfigQuery,
+  useUpdateLandingConfigMutation,
+  useGetConfigQuery,
+  useGetPopularSearchQuery,
+} from "~/store/api/catalogApi";
 import { buildCategoryTree } from "~/lib/categories";
 import { cn, getProductUrl, formatCordobas } from "~/lib/utils";
 import type { Category } from "~/types/catalog";
@@ -187,6 +193,21 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
   const { data: config } = useGetConfigQuery();
   const allCategories = useMemo(() => buildCategoryTree(products, config?.categories || []), [products, config?.categories]);
 
+  // Panel de recomendaciones del buscador: términos + productos reales (telemetría
+  // cacheada 1h en el servidor). Los productos destacados cruzan esos ids contra el
+  // catálogo que este header ya tiene en caché (sin pedir nada aparte).
+  const { data: popularSearch } = useGetPopularSearchQuery();
+  const popularKeywords = popularSearch?.terms ?? [];
+  const featuredProducts = useMemo(() => {
+    if (!popularSearch?.productIds?.length || !products.length) return [];
+    const byId = new Map(products.map((p) => [p.id, p]));
+    return popularSearch.productIds
+      .map((id) => byId.get(id))
+      .filter((p): p is (typeof products)[number] => Boolean(p))
+      .slice(0, 4)
+      .map((p) => ({ id: p.id, name: p.name, price: p.price, image: p.images?.[0] }));
+  }, [popularSearch, products]);
+
   // Orden/visibilidad elegidos por el admin (doc landing_page). Vacío = mostrar
   // todas en su orden natural (compatibilidad con el comportamiento anterior).
   const { data: landing } = useGetLandingConfigQuery();
@@ -344,6 +365,8 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                     withPanel
                     autoFocus
                     size="md"
+                    popularKeywords={popularKeywords}
+                    featuredProducts={featuredProducts}
                   />
                 </motion.div>
               ) : (
@@ -476,7 +499,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
             <div className="md:hidden">
               <IconButton
                 icon={LayoutGrid}
-                label="Categorías"
+                label="Menú"
                 onClick={() => setCategoriesOpen(true)}
               />
             </div>
@@ -524,6 +547,8 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                 withPanel
                 autoFocus
                 size="lg"
+                popularKeywords={popularKeywords}
+                featuredProducts={featuredProducts}
               />
             </motion.div>
           )}
@@ -577,7 +602,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                               className="h-full w-full object-contain transition-transform duration-300 group-hover/card:scale-105"
                             />
                           ) : (
-                            <span className="grid h-full w-full place-items-center text-black/20">
+                            <span className="grid h-full w-full place-items-center text-muted">
                               <Search className="h-5 w-5" />
                             </span>
                           )}

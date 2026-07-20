@@ -20,15 +20,16 @@ el cromo nunca compite con la foto ni con el precio.
 
 - **Vibra:** "Daily App Balanced" — no galería vacía, no ruido. Densidad alta en la
   grilla (el cliente ve muchos productos y precios rápido), aireado en hero y PDP.
-- **Variance:** media-alta vía **asimetría estructural** (bento con tiles anchos, hero
-  con emblema protagonista), NO vía decoración.
+- **Variance:** la asimetría vive en el **hero** (emblema protagonista) y en la
+  jerarquía tipográfica, NO en la grilla del catálogo — ver §4 (grilla uniforme,
+  cero huecos).
 - **Escena física:** se navega de noche, en el teléfono, con una mano. Por eso el fondo
   es oscuro **por defecto** (menos fatiga) y las acciones primarias viven abajo/al alcance
   del pulgar. Existe una variante clara "Daylight" opcional para uso diurno (ver §2.1); el
   oscuro sigue siendo la identidad principal.
 
-**Prohibido:** layouts centrados y simétricos "de plantilla", grillas de 3 columnas
-idénticas repetidas, tarjetas apiladas en desorden.
+**Prohibido:** layouts centrados y simétricos "de plantilla", tiles anchos que rompan
+la grilla del catálogo (dejan huecos), tarjetas apiladas en desorden.
 
 ---
 
@@ -136,11 +137,13 @@ Dos reglas que hacen que el modo claro no se rompa:
 
 - **Radios:** tarjetas `rounded-xl` (12px), controles/CTA `rounded-lg`, pills `rounded-pill`.
   El stage de imagen puede `rounded-2xl`. Crispado, no globo.
-- **Grilla del catálogo (bento asimétrico determinista):**
-  `grid grid-cols-2 [grid-auto-flow:dense] md:grid-cols-3 xl:grid-cols-4`, `gap-4/5`.
-  Regla de tiles anchos (`col-span-2`, layout `list`): el **primero** abre como pieza
-  destacada + las **ofertas** se ganan un tile ancho (ver `ProductGrid.catalogWide`).
-  NUNCA todas iguales.
+- **Grilla del catálogo (uniforme, cero huecos):**
+  `grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4`, `gap-4/5`. Todas las tarjetas
+  con el mismo tamaño (sin `col-span-2`, sin `grid-auto-flow:dense`, sin tiles
+  anchos) — un bento con tiles anchos dejaba huecos visibles cuando el resto de
+  la fila no cerraba parejo. `ProductCard` reserva altura fija (imagen
+  `aspect-square`, nombre con `min-h`/`line-clamp-2`, precio+CTA con `mt-auto`
+  sobre `h-full`) para que ninguna fila quede dispareja.
 - **Flex para 1D, Grid para 2D.** Nada de Grid donde un `flex-wrap` basta.
 - **z-index semántico:** dropdown(60) < sticky header(40)… sin `9999` arbitrarios.
 - Dropdowns dentro de contenedores con `overflow`/`backdrop-filter` → **portal a `<body>`
@@ -191,7 +194,9 @@ Regla de oro: **el motion encaja con lo que revela.** Prohibido el "spring en to
 - Nombre `font-bold`; pills de variante `font-light`; precio `text-accent font-extrabold`.
 - CTA "Agregar al carrito" SIEMPRE visible, `bg-accent text-bg` (texto oscuro, AA ~10:1),
   con tactile push. Si hay >1 variante, abre `QuickAddSheet`.
-- Dos layouts: `grid` (vertical) y `list` (horizontal editorial para tiles anchos).
+- Layout `grid` (vertical) en catálogo y carrusel — `h-full` para que precio/CTA
+  queden anclados abajo con altura pareja entre tarjetas. Existe un layout `list`
+  (horizontal) sin uso actual, reservado por si vuelve a hacer falta un tile ancho.
 
 ### `Hero`
 - Emblema (mascota Gyro) protagonista, centrado, un solo gesto (flotar) + halo sereno.
@@ -212,9 +217,19 @@ Regla de oro: **el motion encaja con lo que revela.** Prohibido el "spring en to
   existe) en escala de grises → color al hover.
 
 ### PDP (`producto.$id`)
-- Galería sticky con zoom (sin glow ambiental). Título display Black. Specs en **grilla
-  con hairlines** (`gap-px` sobre `bg-border`). Descripción a 65ch. CTA sólido + WhatsApp.
-  Funcionalidad de mayoreo/variantes/compartir intacta.
+- `ProductTopNav` sticky: UNA sola acción de navegación ("← Volver al catálogo",
+  texto visible desde md) + favorito/compartir/carrito. Sin breadcrumbs duplicados.
+- Galería sticky con zoom (sin glow ambiental) + trust box (delivery/pago/garantía)
+  2×2 debajo, en la columna izquierda (desktop). En móvil el trust box va tras el
+  bloque de compra.
+- Título display Black. Bajo el bloque de compra, "Detalles" y "Especificaciones"
+  son pestañas reales (`role="tablist"`, flechas ←/→, indicador `layoutId`) — ya no
+  van apiladas. Specs en **grilla con hairlines** (`gap-px` sobre `bg-border`).
+  Descripción a 65ch. CTA sólido + WhatsApp. Funcionalidad de mayoreo/variantes/
+  compartir intacta.
+- "Comprados juntos frecuentemente" solo aparece si el producto pertenece a un
+  **combo real** publicado (`GET /api/combos?productId=`), con el precio del
+  paquete — nunca un "relacionado" cualquiera con precios sumados.
 
 ---
 
@@ -223,7 +238,8 @@ Regla de oro: **el motion encaja con lo que revela.** Prohibido el "spring en to
 - ❌ **Emojis** en UI de marca (categorías, botones, secciones). Usar íconos lucide.
 - ❌ **Glow / sombras con resplandor.** Solo hairlines o flat.
 - ❌ **Segundo acento** o colores crudos de Tailwind en componentes.
-- ❌ **Grillas de 3–4 columnas idénticas** repetidas sin ritmo asimétrico.
+- ❌ **Tiles anchos / `grid-auto-flow:dense`** en la grilla del catálogo — dejan
+  huecos visibles cuando la fila no cierra pareja (ver §4, grilla uniforme).
 - ❌ **Gradient-text**, glassmorphism decorativo, side-stripe borders, eyebrow tracked
   en CADA sección.
 - ❌ **Spring en todo** / animaciones lineales / rebote-elástico.

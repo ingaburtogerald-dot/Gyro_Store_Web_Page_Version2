@@ -18,8 +18,6 @@ import { usePageviewTelemetry } from "~/hooks/usePageviewTelemetry";
 import { ForcePasswordChangeGate } from "~/components/auth/ForcePasswordChangeGate";
 import { AppShell } from "~/components/layout/AppShell";
 import { StorefrontShell } from "~/components/layout/StorefrontShell";
-import { FeedbackFab } from "~/components/layout/FeedbackFab";
-import { WhatsAppFab } from "~/components/layout/WhatsAppFab";
 import tailwind from "~/styles/globals.css?url";
 
 export const links: LinksFunction = () => [
@@ -132,31 +130,20 @@ export default function App() {
   }
 
   // Ficha de producto: trae su propio breadcrumb + acciones (producto.$id.tsx),
-  // sin shell, para no duplicar cabeceras. Sin WhatsAppFab acá: en móvil ya hay
-  // una barra de compra fija con su propio CTA de WhatsApp específico del
-  // producto ("Comprar al por mayor", mensaje prellenado) — el FAB genérico
-  // (abajo-izquierda) se solaparía con esa barra y sería redundante.
+  // sin shell, para no duplicar cabeceras. Las acciones de contacto (reseña,
+  // WhatsApp, opinión) viven en el menú móvil (CategoriesDrawer) que esta ruta ya
+  // monta, no en botones flotantes.
   if (path.startsWith("/producto")) {
-    return (
-      <>
-        <Outlet />
-        <FeedbackFab />
-      </>
-    );
+    return <Outlet />;
   }
 
   // Storefront público (home, combos, contacto): header full-width (Apple/Razer).
-  // FeedbackFab va FUERA de StorefrontShell (no como children de <motion.main>):
-  // framer-motion deja un `transform` inline incluso en reposo, que rompe
-  // `position: fixed` en los descendientes (los ancla al ancestro, no al viewport).
+  // Sin botones flotantes: las acciones de contacto (reseña, WhatsApp, opinión)
+  // están embebidas en el menú móvil (CategoriesDrawer) y en el footer (PublicFooter).
   return (
-    <>
-      <StorefrontShell>
-        <Outlet />
-      </StorefrontShell>
-      <FeedbackFab />
-      <WhatsAppFab />
-    </>
+    <StorefrontShell>
+      <Outlet />
+    </StorefrontShell>
   );
 }
 

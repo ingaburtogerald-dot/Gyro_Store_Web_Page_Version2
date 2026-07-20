@@ -10,7 +10,7 @@ import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { ProductCarousel } from "~/components/product/ProductCarousel";
 import { ComboSection } from "~/components/catalog/ComboSection";
 import { SocialProof } from "~/components/catalog/SocialProof";
-import { LeadCapture, ExitIntentPopup } from "~/components/catalog/LeadCapture";
+import { LeadCapture } from "~/components/catalog/LeadCapture";
 import { OurStoryStrip } from "~/components/catalog/OurStoryStrip";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
 import { FilterBar } from "~/components/filters/FilterBar";
@@ -241,11 +241,6 @@ export default function Index() {
       {/* Antes solo vivía en /contacto — el visitante que nunca sale de la home
           nunca lo veía. Confianza + ubicación al cierre de la página. */}
       <PublicFooter />
-
-      {/* Se dispara una sola vez por sesión al detectar intención de salida
-          (mouse hacia la barra de pestañas/URL) — no depende de hasFilters, así
-          que sigue activo aunque el visitante ya esté filtrando el catálogo. */}
-      {!editing && <ExitIntentPopup />}
     </>
   );
 }

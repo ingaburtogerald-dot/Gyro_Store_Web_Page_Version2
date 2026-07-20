@@ -115,7 +115,7 @@ export function ProductCarousel({
             showcase ? (
               <li
                 key={p.id}
-                className="w-[80%] shrink-0 snap-start sm:w-[46%] md:w-[31%] lg:w-[23.5%]"
+                className="w-[70%] shrink-0 snap-start sm:w-[46%] md:w-[31%] lg:w-[23.5%]"
               >
                 <ShowcaseCard product={p} index={i} />
               </li>
@@ -162,20 +162,22 @@ function ShowcaseCard({ product, index }: { product: CatalogProduct; index: numb
         aria-label={product.name}
         className="block focus-visible:outline-none"
       >
-        {/* Stage de imagen: hereda el tile claro unificado (product-stage), con
-            padding generoso para que el producto respire. */}
-        <div className="ease-expo product-stage relative aspect-[4/5] overflow-hidden rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_20px_48px_-16px_rgba(0,0,0,0.5)]">
+        {/* Stage de imagen: la foto ya trae su propio fondo blanco — sin recuadro
+            artificial (product-stage es un no-op de layout aquí, ver globals.css).
+            Más compacto en móvil (aspect-[4/3]) para que se intuyan más tarjetas a
+            la derecha; desde sm recupera la proporción editorial original. */}
+        <div className="ease-expo product-stage relative aspect-square overflow-hidden rounded-2xl transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_20px_48px_-16px_rgba(0,0,0,0.5)]">
           {image ? (
             <img
               src={image}
               alt={product.name}
               loading={index < 4 ? "eager" : "lazy"}
               decoding="async"
-              className="ease-expo h-full w-full object-contain p-8 drop-shadow-[0_6px_16px_rgba(0,0,0,0.12)] transition-transform duration-[600ms] will-change-transform group-hover:scale-[1.06] sm:p-10"
+              className="ease-expo h-full w-full object-cover transition-transform duration-[600ms] will-change-transform group-hover:scale-[1.06]"
               style={{ viewTransitionName: `vt-product-${product.id}` } as React.CSSProperties}
             />
           ) : (
-            <div className="grid h-full place-items-center text-black/15">
+            <div className="grid h-full place-items-center text-muted">
               <ImageOff className="h-8 w-8" />
             </div>
           )}

@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Play, Pause, ArrowRight, MessageCircle, Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "~/components/ui/Button";
-import { AboutUsModal } from "~/components/layout/AboutUsModal";
 import { SlideMedia, HeroSlideEditorModal } from "~/components/catalog/HeroSlideEditorModal";
 import { useGetLandingConfigQuery, useUpdateLandingConfigMutation, useGetConfigQuery } from "~/store/api/catalogApi";
 import { useAppSelector } from "~/store/hooks";
@@ -33,7 +32,6 @@ function newBlankSlide(): HeroSlide {
 export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [isAboutUsOpen, setIsAboutUsOpen] = useState(false);
   const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
 
   const isAdmin = useAppSelector(selectIsAdmin);
@@ -152,7 +150,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
   }
 
   return (
-    <section className="mx-auto max-w-[1400px] w-full px-4 pt-6 pb-12">
+    <section className="mx-auto max-w-[1400px] w-full px-4 pt-3 pb-6 sm:pt-6 sm:pb-12">
       {/* ── CONTENEDOR PRINCIPAL ESTILO DBRAND ── */}
       <div className="relative w-full bg-[#111] border border-border/40 rounded-[2.5rem] overflow-hidden shadow-2xl group">
         {/* Controles de edición (solo admin en modo edición) */}
@@ -196,20 +194,30 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
         {/* Layout Split: Flex vertical en móvil, fila 50-50 en desktop.
             min-h más bajo + imagen más chica en móvil: el CTA debe entrar en el
             fold (375×667 con header de 69px visible) sin tocar el layout ≥md. */}
-        <div className="flex flex-col md:flex-row min-h-[440px] md:h-[620px] items-stretch">
+        <div className="flex flex-col md:flex-row min-h-[380px] md:h-[620px] items-stretch">
 
-          {/* Lado Izquierdo (Multimedia: imagen/GIF/video) */}
-          <div className="w-full md:w-1/2 relative bg-black/50 overflow-hidden h-[220px] sm:h-[260px] md:h-auto flex items-center justify-center border-b border-border/30 md:border-b-0 md:border-r border-border/30">
+          {/* Lado Izquierdo (Multimedia: imagen/GIF/video) — mismo fondo que el
+              contenedor (bg-[#111], sin /50) para que no haya costura detrás
+              de la media; antes bg-black/50 sobre bg-[#111] se veía como un
+              rectángulo más oscuro. */}
+          <div className="w-full md:w-1/2 relative bg-[#111] overflow-hidden h-[190px] sm:h-[260px] md:h-auto flex items-center justify-center border-b border-border/30 md:border-b-0 md:border-r border-border/30">
+            {/* Glow radial muy sutil detrás de la media: le da profundidad
+                intencional al vacío negro sin leerse como un círculo — blur
+                alto + opacidad baja, no un halo obvio. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.16),transparent_60%)] blur-3xl"
+            />
             <SlideMedia
               slide={activeSlide}
-              className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-out"
+              className="absolute inset-0 w-full h-full object-contain p-6 transition-opacity duration-700 ease-out"
             />
             {/* Velo oscuro para armonía de colores */}
             <div className="absolute inset-0 bg-black/10 pointer-events-none" />
           </div>
 
           {/* Lado Derecho (Información del Slide) */}
-          <div className="w-full md:w-1/2 p-6 sm:p-10 md:p-16 flex flex-col justify-center text-left relative z-10">
+          <div className="w-full md:w-1/2 p-5 sm:p-10 md:p-16 flex flex-col justify-center text-left relative z-10">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeSlide.id}
@@ -217,7 +225,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="space-y-4 sm:space-y-6"
+                className="space-y-2.5 sm:space-y-6"
               >
                 {/* Eyebrow / Subtítulo superior */}
                 <span className="inline-block text-xs font-black uppercase tracking-[0.2em] text-accent-2">
@@ -225,57 +233,73 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                 </span>
 
                 {/* Título Protagonista */}
-                <h1 className="font-heading text-3xl sm:text-4xl md:text-6xl font-black tracking-tight text-white leading-[0.95] text-balance">
+                <h1 className="font-heading text-2xl sm:text-4xl md:text-6xl font-black tracking-tight text-white leading-[0.95] text-balance">
                   {activeSlide.title}
                 </h1>
 
-                {/* Descripción editorial */}
-                <p className="text-sm sm:text-base text-white/70 font-medium leading-relaxed max-w-lg">
+                {/* Descripción editorial: recortada a 2 líneas en móvil — el CTA no
+                    puede depender de qué tan larga sea la descripción de cada slide. */}
+                <p className="line-clamp-2 sm:line-clamp-none text-sm sm:text-base text-white/70 font-medium leading-relaxed max-w-lg">
                   {activeSlide.description}
                 </p>
 
-                {/* Jerarquía de venta EN CÓDIGO (no en la data de landing_page) — siempre
-                    presente sin importar el slide activo: Primario = Ver catálogo,
-                    Secundario = Ordenar por WhatsApp. La acción propia del slide (incluida
-                    "Quiénes Somos" del slide de marca, locked) queda como link terciario:
-                    ya no compite por atención con los dos caminos de venta reales.
-                    Apilados en móvil, en fila desde sm. */}
-                <div className="pt-4">
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Link to="/#catalogo" className="inline-block">
-                      <Button
-                        size="lg"
-                        className="w-full sm:w-auto group relative overflow-hidden bg-gradient-to-r from-accent to-accent-2 text-bg font-bold py-3.5 px-8 rounded-xl shadow-md shadow-accent/15 transition-all transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 focus-visible:outline-none"
-                      >
-                        Ver catálogo
-                        <ArrowRight className="inline-block h-4 w-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
-                      </Button>
-                    </Link>
+                {/* Jerarquía de venta: Primario = configurado por el admin (ej. Ver catálogo o un link a un producto),
+                    Secundario = Ordenar por WhatsApp. Lado a lado en móvil, fila en desktop. */}
+                <div className="pt-2.5 sm:pt-4">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:gap-3">
+                    {(() => {
+                      const target = activeSlide.actionTarget || "/#catalogo";
+                      const isExternal = target.startsWith("http");
+                      
+                      const btn = (
+                        // Primario: variant="primary" ya trae el gradiente sólido
+                        // accent→accent-hover + sombra correctos — no dupliques esas
+                        // clases aquí (dos gradientes/sombras compitiendo sin
+                        // tailwind-merge es ambiguo). Solo agregamos layout y el
+                        // tamaño compacto de desktop.
+                        <Button
+                          size="sm"
+                          className="w-full sm:w-auto group relative overflow-hidden rounded-xl focus-visible:outline-none sm:py-2.5 sm:px-6 sm:text-sm"
+                        >
+                          {activeSlide.buttonText || "Ver catálogo"}
+                          <ArrowRight className="inline-block h-4 w-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
+                        </Button>
+                      );
 
+                      if (isExternal) {
+                        return (
+                          <a href={target} target="_blank" rel="noopener noreferrer" className="inline-block">
+                            {btn}
+                          </a>
+                        );
+                      }
+
+                      return (
+                        <Link to={target} className="inline-block">
+                          {btn}
+                        </Link>
+                      );
+                    })()}
+
+                    {/* Secundario: outline verde sobre transparente, no relleno sólido —
+                        así el ojo va directo al primario. variant="ghost" es la base
+                        (sin fondo/borde propios); el color/hover se fuerzan con `!`
+                        porque colisionan con las clases de color de ghost y, sin
+                        tailwind-merge, el orden de las clases en el className no
+                        garantiza cuál gana. */}
                     <a href={whatsappOrderUrl} target="_blank" rel="noopener noreferrer" className="inline-block">
-                      <Button size="lg" variant="whatsapp" className="w-full sm:w-auto">
-                        <MessageCircle className="h-4 w-4" />
-                        Ordenar por WhatsApp
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-full sm:w-auto rounded-xl border border-whatsapp/40 !text-whatsapp hover:!bg-whatsapp/10 hover:border-whatsapp/60 transition-colors sm:py-2.5 sm:px-6 sm:text-sm"
+                      >
+                        <MessageCircle className="h-4 w-4 shrink-0" />
+                        {/* Texto corto en móvil (columna angosta); completo desde sm. */}
+                        <span className="sm:hidden">WhatsApp</span>
+                        <span className="hidden sm:inline">Ordenar por WhatsApp</span>
                       </Button>
                     </a>
                   </div>
-
-                  {activeSlide.actionType === "modal" ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsAboutUsOpen(true)}
-                      className="mt-3.5 inline-block text-sm font-semibold text-white/60 underline decoration-white/25 underline-offset-4 transition-colors hover:text-white"
-                    >
-                      {activeSlide.buttonText}
-                    </button>
-                  ) : (
-                    <Link
-                      to={activeSlide.actionTarget || "/"}
-                      className="mt-3.5 inline-block text-sm font-semibold text-white/60 underline decoration-white/25 underline-offset-4 transition-colors hover:text-white"
-                    >
-                      {activeSlide.buttonText}
-                    </Link>
-                  )}
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -285,7 +309,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
       </div>
 
       {/* ── BARRA DE NAVEGACIÓN Y PROGRESO FLOTANTE (Estilo dbrand) ── */}
-      <div className="flex justify-center mt-6">
+      <div className="flex justify-center mt-3 sm:mt-6">
         <div className="flex items-center gap-3 bg-[#111] border border-border/40 px-4.5 py-2.5 rounded-full shadow-premium">
           {/* Botón Play/Pause — área táctil 44px en móvil (WCAG 2.5.5), compacta en desktop */}
           <button
@@ -385,9 +409,6 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
           </div>
         </div>
       </div>
-
-      {/* Modal interactivo de Quiénes Somos */}
-      <AboutUsModal open={isAboutUsOpen} onClose={() => setIsAboutUsOpen(false)} />
 
       {/* Editor de diapositiva (modo edición) */}
       <HeroSlideEditorModal

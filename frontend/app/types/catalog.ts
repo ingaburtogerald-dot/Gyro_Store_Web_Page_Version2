@@ -29,6 +29,7 @@ export interface BusinessConfig {
   wholesaleDiscounts: VolumeDiscount[];
   categories: Category[];
   socialLinks: { instagram: string; facebook: string; tiktok: string };
+  reviewLinks?: { google: string; facebook: string };
   branding?: Branding;
 }
 

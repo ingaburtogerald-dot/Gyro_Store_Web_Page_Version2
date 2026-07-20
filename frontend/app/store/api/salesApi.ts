@@ -224,6 +224,7 @@ export interface BusinessConfig {
   whatsapp: string;
   exchangeRate: number;
   socialLinks: { instagram: string; facebook: string; tiktok: string };
+  reviewLinks?: { google: string; facebook: string };
   costosFijos: CostosFijos;
   wholesaleDiscounts: Discount[];
   deliveryPersonnel?: { id: string; name: string; phone: string }[];

@@ -21,9 +21,6 @@
   --color-surface-2: #151d2f;
   --color-surface-hover: #1c2740;
   --color-border: rgba(148, 184, 255, 0.09);
-  /* Vitrina de producto: off-white deliberado (NO #fff puro — un producto blanco
-     "desaparecería" sobre blanco puro). Tile claro fijo, no depende del tema. */
-  --color-product-stage: #f4f4f5;
 
   /* Acentos — Esmeralda / Verde tech */
   --color-accent: #10b981;
@@ -266,18 +263,14 @@
   background-color: #92a7a3;
 }
 
-/* Escenario del producto: vitrina de e-commerce (Amazon/dbrand/Apple) — tile claro
-   UNIFORME para toda foto de producto, sin importar si el archivo trae fondo
-   transparente o blanco incrustado (ej. "KZ AZ10"): el off-white es indulgente con
-   ambos. Deliberadamente claro sobre la app oscura — no depende del tema.
-   Profundidad neutra (vignette + inset ring), CERO tinte de acento: debe leer como
-   vitrina, no como JPG pegado. Fuente única — no dupliques este look por componente,
-   solo herédalo (ver globals.css §Bloque 1 del task de unificación de stages). */
+/* Escenario del producto: las fotos ahora traen su propio fondo blanco incrustado,
+   así que el contenedor NO debe pintar un tile claro propio — eso duplicaba el marco
+   (recuadro dentro de recuadro). `product-stage` queda como marcador de layout
+   (no-op de estilo): identifica "este div envuelve la foto del producto" en cada
+   componente sin imponerle fondo/borde/sombra. Fuente única — si el escenario
+   vuelve a necesitar un tratamiento visual compartido, se agrega aquí una sola vez. */
 @utility product-stage {
-  background-color: var(--color-product-stage);
-  background-image:
-    radial-gradient(120% 100% at 50% 100%, rgba(0, 0, 0, 0.05), transparent 65%);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  background-color: transparent;
 }
 
 /* Curva de salida exponencial: entradas rápidas que desaceleran con elegancia. */

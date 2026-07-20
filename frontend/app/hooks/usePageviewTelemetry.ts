@@ -10,7 +10,9 @@ const EXCLUDED_PREFIXES = ["/admin", "/login"];
 export function usePageviewTelemetry() {
   const { pathname } = useLocation();
   useEffect(() => {
-    if (EXCLUDED_PREFIXES.some((p) => pathname.startsWith(p))) return;
+    // Excluir la raíz ("/") y las rutas de staff explícitamente.
+    // pathname.startsWith("/") atraparía todo, por eso se hace el chequeo estricto para "/".
+    if (pathname === "/" || EXCLUDED_PREFIXES.some((p) => pathname.startsWith(p))) return;
     logPageview(pathname);
   }, [pathname]);
 }

@@ -190,7 +190,7 @@ export default function Login() {
           <div className="mx-auto w-full max-w-sm">
             {/* Marca (visible solo en móvil) + encabezado con jerarquía. */}
             <div className="login-enter-item" style={itemDelay(0)}>
-              <Logo size={52} className="lg:hidden" />
+              <Logo size={50} className="lg:hidden object-contain" />
               <h1 className="mt-6 font-heading text-3xl font-extrabold tracking-tight text-text">
                 Iniciar sesión
               </h1>
@@ -337,8 +337,8 @@ export default function Login() {
         {/* ── PANEL VISUAL · Marca (solo desktop) ──────────────────── */}
         <div className="relative order-1 hidden flex-col items-center justify-center overflow-hidden bg-black lg:order-2 lg:flex">
           {/* Logo principal centrado (obtenido de la config del admin automáticamente por el componente Logo) */}
-          <div className="relative z-10 flex flex-1 items-center justify-center p-12">
-            <Logo size={140} className="scale-90 xl:scale-100" />
+          <div className="relative z-10 flex flex-1 items-center justify-center p-12 w-full max-w-lg mx-auto">
+            <Logo size={90} className="w-full max-w-[280px] object-contain" />
           </div>
 
           {/* Declaración de marca al pie (sin el logo circular). */}

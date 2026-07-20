@@ -95,10 +95,7 @@ export function ProductCard({
       aria-label={product.name}
       className={cn(
         "product-stage ease-expo relative block overflow-hidden",
-        // Grid: el stage claro se apila sobre el cuerpo oscuro (nombre/precio) — un
-        // hairline sutil marca el "sello" entre ambos (tile de e-commerce). List: el
-        // stage ya es un panel aparte (rounded-xl completo), no hace falta.
-        isList ? "aspect-square h-full w-full shrink-0 rounded-xl" : "aspect-square w-full rounded-t-xl border-b border-black/5",
+        isList ? "aspect-square h-full w-full shrink-0 rounded-xl" : "aspect-square w-full rounded-t-xl",
       )}
     >
       <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
@@ -129,17 +126,14 @@ export function ProductCard({
           loading={index < 4 ? "eager" : "lazy"}
           decoding="async"
           className={cn(
-            "ease-expo h-full w-full object-contain p-6 drop-shadow-[0_6px_16px_rgba(0,0,0,0.12)] transition duration-[600ms] will-change-transform",
+            "ease-expo h-full w-full object-cover transition duration-[600ms] will-change-transform",
             "group-hover:scale-[1.06]",
-            // opacity-70 (no 60): sobre el stage claro, un producto YA claro
-            // (audífonos blancos, cables) + gris + más transparencia podía casi
-            // desaparecer. El badge "Agotado" ya comunica el estado igual.
             soldOut && "opacity-70 grayscale"
           )}
           style={{ viewTransitionName: `vt-product-${product.id}` } as React.CSSProperties}
         />
       ) : (
-        <div className="grid h-full place-items-center text-black/20">
+        <div className="grid h-full place-items-center text-muted">
           <ImageOff className="h-8 w-8" />
         </div>
       )}
@@ -164,7 +158,7 @@ export function ProductCard({
       to={getProductUrl(product.id, product.name)}
       prefetch="intent"
       viewTransition
-      className="line-clamp-2 text-sm font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2"
+      className="line-clamp-2 min-h-10 text-sm font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2"
     >
       {product.name}
     </Link>
@@ -269,7 +263,7 @@ export function ProductCard({
   }
 
   return (
-    <motion.article {...motionProps} className={cn(shell, "flex-col")}>
+    <motion.article {...motionProps} className={cn(shell, "h-full flex-col")}>
       {Stage}
       <div className="flex flex-1 flex-col gap-1.5 p-4">
         {Eyebrow}

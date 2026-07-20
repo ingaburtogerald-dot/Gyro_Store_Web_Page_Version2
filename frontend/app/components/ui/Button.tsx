@@ -17,8 +17,12 @@ const VARIANTS: Record<Variant, string> = {
   submit: "bg-gradient-to-b from-accent to-accent-hover shadow-md shadow-accent/20 border-t border-accent-2/20 text-bg font-semibold hover:from-accent-hover hover:to-accent hover:shadow-lg hover:shadow-accent/30 hover:-translate-y-0.5",
   // Destructivo — eliminar, rechazar
   destructive: "bg-danger/10 text-danger hover:bg-danger hover:text-white hover:shadow-md hover:shadow-danger/20",
-  // WhatsApp — solo para botones que abren un chat de WhatsApp real
-  whatsapp: "bg-gradient-to-b from-whatsapp to-[#00b38f] shadow-md shadow-whatsapp/20 border-t border-white/20 text-[#04201a] font-semibold hover:shadow-lg hover:-translate-y-0.5",
+  // WhatsApp — solo para botones que abren un chat de WhatsApp real. Antes era un
+  // gradiente verde casi idéntico a `primary` (ambos leían como "el mismo botón").
+  // Tratamiento distinto a propósito: tinte/outline (no sólido) para que la
+  // jerarquía "Agregar = acción principal" vs "WhatsApp = vía alterna" se lea
+  // al instante, tanto inline como en la barra fija móvil.
+  whatsapp: "border-2 border-whatsapp bg-whatsapp/10 text-whatsapp font-semibold hover:bg-whatsapp/20 hover:border-whatsapp hover:shadow-md hover:shadow-whatsapp/20 hover:-translate-y-0.5",
   ghost: "bg-transparent text-muted hover:text-text hover:bg-surface-2",
   outline: "border border-border text-text hover:bg-surface-2 hover:shadow-sm",
 };

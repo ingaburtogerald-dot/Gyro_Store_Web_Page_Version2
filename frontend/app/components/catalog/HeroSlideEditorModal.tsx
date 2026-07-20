@@ -17,7 +17,19 @@ export function SlideMedia({ slide, className }: { slide: Pick<HeroSlide, "media
     return <div className={cn("grid place-items-center bg-black/40 text-xs text-white/40", className)}>Sin media</div>;
   }
   if (slide.mediaType === "video") {
-    return <video key={slide.mediaUrl} src={slide.mediaUrl} autoPlay muted loop playsInline className={className} />;
+    return (
+      <video
+        key={slide.mediaUrl}
+        src={slide.mediaUrl}
+        autoPlay
+        muted
+        loop
+        playsInline
+        controls={false}
+        disablePictureInPicture
+        className={className}
+      />
+    );
   }
   return <img key={slide.mediaUrl} src={slide.mediaUrl} alt={slide.title || ""} className={className} />;
 }
@@ -96,7 +108,7 @@ export function HeroSlideEditorModal({
           <div className="overflow-hidden rounded-2xl border border-border bg-[#111]">
             <div className="flex min-h-[180px] flex-col sm:flex-row">
               <div className="relative flex h-32 w-full items-center justify-center overflow-hidden bg-black/50 sm:h-auto sm:w-1/2">
-                <SlideMedia slide={draft} className="absolute inset-0 h-full w-full object-cover" />
+                <SlideMedia slide={draft} className="absolute inset-0 h-full w-full object-contain p-4" />
               </div>
               <div className="flex w-full flex-col justify-center gap-2 p-5 text-left sm:w-1/2">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-2">{draft.eyebrow || "EYEBROW"}</span>

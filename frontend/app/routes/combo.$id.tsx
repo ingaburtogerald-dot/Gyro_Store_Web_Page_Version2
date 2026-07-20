@@ -33,7 +33,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const c = data?.combo;
   if (!c) return [{ title: "Combo · Gyro Store" }];
-  const img = c.products?.[0]?.image || `${data!.origin}/logo.jpg`;
+  const img = c.image || c.products?.[0]?.image || `${data!.origin}/logo.jpg`;
   const title = `${c.name} · Gyro Store`;
   const description = `Combo: ${c.products.map((p) => p.name).join(" + ")} por ${formatCordobas(c.price)} en Gyro Store, Managua.`;
   return [
@@ -110,7 +110,7 @@ export default function ComboDetail() {
                     {p.image ? (
                       <img src={p.image} alt={p.name} className="h-full w-full object-contain p-6" />
                     ) : (
-                      <div className="grid h-full place-items-center text-black/20">
+                      <div className="grid h-full place-items-center text-muted">
                         <ImageOff className="h-8 w-8" />
                       </div>
                     )}
