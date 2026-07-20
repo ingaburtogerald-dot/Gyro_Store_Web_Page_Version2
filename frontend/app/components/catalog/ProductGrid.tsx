@@ -14,20 +14,6 @@ import { logResultClick } from "~/lib/searchTelemetry";
 import { useAppSelector } from "~/store/hooks";
 import { cn } from "~/lib/utils";
 
-// Regla determinista de tiles ANCHOS para romper la grilla uniforme (ver Bento):
-//  · El primero abre como pieza destacada (editorial horizontal).
-//  · Las ofertas se ganan un tile ancho.
-// Es determinista → sobrevive al filtrado sin verse aleatorio, y solo activa la
-// asimetría cuando hay suficientes ítems para que no quede un tile ancho solitario.
-const catalogWide =
-  (total: number) =>
-  (p: CatalogProduct, i: number): boolean => {
-    if (total < 4) return false;
-    if (i === 0) return true;
-    if (isDeal(p)) return true;
-    return i > 0 && i % 5 === 0;
-  };
-
 export function ProductGrid({ products, categories }: { products: CatalogProduct[]; categories: Category[] }) {
   // Filtrado + orden compartidos con la toolbar (una sola fuente de verdad).
   const { filtered, isDefault } = useCatalogFilter(products);
@@ -56,8 +42,7 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
               count={deals.length}
               tone="deal"
             />
-            {/* Las ofertas van como tarjetas verticales uniformes (fila destacada). */}
-            <Bento products={deals} categories={categories} wideFn={() => false} />
+            <Grid products={deals} categories={categories} />
           </section>
         )}
 
@@ -68,7 +53,7 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
             subtitle="Explora todos nuestros productos"
             count={rest.length}
           />
-          <Bento products={rest} categories={categories} wideFn={catalogWide(rest.length)} />
+          <Grid products={rest} categories={categories} />
         </section>
       </div>
     );
@@ -80,51 +65,40 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
   }
   return (
     <div className="pb-12">
-      <Bento
+      <Grid
         products={filtered}
         categories={categories}
-        wideFn={catalogWide(filtered.length)}
         onProductClick={search ? (id) => logResultClick(search, id) : undefined}
       />
     </div>
   );
 }
 
-// Bento asimétrico: ciertos productos se vuelven tiles ANCHOS (2 columnas,
-// disposición horizontal editorial). Con `grid-auto-flow: dense` el resto se
-// acomoda sin huecos. Es determinista → sobrevive al filtrado sin verse aleatorio.
-//  · El primero abre como pieza destacada.
-//  · Las ofertas se llevan un tile ancho (se ganan la prominencia).
-//  · Un ritmo posicional añade variedad cuando no hay ofertas.
-// `wideFn` permite desactivar los tiles anchos (p. ej. la fila de SuperOfertas,
-// donde todas serían anchas y saturarían).
-function Bento({
+// Grilla uniforme: todas las tarjetas del mismo tamaño, mismo aspect-ratio,
+// sin tiles anchos ni `grid-auto-flow: dense` — cero huecos, simetría total.
+// `h-full` en cada celda + en <ProductCard> (layout grid) es lo que ancla
+// precio/CTA al fondo con alturas parejas sin importar el largo del nombre.
+function Grid({
   products,
   categories,
-  wideFn,
   onProductClick,
 }: {
   products: CatalogProduct[];
   categories: Category[];
-  wideFn?: (p: CatalogProduct, i: number) => boolean;
   /** Se dispara al hacer clic en una tarjeta (usado para atribuir CTR de búsqueda). */
   onProductClick?: (id: string) => void;
 }) {
-  const isWide = wideFn ?? (() => false);
   return (
-    <div className="grid grid-cols-2 gap-4 [grid-auto-flow:dense] sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
-      {products.map((p, i) => {
-        const wide = isWide(p, i);
-        return (
-          <div
-            key={p.id}
-            className={cn(wide && "col-span-2")}
-            onClick={onProductClick ? () => onProductClick(p.id) : undefined}
-          >
-            <ProductCard product={p} categories={categories} layout={wide ? "list" : "grid"} index={i} />
-          </div>
-        );
-      })}
+    <div className="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
+      {products.map((p, i) => (
+        <div
+          key={p.id}
+          className={cn("h-full", onProductClick && "cursor-pointer")}
+          onClick={onProductClick ? () => onProductClick(p.id) : undefined}
+        >
+          <ProductCard product={p} categories={categories} index={i} />
+        </div>
+      ))}
     </div>
   );
 }

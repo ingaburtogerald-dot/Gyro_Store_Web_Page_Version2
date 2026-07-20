@@ -77,6 +77,10 @@ router.get('/', asyncHandler(async (req, res) => {
         facebook: 'https://facebook.com/gyrostore',
         tiktok: 'https://tiktok.com/@gyrostore',
       },
+      reviewLinks: biz.reviewLinks || {
+        google: 'https://g.page/r/CcAd-gQQQD6GEBM/review',
+        facebook: 'https://www.facebook.com/people/Gyro-Store/61589182888082/reviews',
+      },
       // Identidad de marca editable desde el admin (logo del header). Vacío = el
       // front usa los archivos por defecto del repo (/logo-estatico.jpg, /logo-animado.gif).
       branding: biz.branding || {},
@@ -149,9 +153,9 @@ router.put('/costos-fijos', requireAdmin, asyncHandler(async (req, res) => {
 }));
 
 // PUT /api/config/business — actualiza configuración general de la tienda (admin).
-// Cubre: whatsapp, dirección, redes sociales, tipo de cambio, nombre.
+// Cubre: whatsapp, dirección, redes sociales, tipo de cambio, nombre, enlaces de reseña.
 router.put('/business', requireAdmin, asyncHandler(async (req, res) => {
-  const allowed = ['storeName', 'storeAddress', 'whatsapp', 'exchangeRate', 'socialLinks', 'deliveryPersonnel', 'branding'];
+  const allowed = ['storeName', 'storeAddress', 'whatsapp', 'exchangeRate', 'socialLinks', 'deliveryPersonnel', 'branding', 'reviewLinks'];
   const update = {};
   for (const k of allowed) {
     if (req.body[k] !== undefined) update[k] = req.body[k];
@@ -189,6 +193,10 @@ router.get('/full', requireAdmin, asyncHandler(async (req, res) => {
         instagram: 'https://instagram.com/gyrostore',
         facebook: 'https://facebook.com/gyrostore',
         tiktok: 'https://tiktok.com/@gyrostore',
+      },
+      reviewLinks: biz.reviewLinks || {
+        google: 'https://g.page/r/CcAd-gQQQD6GEBM/review',
+        facebook: 'https://www.facebook.com/people/Gyro-Store/61589182888082/reviews',
       },
       costosFijos: biz.costosFijos || defaultBusiness.costosFijos,
       wholesaleDiscounts: pricing.wholesaleDiscounts || defaultPricing.wholesaleDiscounts,

@@ -247,6 +247,8 @@ export default function Configuracion() {
   const [instagram, setInstagram] = useState("");
   const [facebook, setFacebook] = useState("");
   const [tiktok, setTiktok] = useState("");
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
+  const [facebookReviewUrl, setFacebookReviewUrl] = useState("");
 
   // Costos fijos
   const [publicidad, setPublicidad] = useState<number | "">(10);
@@ -266,6 +268,8 @@ export default function Configuracion() {
     setInstagram(config.socialLinks?.instagram || "");
     setFacebook(config.socialLinks?.facebook || "");
     setTiktok(config.socialLinks?.tiktok || "");
+    setGoogleReviewUrl(config.reviewLinks?.google || "");
+    setFacebookReviewUrl(config.reviewLinks?.facebook || "");
     setPublicidad(config.costosFijos?.publicidad ?? 10);
     setUtiles(config.costosFijos?.utiles ?? 5);
     setServicios(config.costosFijos?.servicios ?? 5);
@@ -282,6 +286,7 @@ export default function Configuracion() {
         whatsapp,
         exchangeRate: Number(exchangeRate),
         socialLinks: { instagram, facebook, tiktok },
+        reviewLinks: { google: googleReviewUrl, facebook: facebookReviewUrl },
       }).unwrap();
       toast.success("Datos de la tienda actualizados.");
     } catch {
@@ -326,9 +331,11 @@ export default function Configuracion() {
       Number(exchangeRate) !== (config.exchangeRate || 37) ||
       instagram !== (config.socialLinks?.instagram || "") ||
       facebook !== (config.socialLinks?.facebook || "") ||
-      tiktok !== (config.socialLinks?.tiktok || "")
+      tiktok !== (config.socialLinks?.tiktok || "") ||
+      googleReviewUrl !== (config.reviewLinks?.google || "") ||
+      facebookReviewUrl !== (config.reviewLinks?.facebook || "")
     );
-  }, [config, storeName, storeAddress, whatsapp, exchangeRate, instagram, facebook, tiktok]);
+  }, [config, storeName, storeAddress, whatsapp, exchangeRate, instagram, facebook, tiktok, googleReviewUrl, facebookReviewUrl]);
 
   const isCFChanged = useMemo(() => {
     if (!config) return false;
@@ -407,6 +414,17 @@ export default function Configuracion() {
               <Field label="TikTok URL">
                 <input className="input" value={tiktok} onChange={(e) => setTiktok(e.target.value)} />
               </Field>
+            </div>
+            <div className="border-t border-border/40 pt-4">
+              <h3 className="mb-3 text-xs font-semibold text-text uppercase tracking-wider">Enlaces de Reseñas / Feedback</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Google Review URL (Feedback)">
+                  <input className="input" value={googleReviewUrl} onChange={(e) => setGoogleReviewUrl(e.target.value)} placeholder="https://g.page/r/.../review" />
+                </Field>
+                <Field label="Facebook Review URL (Feedback)">
+                  <input className="input" value={facebookReviewUrl} onChange={(e) => setFacebookReviewUrl(e.target.value)} placeholder="https://facebook.com/.../reviews" />
+                </Field>
+              </div>
             </div>
             <div className="flex justify-end">
               <Button type="submit" loading={savingBiz} disabled={!isBizChanged} className="flex items-center gap-2">

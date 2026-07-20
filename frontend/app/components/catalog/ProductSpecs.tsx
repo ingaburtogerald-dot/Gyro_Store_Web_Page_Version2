@@ -14,7 +14,7 @@ export function ProductSpecs({ specs }: ProductSpecsProps) {
   if (!specs || specs.length === 0) return null;
 
   return (
-    <div className="border-t border-border/40 pt-10 mt-2 focus:outline-none">
+    <div>
       <h3 className="text-lg font-bold mb-6 text-text flex items-center gap-2">
         <List className="h-5 w-5 text-accent" />
         Especificaciones Técnicas

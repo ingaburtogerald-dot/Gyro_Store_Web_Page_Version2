@@ -43,10 +43,13 @@ export function FilterBar({ products }: { products: CatalogProduct[] }) {
   const { filtered } = useCatalogFilter(products);
   const count = filtered.length;
 
-  // Sticky bajo el header. En móvil el header es más alto (lleva la fila de
-  // categorías, md:hidden), así que el offset lo compensa; desde md vuelve a top-24.
+  // Sticky justo bajo el header (PublicHeader: h-17 + hairline = 69px, constante
+  // en todos los breakpoints — ya no lleva una fila de categorías aparte en móvil,
+  // esa entrada vive en el CategoriesDrawer). Un offset desalineado con la altura
+  // real del header dejaba una franja "muerta" por la que las cards se colaban
+  // detrás de la barra al hacer scroll — de ahí el bug de "tarjeta atravesada".
   return (
-    <div className="sticky top-[120px] z-20 -mx-4 mb-5 px-4 md:top-24">
+    <div className="sticky top-[69px] z-30 -mx-4 mb-5 px-4">
       <div className="card-premium flex items-center justify-between gap-2 rounded-2xl px-3 py-2.5 sm:gap-3 sm:px-4">
         {/* Botón de filtros (solo móvil) - Izquierda en móvil. Emparejado en altura
             y estilo con "Ordenar"; la etiqueta va siempre visible (no ícono suelto)

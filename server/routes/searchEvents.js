@@ -9,6 +9,7 @@
 // así que las pruebas locales no ensucian los datos reales. La lectura agregada del
 // dashboard exige rol admin.
 const router = require('express').Router();
+const crypto = require('crypto');
 const { db, FieldValue, Timestamp } = require('../firebase');
 const config = require('../config');
 const { asyncHandler } = require('../utils/asyncHandler');
@@ -71,18 +72,21 @@ function productIdFromPage(page) {
 }
 
 // ── Caché de "populares" (GET /popular, público) ──
-// Se sirve en el home a CADA visitante, así que se cachea 1h en memoria para no
-// gastar una lectura de Firestore por carga de página (proceso único en Render).
+// Se sirve en el home (y en el header, para el panel del buscador) a CADA
+// visitante, así que se cachea 1h en memoria para no gastar una lectura de
+// Firestore por carga de página (proceso único en Render).
 const POPULAR_LIMIT = 12;
+const POPULAR_TERMS_LIMIT = 8;
 const POPULAR_DAYS = 30;
 const POPULAR_CACHE_TTL_MS = 60 * 60 * 1000;
 let popularCache = { data: null, timestamp: 0 };
 
-// Popularidad = vistas de ficha (pageview a /producto/:id) + clics desde búsqueda,
-// sumados. Solo clics sería un embudo demasiado angosto (requiere que el usuario
-// busque Y haga clic en un resultado); la mayoría del tráfico a una ficha llega
-// navegando el catálogo, no buscando.
-async function computePopularProductIds() {
+// Popularidad de PRODUCTOS = vistas de ficha (pageview a /producto/:id) + clics
+// desde búsqueda, sumados. Popularidad de TÉRMINOS = búsquedas reales agrupadas
+// case-insensitive (mismo criterio que /analytics). Un solo snapshot de Firestore
+// alimenta ambos rankings — el panel de búsqueda del header no cuesta una lectura
+// aparte.
+async function computePopularData() {
   const cutoff = Timestamp.fromMillis(Date.now() - POPULAR_DAYS * DAY_MS);
   const snap = await db
     .collection(COL)
@@ -93,17 +97,38 @@ async function computePopularProductIds() {
 
   const scoreByProduct = new Map();
   const bump = (id) => id && scoreByProduct.set(id, (scoreByProduct.get(id) || 0) + 1);
+  const termByLower = new Map(); // queryLower → { query, count }
 
   snap.forEach((doc) => {
     const d = doc.data();
-    if (d.type === 'pageview') bump(productIdFromPage(d.page));
-    else if (d.clickedProductId) bump(d.clickedProductId);
+    if (d.deviceType === 'Bot') return; // ignora basura ya almacenada (bots/crawlers)
+    if (d.type === 'pageview') {
+      bump(productIdFromPage(d.page));
+      return;
+    }
+    if (d.clickedProductId) bump(d.clickedProductId);
+
+    // type === 'search': agrega el término (case-insensitive, conserva el casing
+    // original más reciente para mostrarlo bonito en el panel).
+    const q = d.queryLower || String(d.query || '').toLowerCase();
+    if (q) {
+      const entry = termByLower.get(q) || { query: d.query || q, count: 0 };
+      entry.count++;
+      termByLower.set(q, entry);
+    }
   });
 
-  return [...scoreByProduct.entries()]
+  const productIds = [...scoreByProduct.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, POPULAR_LIMIT)
     .map(([productId]) => productId);
+
+  const terms = [...termByLower.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, POPULAR_TERMS_LIMIT)
+    .map((e) => e.query);
+
+  return { productIds, terms };
 }
 
 // POST /api/search-events
@@ -111,12 +136,49 @@ async function computePopularProductIds() {
 // Body pageview:  { type:'pageview', page, sessionId? }
 // Devuelve { id } (útil para marcar el clic de un resultado más tarde — CTR).
 router.post('/', telemetryLimiter, asyncHandler(async (req, res) => {
+  // --- BLINDAJE Y DEFENSIVE PROGRAMMING ---
+  const origin = req.headers.origin || '';
+  const referer = req.headers.referer || '';
+  const clientIp = (req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+  
+  // Rechazar tráfico local
+  if (
+    origin.includes('localhost') || origin.includes('127.0.0.1') ||
+    referer.includes('localhost') || referer.includes('127.0.0.1') ||
+    clientIp === '::1' || clientIp === '127.0.0.1' || clientIp.includes('::ffff:127.0.0.1')
+  ) {
+    return res.json({ ok: true, skipped: true });
+  }
+
   const type = req.body?.type === 'pageview' ? 'pageview' : 'search';
-  const sessionId = String(req.body?.sessionId ?? '').slice(0, 64) || null;
+  const rawSessionId = String(req.body?.visitorId ?? req.body?.sessionId ?? '').slice(0, 64) || null;
+  const rawUserAgent = String(req.headers['user-agent'] || '');
+  const userAgent = rawUserAgent.slice(0, 200);
+
+  // Análisis del User-Agent. Un UA vacío o mínimo (<10 chars) es señal fuerte de
+  // script/bot: TODO navegador real manda un UA largo. Además de los crawlers y
+  // clientes de vista previa (WhatsApp/Facebook), se descartan clientes headless
+  // y herramientas de scripting (curl/wget/python/axios/node).
+  const isBot =
+    rawUserAgent.trim().length < 10 ||
+    /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|google|bing|yandex|lighthouse|headless|preview|python|curl|wget|axios|node-fetch|okhttp/i.test(rawUserAgent);
+  const isMobile = /mobile|android|iphone|ipad|ipod|windows phone/i.test(userAgent);
+  const deviceType = isBot ? 'Bot' : (isMobile ? 'Mobile' : 'Desktop');
+
+  // Barrera anti-basura: los bots/crawlers/link-preview y los clientes sin UA NO son
+  // visitas orgánicas reales — solo ensuciarían las analíticas e inflarían "Visitas".
+  // Se descartan aquí, ANTES de escribir en Firestore (no gastan una escritura).
+  if (isBot) return res.json({ ok: true, skipped: true });
+
+  // Resolución de identidad (Fallback a IP Hash)
+  const sessionId = rawSessionId && rawSessionId !== 'Desconocido'
+    ? rawSessionId
+    : `ip-${crypto.createHash('sha256').update(clientIp || 'unknown').digest('hex').slice(0, 16)}`;
 
   if (type === 'pageview') {
     const page = String(req.body?.page ?? '').trim().slice(0, MAX_PAGE_LEN);
     if (!page.startsWith('/')) return res.json({ ok: true, skipped: true });
+    if (page === '/') return res.json({ ok: true, skipped: true });
 
     // Recarga/reingreso a la misma página dentro de los 30 min → no ensucia Firestore.
     if (isDuplicatePageview(req, sessionId, page)) return res.json({ ok: true, skipped: true });
@@ -125,6 +187,15 @@ router.post('/', telemetryLimiter, asyncHandler(async (req, res) => {
       type: 'pageview',
       page,
       sessionId,
+      ip: clientIp,
+      deviceType,
+      userAgent,
+      entryType: req.body?.entryType || null,
+      isNewVisitor: req.body?.isNewVisitor ?? null,
+      referrer: req.body?.referrer || null,
+      utmSource: req.body?.utmSource || null,
+      utmMedium: req.body?.utmMedium || null,
+      utmCampaign: req.body?.utmCampaign || null,
       timestamp: FieldValue.serverTimestamp(),
     });
     return res.json({ ok: true, id: ref.id });
@@ -145,10 +216,14 @@ router.post('/', telemetryLimiter, asyncHandler(async (req, res) => {
     resultsCount,
     clickedProductId: null,
     sessionId,
+    ip: clientIp,
+    deviceType,
+    userAgent,
     timestamp: FieldValue.serverTimestamp(),
   });
   res.json({ ok: true, id: ref.id });
 }));
+
 
 // POST /api/search-events/:id/click
 // Marca qué producto abrió el usuario tras esa búsqueda (CTR).
@@ -162,24 +237,26 @@ router.post('/:id/click', telemetryLimiter, asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// GET /api/search-events/popular  (público — lo consume el home vía SSR)
-// Devuelve hasta 12 ids de producto ordenados por popularidad (30 días). Cacheado
-// 1h en memoria: bajo tráfico normal, el loader del home nunca toca Firestore.
+// GET /api/search-events/popular  (público — lo consume el home vía SSR y el
+// panel de búsqueda del header vía RTK Query)
+// Devuelve hasta 12 ids de producto y hasta 8 términos de búsqueda, ambos
+// ordenados por popularidad real (30 días). Cacheado 1h en memoria: bajo
+// tráfico normal, ningún visitante dispara una lectura de Firestore.
 router.get('/popular', asyncHandler(async (req, res) => {
   const now = Date.now();
   if (popularCache.data && now - popularCache.timestamp < POPULAR_CACHE_TTL_MS) {
-    return res.json({ ok: true, productIds: popularCache.data, cached: true });
+    return res.json({ ok: true, ...popularCache.data, cached: true });
   }
 
   try {
-    const productIds = await computePopularProductIds();
-    popularCache = { data: productIds, timestamp: now };
-    return res.json({ ok: true, productIds, cached: false });
+    const data = await computePopularData();
+    popularCache = { data, timestamp: now };
+    return res.json({ ok: true, ...data, cached: false });
   } catch (err) {
     // Best-effort: si Firestore falla, sirve caché vencida antes que romper el home.
-    if (popularCache.data) return res.json({ ok: true, productIds: popularCache.data, cached: true, stale: true });
+    if (popularCache.data) return res.json({ ok: true, ...popularCache.data, cached: true, stale: true });
     logger.error('popular_products_failed', { message: err.message });
-    return res.json({ ok: true, productIds: [] });
+    return res.json({ ok: true, productIds: [], terms: [] });
   }
 }));
 
@@ -208,6 +285,7 @@ router.get('/analytics', requireAdmin, asyncHandler(async (req, res) => {
 
   snap.forEach((doc) => {
     const d = doc.data();
+    if (d.deviceType === 'Bot') return; // ignora basura ya almacenada (bots/crawlers)
     const when = d.timestamp && d.timestamp.toDate ? d.timestamp.toDate() : null;
     const key = when ? dayKey(when) : null;
 
@@ -283,6 +361,116 @@ router.get('/analytics', requireAdmin, asyncHandler(async (req, res) => {
     topClickedProducts,
     trafficByProduct,
   });
+}));
+
+// GET /api/search-events/sessions?days=30  (SOLO admin)
+router.get('/sessions', requireAdmin, asyncHandler(async (req, res) => {
+  const days = Math.min(365, Math.max(1, Number(req.query.days) || DEFAULT_DAYS));
+  const cutoff = Timestamp.fromMillis(Date.now() - days * DAY_MS);
+
+  // Consultar últimos eventos (cap 3000 para no reventar memoria)
+  const snap = await db
+    .collection(COL)
+    .where('timestamp', '>=', cutoff)
+    .orderBy('timestamp', 'desc')
+    .limit(3000)
+    .get();
+
+  const sessionsMap = new Map();
+
+  snap.forEach((doc) => {
+    const d = doc.data();
+    if (d.deviceType === 'Bot') return; // no muestra sesiones de bots/crawlers
+    // Resolución retroactiva para eventos antiguos sin ID
+    const sessionId = (d.sessionId && d.sessionId !== 'Desconocido')
+      ? d.sessionId 
+      : (d.ip ? `ip-${crypto.createHash('sha256').update(d.ip).digest('hex').slice(0, 16)}` : 'Desconocido');
+    
+    if (!sessionsMap.has(sessionId)) {
+      sessionsMap.set(sessionId, {
+        id: sessionId,
+        userAgent: d.userAgent || 'Desconocido',
+        startTime: null,
+        entryType: null,
+        isNewVisitor: null,
+        referrer: null,
+        utmSource: null,
+        utmMedium: null,
+        utmCampaign: null,
+        actions: []
+      });
+    }
+
+    const session = sessionsMap.get(sessionId);
+    
+    // Al iterar en orden desc (más nuevo primero), sobreescribir nos garantiza 
+    // quedarnos con el valor del evento más antiguo (el inicio de la sesión/visita).
+    if (d.entryType) session.entryType = d.entryType;
+    if (d.referrer) session.referrer = d.referrer;
+    if (d.utmSource) session.utmSource = d.utmSource;
+    if (d.utmMedium) session.utmMedium = d.utmMedium;
+    if (d.utmCampaign) session.utmCampaign = d.utmCampaign;
+    if (d.isNewVisitor !== undefined && d.isNewVisitor !== null) session.isNewVisitor = d.isNewVisitor;
+    const time = d.timestamp && d.timestamp.toDate ? d.timestamp.toDate().toISOString() : new Date().toISOString();
+    
+    if (!session.startTime || time < session.startTime) {
+      session.startTime = time; // El más antiguo de la sesión
+    }
+
+    if (d.type === 'pageview') {
+      session.actions.push({ type: 'pageview', page: d.page, timestamp: time });
+    } else {
+      session.actions.push({ type: 'search', query: d.query, resultsCount: d.resultsCount, clickedProductId: d.clickedProductId, timestamp: time });
+    }
+  });
+
+  const sessions = [...sessionsMap.values()];
+  
+  // Ordenar eventos dentro de cada sesión cronológicamente (más antiguo primero)
+  sessions.forEach(s => {
+    s.actions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  });
+
+  // Ordenar sesiones por el evento más reciente (de más nuevo a más viejo global)
+  sessions.sort((a, b) => {
+    const lastA = a.actions.length > 0 ? a.actions[a.actions.length - 1].timestamp : a.startTime;
+    const lastB = b.actions.length > 0 ? b.actions[b.actions.length - 1].timestamp : b.startTime;
+    return new Date(lastB) - new Date(lastA);
+  });
+
+  res.json({ ok: true, sessions });
+}));
+
+// GET /api/search-events/raw-searches?days=30 (SOLO admin)
+router.get('/raw-searches', requireAdmin, asyncHandler(async (req, res) => {
+  const days = Math.min(365, Math.max(1, Number(req.query.days) || DEFAULT_DAYS));
+  const cutoff = Timestamp.fromMillis(Date.now() - days * DAY_MS);
+
+  const snap = await db
+    .collection(COL)
+    .where('timestamp', '>=', cutoff)
+    .orderBy('timestamp', 'desc')
+    .limit(1500)
+    .get();
+
+  const searches = [];
+  snap.forEach(doc => {
+    const d = doc.data();
+    if (d.type !== 'search') return;
+    if (d.deviceType === 'Bot') return; // no muestra búsquedas de bots/crawlers
+
+    searches.push({
+      id: doc.id,
+      query: d.query || '',
+      resultsCount: d.resultsCount || 0,
+      clickedProductId: d.clickedProductId || null,
+      timestamp: d.timestamp && d.timestamp.toDate ? d.timestamp.toDate().toISOString() : new Date().toISOString(),
+      ip: d.ip || 'Desconocido',
+      deviceType: d.deviceType || 'Desktop',
+    });
+  });
+
+  res.json({ ok: true, searches });
 }));
 
 module.exports = router;

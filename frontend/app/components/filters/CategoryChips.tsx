@@ -327,7 +327,7 @@ function MegaMenu({
                       className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="grid h-full place-items-center text-black/20">
+                    <div className="grid h-full place-items-center text-muted">
                       <ImageOff className="h-5 w-5" />
                     </div>
                   )}

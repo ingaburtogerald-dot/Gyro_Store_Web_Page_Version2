@@ -106,6 +106,11 @@ const folders = {
   // sin guardar), caen a un bucket con fecha para no ensuciar la raíz.
   productImages: (productId) =>
     productId ? `catalog/products/${safeId(productId)}` : `catalog/products/_sin-asignar/${datePartition()}`,
+  // Foto propia del combo (opcional — si no hay, la card arma el split de las
+  // 2 fotos de los productos). Mismo patrón que productImages: sin id todavía
+  // (combo nuevo, aún sin guardar) cae a un bucket temporal por fecha.
+  comboImage: (comboId) =>
+    comboId ? `catalog/combos/${safeId(comboId)}` : `catalog/combos/_sin-asignar/${datePartition()}`,
   templateImages: (templateId) => `catalog/templates/${safeId(templateId, 'sin-plantilla')}`,
   profilePhoto: (uid) => `users/profile/${safeId(uid)}`,
   // Media de las diapositivas del Hero de la landing, agrupada por slide (como los

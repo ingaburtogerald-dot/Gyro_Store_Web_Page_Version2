@@ -2,7 +2,7 @@
 // crear/editar/activar/eliminar. Cada combo empareja 2 productos a un precio de
 // paquete y aparece en la página de detalle de ambos (Fase 2).
 import { useState } from "react";
-import { Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, ImageOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { ComboEditorModal } from "./ComboEditorModal";
@@ -68,7 +68,7 @@ export function ComboGrid() {
           <p className="text-xs text-muted">Empareja 2 productos a un precio especial y aparecerán en sus páginas.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {combos.map((combo) => (
             <ComboCard
               key={combo.id}
@@ -98,63 +98,72 @@ function ComboCard({
   onToggle: (active: boolean) => void;
 }) {
   return (
-    <div className="relative flex flex-col justify-between rounded-card border border-border bg-surface p-4 shadow-premium transition-all hover:border-accent/40">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface shadow-premium transition-all hover:border-accent/40">
       <div className="absolute right-2 top-2 z-10 flex gap-1">
-        <button onClick={onEdit} className="rounded-lg bg-surface-2 p-1.5 text-text hover:text-accent-2" aria-label="Editar">
+        <button onClick={onEdit} className="rounded-lg bg-black/50 p-1.5 text-white hover:text-accent-2" aria-label="Editar">
           <Pencil className="h-4 w-4" />
         </button>
-        <button onClick={onDelete} className="rounded-lg bg-surface-2 p-1.5 text-text hover:text-danger" aria-label="Eliminar">
+        <button onClick={onDelete} className="rounded-lg bg-black/50 p-1.5 text-white hover:text-danger" aria-label="Eliminar">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="pr-16">
-        <h3 className="line-clamp-2 text-base font-bold leading-tight">{combo.name}</h3>
-
-        {combo.broken && (
-          <p className="mt-1 flex items-center gap-1 text-xs text-warning">
-            <AlertTriangle className="h-3.5 w-3.5" /> Un producto ya no existe
-          </p>
-        )}
-
-        {/* Miniaturas de los 2 productos */}
-        <div className="mt-3 flex items-center gap-2">
-          {combo.products.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-2">
-              {i > 0 && <span className="text-muted">+</span>}
-              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-2">
-                {p.image && <img src={p.image} alt="" className="h-full w-full object-contain" />}
+      <div className="aspect-square bg-surface-2 shrink-0">
+        {combo.image ? (
+          <img src={combo.image} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full items-center gap-1 p-4">
+            {combo.products.map((p, i) => (
+              <div key={p.id} className="flex h-full w-full flex-1 items-center justify-center">
+                {i > 0 && <span className="mr-2 text-xl font-light text-muted">+</span>}
+                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-2">
+                  {p.image ? (
+                    <img src={p.image} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="grid h-full place-items-center text-muted"><ImageOff className="h-6 w-6" /></div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="mt-4 flex items-end justify-between border-t border-border pt-3">
-        <div>
-          <p className="text-xs text-muted">Precio del paquete</p>
-          <p className="font-heading text-lg font-bold text-accent leading-none tabular-nums">
-            {formatCordobas(combo.price)}
-          </p>
-          {combo.savings > 0 && (
-            <p className="mt-0.5 text-xs text-muted">
-              Ahorro <span className="tabular-nums">{formatCordobas(combo.savings)}</span>
-            </p>
+      <div className="flex flex-1 flex-col p-4">
+        <div className="mb-2">
+          {combo.broken && (
+            <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-warning">
+              <AlertTriangle className="h-3 w-3" /> Incompleto
+            </span>
           )}
+          <h3 className="line-clamp-2 text-base font-bold leading-snug">{combo.name}</h3>
         </div>
 
-        {/* Toggle activo */}
-        <button
-          type="button"
-          onClick={() => onToggle(!combo.active)}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${combo.active ? "bg-accent" : "bg-surface-2"}`}
-          aria-pressed={combo.active}
-          aria-label={combo.active ? "Desactivar combo" : "Activar combo"}
-        >
-          <span
-            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${combo.active ? "translate-x-5" : "translate-x-0.5"}`}
-          />
-        </button>
+        <div className="mt-auto flex items-end justify-between pt-2">
+          <div>
+            <p className="text-xs text-muted">Precio paquete</p>
+            <p className="font-heading text-lg font-bold text-accent leading-none tabular-nums mt-0.5">
+              {formatCordobas(combo.price)}
+            </p>
+            {combo.savings > 0 && (
+              <p className="mt-1 text-xs text-muted">
+                Ahorro <span className="tabular-nums">{formatCordobas(combo.savings)}</span>
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onToggle(!combo.active)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${combo.active ? "bg-accent" : "bg-surface-2"}`}
+            aria-pressed={combo.active}
+            aria-label={combo.active ? "Desactivar combo" : "Activar combo"}
+          >
+            <span
+              className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${combo.active ? "translate-x-[22px]" : "translate-x-0.5"}`}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );

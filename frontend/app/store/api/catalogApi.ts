@@ -119,6 +119,14 @@ export const catalogApi = baseApi.injectEndpoints({
       providesTags: (_r, _e, id) => [{ type: "Catalog", id }],
     }),
 
+    // Telemetría real de búsqueda (30 días, cacheada 1h en el servidor): ids de
+    // producto más vistos/clicados + términos más buscados. Alimenta el panel de
+    // recomendaciones del buscador del header (SearchBar) con datos reales en vez
+    // de placeholders.
+    getPopularSearch: build.query<{ productIds: string[]; terms: string[] }, void>({
+      query: () => "/search-events/popular",
+    }),
+
     // ── Admin (modo edición) ──
     getAdminCatalog: build.query<CatalogProduct[], void>({
       query: () => "/catalog?all=true",
@@ -200,6 +208,11 @@ export const catalogApi = baseApi.injectEndpoints({
       query: (productId) => `/combos?productId=${encodeURIComponent(productId)}`,
       providesTags: (_r, _e, productId) => [{ type: "Combo", id: productId }],
     }),
+    // Sube la foto propia (opcional) de un combo. `body` = FormData con `file`
+    // y, si el combo ya existe, `comboId` (agrupa en catalog/combos/<id>/).
+    uploadComboImage: build.mutation<{ ok: boolean; url: string }, FormData>({
+      query: (body) => ({ url: "/combos/upload", method: "POST", body }),
+    }),
     createCombo: build.mutation<Combo, ComboInput>({
       query: (body) => ({ url: "/combos", method: "POST", body }),
       invalidatesTags: ["Combo"],
@@ -233,6 +246,9 @@ export interface Combo {
   id: string;
   /** Nombre del combo; si no se definió, el backend lo arma como "A + B". */
   name: string;
+  /** Foto propia del combo (opcional). Vacío ⇒ la card arma el split de las
+   *  fotos de los 2 productos. */
+  image: string;
   productIds: string[];
   /** Precio del paquete (con el descuento ya incorporado). */
   price: number;
@@ -251,6 +267,8 @@ export interface ComboInput {
   productIds: string[];
   price: number;
   active?: boolean;
+  /** Vacío/omitido ⇒ sin foto propia. */
+  image?: string;
 }
 
 export interface TemplateInput {
@@ -296,6 +314,7 @@ export const {
   useUploadHeroSlideMutation,
   useGetCatalogQuery,
   useGetCatalogItemQuery,
+  useGetPopularSearchQuery,
   useGetAdminCatalogQuery,
   useCreateCatalogItemMutation,
   useUpdateCatalogItemMutation,
@@ -313,6 +332,7 @@ export const {
   useGetCombosQuery,
   useGetComboQuery,
   useGetCombosByProductQuery,
+  useUploadComboImageMutation,
   useCreateComboMutation,
   useUpdateComboMutation,
   useToggleComboActiveMutation,

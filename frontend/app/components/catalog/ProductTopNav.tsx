@@ -11,31 +11,33 @@
 // El carrito vive aquí (como en PublicHeader) para que la ficha no pierda acceso
 // al carrito: monta el CartDrawer e hidrata desde localStorage al montar.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "@remix-run/react";
+import { useNavigate, Link } from "@remix-run/react";
 import { motion, AnimatePresence, useAnimationControls, useReducedMotion } from "framer-motion";
-import { ArrowLeft, Heart, Share2, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Heart, LayoutGrid, Share2, ShoppingCart, User } from "lucide-react";
 import { toast } from "sonner";
 import { CartDrawer } from "~/components/cart/CartDrawer";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { hydrate, openCart, selectCartCount } from "~/store/slices/cartSlice";
-import { setCategory } from "~/store/slices/uiSlice";
 import { cn } from "~/lib/utils";
+import { useAuth } from "~/hooks/useAuth";
+import { UserMenu } from "~/components/layout/UserMenu";
 
 const SCROLL_THRESHOLD = 80;
 
 export function ProductTopNav({
   title,
   productId,
-  categoryId,
-  categoryName,
+  onOpenCategories,
 }: {
   title: string;
   productId: string;
-  categoryId?: string;
-  categoryName?: string;
+  /** Abre el CategoriesDrawer (solo móvil): único camino a OTRA categoría desde
+   *  la ficha, ya que esta ruta no monta el mega-menú de PublicHeader. */
+  onOpenCategories?: () => void;
 }) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
 
   // El carrito vive en este nav: hidratamos desde localStorage al montar (igual
@@ -78,77 +80,48 @@ export function ProductTopNav({
     }
   }, [title]);
 
-  const goCategory = useCallback(() => {
-    if (categoryId) dispatch(setCategory(categoryId));
-    navigate("/#catalogo");
-  }, [categoryId, dispatch, navigate]);
-
   return (
     <>
       <header
         className={cn(
-          "sticky top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-200 ease-out",
+          "sticky top-0 z-50 transition-all duration-300 ease-out",
           scrolled
-            ? "border-b border-border bg-surface/95 backdrop-blur-md"
+            ? "border-b border-white/5 bg-surface/70 backdrop-blur-xl shadow-sm"
             : "border-b border-transparent bg-bg",
         )}
       >
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4 md:h-16 md:gap-3 md:px-6">
-          {/* Volver */}
-          <button
-            type="button"
-            onClick={goBack}
-            aria-label="Volver"
-            className="ease-expo -ml-2 flex h-11 items-center gap-2 rounded-full px-2.5 text-text transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-2/50 md:-ml-2.5"
-          >
-            <ArrowLeft className="h-6 w-6 shrink-0" />
-            <span className="hidden pr-1 text-sm font-semibold md:inline">Volver</span>
-          </button>
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 md:h-16 md:px-6">
+          {/* Izquierda: Volver */}
+          <div className="flex items-center flex-1">
+            <button
+              type="button"
+              onClick={goBack}
+              aria-label="Volver al catálogo"
+              className="ease-expo flex h-10 w-10 md:h-9 md:w-auto items-center justify-center md:justify-start gap-1.5 rounded-full bg-surface-2/80 border border-border/50 md:px-3.5 text-text transition-all hover:bg-surface-hover hover:border-accent/30 hover:text-accent-2 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:-ml-2"
+            >
+              <ArrowLeft className="h-5 w-5 md:h-4 md:w-4 shrink-0" />
+              <span className="hidden text-xs font-semibold uppercase tracking-wider md:inline">Volver</span>
+            </button>
+          </div>
 
-          {/* Contexto: breadcrumb reducido (desktop) + título truncado */}
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 md:justify-start">
-            <nav aria-label="Ruta" className="hidden shrink-0 items-center gap-1.5 text-sm text-muted md:flex">
-              <Link to="/#catalogo" className="transition-colors hover:text-text">
-                Catálogo
-              </Link>
-              <span aria-hidden className="text-muted/60">/</span>
-            </nav>
+          {/* Centro: Título */}
+          <div className="flex-[2] text-center min-w-0 px-2">
             <h1
               aria-current="page"
-              className="min-w-0 truncate text-center text-sm font-semibold text-text md:text-left"
+              className="truncate font-heading text-base md:text-lg font-bold text-text"
             >
               {title}
             </h1>
           </div>
 
-          {/* Acciones: favorito · compartir · carrito */}
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          {/* Derecha: Favorito, Compartir, Carrito */}
+          <div className="flex flex-1 justify-end shrink-0 items-center gap-0.5 sm:gap-1">
             <FavoriteButton productId={productId} />
             <IconButton onClick={share} label="Compartir producto">
               <Share2 className="h-5 w-5" />
             </IconButton>
             <CartButton />
           </div>
-        </div>
-
-        {/* Breadcrumb completo (tablet+): navegable, cada segmento salvo el último.
-            No compite con el título: tamaño caption, muted, con aire. */}
-        <div className="mx-auto hidden w-full max-w-6xl px-6 pb-2 sm:block md:hidden lg:block">
-          <nav aria-label="Migas de pan" className="flex items-center gap-2 text-xs text-muted">
-            <Link to="/" className="transition-colors hover:text-text">Inicio</Link>
-            <span aria-hidden className="text-muted/50">/</span>
-            <Link to="/#catalogo" className="transition-colors hover:text-text">Catálogo</Link>
-            {categoryName && (
-              <>
-                <span aria-hidden className="text-muted/50">/</span>
-                <button type="button" onClick={goCategory} className="transition-colors hover:text-text">
-                  {categoryName}
-                </button>
-              </>
-            )}
-            <span aria-hidden className="text-muted/50">/</span>
-            <span aria-current="page" className="truncate font-medium text-text/90">{title}</span>
-          </nav>
         </div>
       </header>
 
@@ -163,11 +136,13 @@ function IconButton({
   onClick,
   label,
   children,
+  className,
   ...rest
 }: {
   onClick: () => void;
   label: string;
   children: React.ReactNode;
+  className?: string;
 } & Partial<Pick<React.AriaAttributes, "aria-pressed">>) {
   return (
     <button
@@ -175,7 +150,10 @@ function IconButton({
       onClick={onClick}
       aria-label={label}
       {...rest}
-      className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-2/50"
+      className={cn(
+        "grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-2/50",
+        className,
+      )}
     >
       {children}
     </button>

@@ -90,7 +90,7 @@ export function CartDrawer() {
                           {item.image ? (
                             <img src={item.image} alt="" className="h-full w-full object-cover" />
                           ) : (
-                            <div className="grid h-full place-items-center text-black/20">
+                            <div className="grid h-full place-items-center text-muted">
                               <ImageOff className="h-5 w-5" />
                             </div>
                           )}

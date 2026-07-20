@@ -8,9 +8,10 @@
 // Fuente de verdad compartida: `ui.search` en Redux (el contenedor controla ancho
 // y posición). El prop `size` ajusta la altura.
 import { useEffect, useRef, useState } from "react";
+import { Link } from "@remix-run/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Search, X, TrendingUp, ArrowUpRight } from "lucide-react";
-import { cn } from "~/lib/utils";
+import { Search, X, TrendingUp, ArrowUpRight, ImageOff } from "lucide-react";
+import { cn, formatCordobas, getProductUrl } from "~/lib/utils";
 
 // Lo que la gente realmente busca en la tienda (invita a escribir / placeholder vivo).
 const SUGERENCIAS = [
@@ -20,23 +21,13 @@ const SUGERENCIAS = [
   "Accesorios para PC",
 ];
 
-// ── Datos de ejemplo del panel de recomendaciones ──
-// (placeholders: cámbialos luego por datos reales del catálogo).
-const KEYWORDS_POPULARES = [
-  "KZ ZSN Pro",
-  "Bluetooth 5.3",
-  "Cable plata",
-  "Espuma memory",
-  "Adaptador USB-C",
-  "Gaming",
-];
-
-const PRODUCTOS_DESTACADOS = [
-  { id: "kz-zsn-pro-x", name: "KZ ZSN Pro X", price: "₡18.900", tone: "from-cyan-500/25 to-blue-600/25" },
-  { id: "kz-castor", name: "KZ Castor Harman", price: "₡24.500", tone: "from-emerald-500/25 to-teal-600/25" },
-  { id: "adaptador-bt", name: "Adaptador BT 5.3", price: "₡12.200", tone: "from-fuchsia-500/25 to-purple-600/25" },
-  { id: "cable-plata", name: "Cable Plata 2pin", price: "₡9.800", tone: "from-amber-500/25 to-orange-600/25" },
-];
+/** Producto real para el panel "Destacados" del buscador (foto + precio reales). */
+export interface SearchFeaturedProduct {
+  id: string;
+  name: string;
+  price: number;
+  image?: string;
+}
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -50,6 +41,8 @@ export function SearchBar({
   withPanel = false,
   autoFocus = false,
   className,
+  popularKeywords = [],
+  featuredProducts = [],
 }: {
   value: string;
   onChange: (val: string) => void;
@@ -64,6 +57,10 @@ export function SearchBar({
   withPanel?: boolean;
   autoFocus?: boolean;
   className?: string;
+  /** Términos más buscados de verdad (telemetría, 30 días). Vacío → sección oculta. */
+  popularKeywords?: string[];
+  /** Productos reales para "Destacados" (foto + precio reales). Vacío → sección oculta. */
+  featuredProducts?: SearchFeaturedProduct[];
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
@@ -112,7 +109,9 @@ export function SearchBar({
     inputRef.current?.focus();
   }
 
-  const panelOpen = pill && withPanel && focused;
+  // Sin datos reales (telemetría nueva/vacía) → no mostrar un panel a medias.
+  const hasRecommendations = popularKeywords.length > 0 || featuredProducts.length > 0;
+  const panelOpen = pill && withPanel && focused && hasRecommendations;
 
   return (
     <div className={cn("relative w-full", className)}>
@@ -240,57 +239,61 @@ export function SearchBar({
             onMouseDown={(e) => e.preventDefault()}
           >
             <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-              {/* Keywords populares */}
-              <div>
-                <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-                  <TrendingUp className="h-3.5 w-3.5 text-accent-2" />
-                  Búsquedas populares
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {KEYWORDS_POPULARES.map((kw) => (
-                    <button
-                      key={kw}
-                      type="button"
-                      onClick={() => pickKeyword(kw)}
-                      className="rounded-pill border border-border bg-surface-2/60 px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-text"
-                    >
-                      {kw}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Productos destacados */}
-              <div>
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-                  Destacados
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {PRODUCTOS_DESTACADOS.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => pickKeyword(p.name)}
-                      className="group/card flex items-center gap-3 rounded-xl border border-border/60 bg-surface-2/40 p-2 text-left transition-colors hover:border-accent/40 hover:bg-surface-2/70"
-                    >
-                      <span
-                        aria-hidden
-                        className={cn(
-                          "grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-gradient-to-br",
-                          p.tone,
-                        )}
+              {/* Keywords populares: términos reales más buscados (telemetría, 30 días). */}
+              {popularKeywords.length > 0 && (
+                <div>
+                  <p className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                    <TrendingUp className="h-3.5 w-3.5 text-accent-2" />
+                    Búsquedas populares
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {popularKeywords.map((kw) => (
+                      <button
+                        key={kw}
+                        type="button"
+                        onClick={() => pickKeyword(kw)}
+                        className="rounded-pill border border-border bg-surface-2/60 px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-text"
                       >
-                        <Search className="h-4 w-4 text-text/50" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-semibold text-text">{p.name}</span>
-                        <span className="block text-[12px] text-muted">{p.price}</span>
-                      </span>
-                      <ArrowUpRight className="h-4 w-4 shrink-0 -translate-x-1 text-muted opacity-0 transition-all duration-300 group-hover/card:translate-x-0 group-hover/card:text-accent-2 group-hover/card:opacity-100" />
-                    </button>
-                  ))}
+                        {kw}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Productos destacados: productos reales (foto + precio en córdobas). */}
+              {featuredProducts.length > 0 && (
+                <div>
+                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                    Destacados
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {featuredProducts.map((p) => (
+                      <Link
+                        key={p.id}
+                        to={getProductUrl(p.id, p.name)}
+                        prefetch="intent"
+                        className="group/card flex items-center gap-3 rounded-xl border border-border/60 bg-surface-2/40 p-2 text-left transition-colors hover:border-accent/40 hover:bg-surface-2/70"
+                      >
+                        <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-surface-2">
+                          {p.image ? (
+                            <img src={p.image} alt="" className="h-full w-full object-contain p-1" />
+                          ) : (
+                            <ImageOff className="h-4 w-4 text-muted" aria-hidden />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-semibold text-text">{p.name}</span>
+                          <span className="block text-[12px] font-semibold tabular-nums text-accent-2">
+                            {formatCordobas(p.price)}
+                          </span>
+                        </span>
+                        <ArrowUpRight className="h-4 w-4 shrink-0 -translate-x-1 text-muted opacity-0 transition-all duration-300 group-hover/card:translate-x-0 group-hover/card:text-accent-2 group-hover/card:opacity-100" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

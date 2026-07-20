@@ -40,7 +40,12 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
               setIsHovered(false);
               setZoomPos({ x: 50, y: 50 });
             }}
-            className="product-stage group relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-none p-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+            // h-[48vh] en móvil: una foto vertical (retrato) sin tope ocupaba casi toda
+            // la pantalla. La img va `absolute inset-0` (no flex/porcentajes: la caja
+            // que ocupa es inequívoca, el padding-box de este `relative`) + object-contain
+            // para "letterboxear" (se ve completa, sin recortar). Desde md vuelve a su
+            // comportamiento de siempre (alto natural, estático, sticky).
+            className="product-stage group relative block w-full h-[48vh] md:h-auto cursor-zoom-in overflow-hidden rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             aria-label="Ampliar imagen"
           >
             <AnimatePresence mode="wait">
@@ -48,9 +53,9 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
                 <motion.img
                   key={activeImage}
                   initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  animate={{ opacity: 1, scale: isHovered ? 1.25 : 1 }}
                   exit={{ opacity: 0, scale: 1.05 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.2 }}
                   src={gallery[activeImage] ?? gallery[0]}
                   alt={baseName}
                   fetchPriority="high"
@@ -67,11 +72,15 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
                       setActiveImage((prev) => (prev - 1 + gallery.length) % gallery.length);
                     }
                   }}
-                  className="h-full w-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.15)] select-none transition-transform duration-150 ease-out"
+                  // El zoom-hover y el crossfade de entrada/salida comparten la MISMA
+                  // propiedad `scale` — antes vivían en dos sistemas distintos (motion
+                  // `scale` para el crossfade + `style.transform` manual para el hover),
+                  // compitiendo por `transform`. Ahora `scale` es un solo valor animado
+                  // por framer-motion.
+                  className="absolute inset-0 h-full w-full object-contain select-none md:static md:inset-auto md:h-auto"
                   style={{
                     viewTransitionName: `vt-product-${productId}`,
                     transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
-                    transform: isHovered ? `scale(1.25)` : `scale(1)`,
                   } as React.CSSProperties}
                 />
               ) : (
