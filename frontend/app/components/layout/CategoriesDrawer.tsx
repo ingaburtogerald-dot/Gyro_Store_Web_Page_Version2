@@ -18,6 +18,7 @@ import { setCategory } from "~/store/slices/uiSlice";
 import { cn, buildWhatsappUrl } from "~/lib/utils";
 import { GOOGLE_REVIEW_URL, WHATSAPP_DEFAULT_MESSAGE } from "~/lib/storeLinks";
 import { FeedbackModal } from "./FeedbackModal";
+import { ReviewChoiceModal } from "~/components/catalog/ReviewChoiceModal";
 
 export function CategoriesDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const dispatch = useAppDispatch();
@@ -33,6 +34,7 @@ export function CategoriesDrawer({ open, onClose }: { open: boolean; onClose: ()
   // Modal de opinión (feedback). Vive fuera del drawer para poder abrirlo tras
   // cerrar el menú, evitando pelea de z-index entre ambos overlays.
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
   // Portal a <body>: igual que Modal.tsx, para escapar de ancestros con transform
   // (framer-motion deja uno inline incluso en reposo) que romperían el drawer fixed.
@@ -137,15 +139,16 @@ export function CategoriesDrawer({ open, onClose }: { open: boolean; onClose: ()
               {/* Acciones embebidas (antes botones flotantes) */}
               <div className="shrink-0 border-t border-border/50 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                 <p className="px-3.5 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted/70">Conecta con nosotros</p>
-                <a
-                  href={googleUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={onClose}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    setReviewModalOpen(true);
+                  }}
                   className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left text-[15px] font-bold text-text transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <Star className="h-5 w-5 shrink-0 text-accent-2" aria-hidden /> Dejá tu reseña
-                </a>
+                </button>
                 {whatsappUrl && (
                   <a
                     href={whatsappUrl}
@@ -171,6 +174,7 @@ export function CategoriesDrawer({ open, onClose }: { open: boolean; onClose: ()
       </AnimatePresence>
 
       <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <ReviewChoiceModal open={reviewModalOpen} onClose={() => setReviewModalOpen(false)} />
     </>,
     document.body,
   );

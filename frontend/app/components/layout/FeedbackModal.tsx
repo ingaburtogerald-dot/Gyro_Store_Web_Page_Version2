@@ -10,9 +10,9 @@ import { feedbackSchema, type FeedbackInput } from "~/lib/validators";
 import { useSendFeedbackMutation } from "~/store/api/feedbackApi";
 
 const TYPES: { value: FeedbackInput["type"]; label: string }[] = [
-  { value: "bug", label: "🐛 Reportar un error" },
-  { value: "idea", label: "💡 Sugerir una mejora" },
-  { value: "product", label: "📦 Pedir un producto" },
+  { value: "bug", label: "Reportar un error" },
+  { value: "idea", label: "Sugerir una mejora" },
+  { value: "product", label: "Pedir un producto" },
 ];
 
 export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () => void }) {

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useParams, useLoaderData } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -9,7 +9,7 @@ import {
   Bike,
   Package,
   Banknote,
-  TrendingUp,
+  Share2,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
@@ -24,7 +24,7 @@ import { VolumePriceCard } from "~/components/product/VolumePriceCard";
 import { FrequentlyBoughtTogetherCard } from "~/components/product/FrequentlyBoughtTogetherCard";
 import { ProductGalleryGrid } from "~/components/catalog/ProductGalleryGrid";
 import { ProductSpecs } from "~/components/catalog/ProductSpecs";
-import { InfoCard } from "~/components/product/InfoCard";
+import { MobileStoreActions } from "~/components/layout/MobileStoreActions";
 import { ProductCarousel } from "~/components/product/ProductCarousel";
 import {
   useGetConfigQuery,
@@ -150,7 +150,7 @@ export default function ProductDetail() {
   const { id } = useParams();
   // El producto viene del loader SSR (mejor FCP y meta para compartir). Ya no se
   // re-pide en cliente con RTK Query: era un fetch duplicado.
-  const { product, catalog, categories } = useLoaderData<typeof loader>();
+  const { product, catalog, categories, url } = useLoaderData<typeof loader>();
   const dispatch = useAppDispatch();
   const { data: config } = useGetConfigQuery();
   // Esta ficha no monta PublicHeader (tiene su propio breadcrumb) — sin esto, un
@@ -162,7 +162,18 @@ export default function ProductDetail() {
   const [selection, setSelection] = useState<VariantSelection | null>(null);
   const [activeTab, setActiveTab] = useState<ProductTab>("detalles");
   const [isAdded, setIsAdded] = useState(false);
+  const [footerVisible, setFooterVisible] = useState(false);
   const tabRefs = useRef<Partial<Record<ProductTab, HTMLButtonElement | null>>>({});
+
+  useEffect(() => {
+    const el = document.getElementById("public-footer");
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      setFooterVisible(entry.isIntersecting);
+    }, { rootMargin: "0px 0px 50px 0px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const selectedVariant = selection?.variant ?? product?.variants?.[0];
   const baseName = product?.name ?? "";
@@ -183,6 +194,7 @@ export default function ProductDetail() {
     [discounts, qty],
   );
   const unitPrice = Math.round(price * (1 - (tier?.discountPercent ?? 0) / 100));
+  const savings = (price - unitPrice) * qty;
 
   // Bundles fijos para "Ahorra comprando más" (Fase 3): el % sale del tier que aplica
   // a esa cantidad según la config de mayoreo.
@@ -191,10 +203,6 @@ export default function ProductDetail() {
     { label: "Media docena", qty: 6 },
     { label: "Docena", qty: 12 },
   ];
-
-  const nextTier = useMemo(() => {
-    return discounts.find((d) => d.minQty > qty) ?? null;
-  }, [discounts, qty]);
 
   // Galería: fotos del color seleccionado; si no hay, las generales del producto.
   const gallery = useMemo(() => {
@@ -261,11 +269,32 @@ export default function ProductDetail() {
   }
 
   // Mensaje con precio + link a la ficha: el vendedor cotiza sin ida y vuelta.
-  const pageUrl = typeof window !== "undefined" ? window.location.href : "";
+  // URL de la página desde el loader (igual en SSR y cliente) — antes usaba
+  // window.location.href, que en SSR era "" y en cliente la URL real: eso disparaba
+  // un hydration mismatch en el href del link de WhatsApp en cada ficha.
+  const pageUrl = url;
   const whatsappUrl = buildWhatsappUrl(
     config?.whatsapp ?? "50585944758",
-    `Hola Gyro Store 👋, quiero: ${selectedVariant ? selectedVariant.name : baseName} — ${formatCordobas(unitPrice)}. ${pageUrl}`,
+    `Hola Gyro Store 👋, quiero: ${qty}x ${selectedVariant ? selectedVariant.name : baseName} — Total: ${formatCordobas(unitPrice * qty)}. ${pageUrl}`,
   );
+
+  // Compartir: Web Share API nativa; si no existe, copia el enlace.
+  const share = useCallback(async () => {
+    const titleToShare = selectedVariant ? selectedVariant.name : baseName;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: titleToShare, text: `Mira este producto en Gyro Store: ${titleToShare}`, url: pageUrl });
+      } else {
+        await navigator.clipboard.writeText(pageUrl);
+        toast.success("Enlace copiado al portapapeles");
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        await navigator.clipboard.writeText(pageUrl);
+        toast.success("Enlace copiado al portapapeles");
+      }
+    }
+  }, [selectedVariant, baseName, pageUrl]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg font-sans text-text">
@@ -278,15 +307,19 @@ export default function ProductDetail() {
         onOpenCategories={() => setCategoriesOpen(true)}
       />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 md:pb-12">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-0 md:pb-4">
         <CategoriesDrawer open={categoriesOpen} onClose={() => setCategoriesOpen(false)} />
 
         {!product ? (
           <p className="py-24 text-center text-muted">Producto no encontrado.</p>
         ) : (
           <div className="grid gap-4 md:gap-10 md:grid-cols-[1.1fr_1fr] lg:grid-cols-[1.3fr_1fr] items-start">
-            {/* Columna izquierda: galería */}
-            <div className="flex flex-col gap-6">
+            {/* Columna izquierda: galería.
+                min-w-0: en un grid, los items traen `min-width:auto` y NO encogen bajo
+                su min-content. Sin esto, cualquier hijo con min-content ancho (el Trust
+                Box con bleed negativo) estira la columna y desborda el viewport en móvil
+                (scroll horizontal fantasma). min-w-0 deja que la pista mande. */}
+            <div className="flex flex-col gap-6 min-w-0">
               <ProductGalleryGrid
                 gallery={gallery}
                 baseName={baseName}
@@ -300,7 +333,7 @@ export default function ProductDetail() {
               variants={staggerContainer}
               initial="hidden"
               animate="show"
-              className="flex flex-col md:sticky md:top-24 pb-12"
+              className="flex flex-col md:sticky md:top-24 pb-0 md:pb-8 min-w-0"
             >
               <motion.div variants={itemFade}>
                 {/* Badges / etiquetas */}
@@ -314,24 +347,34 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                <h1 className="font-heading text-[clamp(2rem,5.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-balance text-text">
-                  {selectedVariant ? selectedVariant.name : baseName}
-                </h1>
+                <div className="flex items-start justify-between gap-4">
+                  <h1 className="font-heading text-2xl sm:text-[clamp(2rem,5.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-balance text-text">
+                    {selectedVariant ? selectedVariant.name : baseName}
+                  </h1>
+                  <button
+                    type="button"
+                    onClick={share}
+                    aria-label="Compartir producto"
+                    className="mt-2 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2/60 text-muted transition-colors hover:bg-surface hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-2/50"
+                  >
+                    <Share2 className="h-5 w-5" />
+                  </button>
+                </div>
               </motion.div>
 
               <motion.div variants={itemFade} className="mt-5 flex flex-wrap items-baseline gap-4">
-                <p className="font-heading text-[clamp(2rem,5vw,2.5rem)] font-bold tabular-nums leading-none text-text">{formatCordobas(unitPrice)}</p>
+                <p className="font-heading text-3xl sm:text-[clamp(2.5rem,6vw,3rem)] font-bold tabular-nums leading-none text-accent drop-shadow-[0_0_15px_rgba(var(--color-accent),0.4)] animate-[pulse_3s_ease-in-out_infinite]">{formatCordobas(unitPrice)}</p>
                 {tier ? (
-                  <span className="text-lg text-muted line-through">{formatCordobas(price)}</span>
+                  <span className="text-base sm:text-lg text-muted line-through">{formatCordobas(price)}</span>
                 ) : onSale ? (
-                  <span className="text-lg text-muted line-through">{formatCordobas(compareAt)}</span>
+                  <span className="text-base sm:text-lg text-muted line-through">{formatCordobas(compareAt)}</span>
                 ) : null}
                 {tier ? (
-                  <span className="rounded-pill bg-whatsapp/12 px-2.5 py-1 text-xs font-semibold tabular-nums tracking-wide text-whatsapp">
+                  <span className="rounded-pill bg-whatsapp/12 px-2.5 py-1 text-[11px] sm:text-xs font-semibold tabular-nums tracking-wide text-whatsapp">
                     −{tier.discountPercent}% por {qty} uds
                   </span>
                 ) : onSale ? (
-                  <span className="rounded-pill bg-bg/70 px-2.5 py-1 text-xs font-semibold tracking-wide text-accent-2 ring-1 ring-white/10 backdrop-blur-md">
+                  <span className="rounded-pill bg-bg/70 px-2.5 py-1 text-[11px] sm:text-xs font-semibold tracking-wide text-accent-2 ring-1 ring-white/10 backdrop-blur-md">
                     En oferta
                   </span>
                 ) : null}
@@ -356,12 +399,28 @@ export default function ProductDetail() {
                     !inStock ? "bg-danger" : stockCount <= 5 ? "bg-warning" : "bg-whatsapp",
                   )}
                 />
-                {!inStock
-                  ? "Agotado"
-                  : stockCount <= 5
-                    ? `Últimas ${stockCount} unidade${stockCount === 1 ? '' : 's'}`
-                    : `${stockCount} unidades disponibles`}
+                <span>
+                  {!inStock
+                    ? "Agotado"
+                    : stockCount <= 5
+                      ? `Últimas ${stockCount} unidade${stockCount === 1 ? '' : 's'}`
+                      : `${stockCount} unidades disponibles`}
+                </span>
               </motion.p>
+
+              {/* Selector de variantes multi-eje movido fuera de las pestañas */}
+              {product.variants?.length > 0 && (
+                <motion.div variants={itemFade} className="mt-6">
+                  <VariantPicker
+                    variants={product.variants}
+                    axisLabels={product.axisLabels}
+                    colorAxisIndex={product.colorAxisIndex}
+                    onChange={(s) => {
+                      setSelection(s);
+                    }}
+                  />
+                </motion.div>
+              )}
 
               {/* Pestañas: Compra vs Especificaciones */}
               {tabs.length > 1 && (
@@ -385,7 +444,7 @@ export default function ProductDetail() {
                       onClick={() => setActiveTab(t.value)}
                       onKeyDown={handleTabKeyDown}
                       className={cn(
-                        "ease-expo relative pb-3 text-sm font-semibold transition-colors focus-visible:outline-none",
+                        "ease-expo relative pb-3 text-[12px] sm:text-sm font-semibold transition-colors focus-visible:outline-none",
                         effectiveTab === t.value ? "text-text" : "text-muted hover:text-text",
                       )}
                     >
@@ -410,52 +469,61 @@ export default function ProductDetail() {
                 className="flex flex-col"
               >
                 {/* Contenedor Unificado: Diseño Apilado */}
-                <motion.div variants={itemFade} className="card-premium mt-4 flex flex-col gap-6 rounded-none p-4 sm:gap-10 sm:p-8">
+                <motion.div variants={itemFade} className="card-premium mt-4 flex flex-col gap-6 rounded-2xl p-4 sm:gap-10 sm:p-8">
                   
                   {/* 1. Opciones de Compra */}
                 <div className="flex flex-col focus:outline-none">
-                  {/* Selector de variantes multi-eje */}
-                  {product.variants?.length > 0 && (
-                    <div className="mb-6 sm:mb-8">
-                      <VariantPicker
-                        variants={product.variants}
-                        axisLabels={product.axisLabels}
-                        colorAxisIndex={product.colorAxisIndex}
-                        onChange={(s) => {
-                          setSelection(s);
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Selector de cantidad */}
+                  {/* Selector de cantidad y Agregar al carrito */}
                   <div className="mb-6 sm:mb-8">
-                    <p className="mb-3 text-sm font-semibold text-text/80">Cantidad</p>
-                    <div className="flex items-center rounded-none border border-border bg-surface-2 p-1 w-fit shadow-sm">
-                      <button
-                        type="button"
-                        onClick={() => setQty((q) => Math.max(1, q - 1))}
-                        className="flex h-10 w-12 items-center justify-center rounded-none text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        aria-label="Quitar uno"
+                    <p className="mb-3 text-[12px] sm:text-sm font-semibold text-text">Cantidad</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center rounded-lg border border-border bg-surface-2 p-1 w-fit shadow-sm shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setQty((q) => Math.max(1, q - 1))}
+                          className="flex h-8 w-10 sm:h-10 sm:w-12 items-center justify-center rounded-md text-base sm:text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                          aria-label="Quitar uno"
+                        >
+                          −
+                        </button>
+                        <span className="w-10 sm:w-12 text-center text-sm sm:text-base font-bold">{qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => setQty((q) => q + 1)}
+                          className="flex h-8 w-10 sm:h-10 sm:w-12 items-center justify-center rounded-md text-base sm:text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                          aria-label="Agregar uno"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <Button
+                        variant="primary"
+                        onClick={add}
+                        disabled={!inStock}
+                        className={cn("flex-1 h-10 sm:h-12 overflow-hidden", isAdded && "bg-whatsapp hover:bg-whatsapp border-transparent text-[#000000]")}
                       >
-                        −
-                      </button>
-                      <span className="w-12 text-center text-base font-bold">{qty}</span>
-                      <button
-                        type="button"
-                        onClick={() => setQty((q) => q + 1)}
-                        className="flex h-10 w-12 items-center justify-center rounded-none text-lg text-muted transition-colors hover:bg-surface hover:text-text active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        aria-label="Agregar uno"
-                      >
-                        +
-                      </button>
+                        <AnimatePresence mode="wait" initial={false}>
+                          <motion.span
+                            key={isAdded ? "added" : "idle"}
+                            initial={{ opacity: 0, scale: 0.6 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.6 }}
+                            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                            className="inline-flex items-center gap-2"
+                          >
+                            {isAdded ? <Check className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
+                            {isAdded ? "¡Agregado!" : inStock ? "Agregar al carrito" : "Agotado"}
+                          </motion.span>
+                        </AnimatePresence>
+                      </Button>
                     </div>
                   </div>
 
                   {/* Bundles de mayoreo */}
                   {discounts.length > 0 && (
                     <div className="mb-6 sm:mb-8 flex flex-col gap-3">
-                      <p className="text-sm font-semibold flex items-center gap-2 text-text">
+                      <p className="text-[12px] sm:text-sm font-semibold flex items-center gap-2 text-text">
                         <ShieldCheck className="h-4 w-4 text-accent" /> Ahorra comprando más
                       </p>
                       
@@ -476,56 +544,18 @@ export default function ProductDetail() {
                           );
                         })}
                       </div>
-
-                      {nextTier ? (
-                        <InfoCard
-                          icon={TrendingUp}
-                          title="Descuento por volumen"
-                          description={`Agregá ${nextTier.minQty - qty} ${nextTier.minQty - qty === 1 ? "unidad" : "unidades"} más para ahorrar un ${nextTier.discountPercent}% por unidad.`}
-                          variant="highlight"
-                        />
-                      ) : tier ? (
-                        <InfoCard
-                          icon={TrendingUp}
-                          title="Descuento máximo"
-                          description={`¡Felicidades! Estás aprovechando el descuento máximo del ${tier.discountPercent}% por unidad.`}
-                          variant="highlight"
-                        />
-                      ) : null}
                     </div>
                   )}
 
-                  {/* CTAs inline: solo desktop (md+). En móvil el CTA principal vive en la
-                      barra fija de abajo — mostrar ambos era un CTA duplicado. */}
-                  <div className="mb-6 hidden md:grid md:grid-cols-5 gap-3">
-                    <Button
-                      variant="primary"
-                      onClick={add}
-                      disabled={!inStock}
-                      className={cn("md:col-span-2 overflow-hidden", isAdded && "bg-whatsapp hover:bg-whatsapp border-transparent text-[#000000]")}
-                    >
-                      <AnimatePresence mode="wait" initial={false}>
-                        <motion.span
-                          key={isAdded ? "added" : "idle"}
-                          initial={{ opacity: 0, scale: 0.6 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.6 }}
-                          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                          className="inline-flex items-center gap-2"
-                        >
-                          {isAdded ? <Check className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
-                          {isAdded ? "¡Agregado!" : "Agregar"}
-                        </motion.span>
-                      </AnimatePresence>
-                    </Button>
-
-                    <a href={whatsappUrl} target="_blank" rel="noreferrer" className="flex md:col-span-3">
+                  {/* CTA secundario (WhatsApp) */}
+                  <div className="mb-6 flex">
+                    <a href={whatsappUrl} target="_blank" rel="noreferrer" className="flex-1">
                       <Button
                         variant="whatsapp"
-                        className="w-full"
+                        className="w-full h-12"
                       >
                         <WhatsAppIcon className="h-5 w-5 shrink-0" />
-                        Comprar al por mayor
+                        <span>Comprar al por mayor por WhatsApp</span>
                       </Button>
                     </a>
                   </div>
@@ -548,15 +578,19 @@ export default function ProductDetail() {
                   )}
 
                   {/* Trust Box (Móvil Slider, Desktop Grid) */}
-                  <div className="mt-8 flex overflow-x-auto pb-4 -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 gap-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  {/* Bleed a los bordes del card: el margen negativo DEBE igualar el
+                      padding del card (p-4 = 1rem en móvil). Antes -mx-6 (1.5rem) contra
+                      p-4 sobresalía 0.5rem por lado y, sumado al min-width:auto del grid,
+                      empujaba el ancho de la página a 589px. -mx-4 px-4 encaja exacto. */}
+                  <div className="mt-4 flex overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 gap-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {TRUST_ITEMS.map((t) => {
                       const Icon = t.icon;
                       return (
-                        <div key={t.title} className="flex-shrink-0 w-[85%] sm:w-auto flex flex-col gap-1.5 rounded-2xl bg-surface-2/60 p-4 ring-1 ring-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] transition-colors hover:bg-surface-2 snap-center">
-                          <div className="flex items-center gap-2 text-text font-medium text-sm">
-                            <Icon className="h-4 w-4 text-accent" /> {t.title}
+                        <div key={t.title} className="flex-shrink-0 w-[85%] sm:w-auto flex flex-col gap-1 sm:gap-1.5 rounded-xl sm:rounded-2xl bg-surface-2/60 p-3 sm:p-4 ring-1 ring-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] transition-colors hover:bg-surface-2 snap-center">
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-text font-medium text-[11px] sm:text-sm">
+                            <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-accent" /> {t.title}
                           </div>
-                          <p className="text-xs text-muted leading-relaxed">{t.description}</p>
+                          <p className="text-[10px] sm:text-xs text-muted leading-tight sm:leading-relaxed">{t.description}</p>
                         </div>
                       );
                     })}
@@ -580,14 +614,9 @@ export default function ProductDetail() {
                     </h3>
                     <div className="max-w-[65ch] space-y-6">
                       {(Array.isArray(product.description) ? product.description : String(product.description).split(/\n+/)).filter(Boolean).map((paragraph: string, idx: number) => (
-                        <p
+                        <div
                           key={idx}
-                          className={cn(
-                            "text-pretty",
-                            idx === 0
-                              ? "text-xl sm:text-2xl font-bold leading-snug tracking-tight text-text"
-                              : "text-base sm:text-lg font-medium leading-relaxed text-muted"
-                          )}
+                          className="text-pretty text-sm sm:text-base font-medium leading-relaxed text-muted [&>p]:mb-4 last:[&>p]:mb-0"
                           dangerouslySetInnerHTML={{ __html: paragraph }}
                         />
                       ))}
@@ -615,54 +644,26 @@ export default function ProductDetail() {
           </div>
         )}
 
-        {/* Relacionados: reusa el carrusel del home. */}
         {product && related.length > 0 && (
-          <div className="mt-16 border-t border-white/5 pt-8">
+          <div className="border-t border-white/5 md:mt-8 -mb-4">
+            {/* The mobile action buttons (moved from footer) */}
+            <MobileStoreActions />
+            
             <ProductCarousel
               title="Tal vez te pueda interesar"
               products={related}
               categories={categories}
+              variant="showcase"
             />
           </div>
         )}
       </main>
 
-      {/* Barra de compra fija (solo móvil): es el CTA PRINCIPAL de la ficha en este
-          breakpoint (el inline de arriba está oculto, ver `hidden md:grid`). El
-          `pr-20` que tenía antes era hueco reservado para el FeedbackFab ya
-          eliminado. Precio compacto + "Agregar" (carrito) y WhatsApp claramente
-          diferenciados (Button.tsx: primary sólido vs whatsapp con tinte propio). */}
-      {product && (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-xl md:hidden shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)]">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[11px] font-medium text-muted">{selectedVariant ? selectedVariant.name : baseName}</p>
-            <p className="font-heading text-lg font-bold tabular-nums text-text">{formatCordobas(unitPrice)}</p>
-          </div>
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Comprar por WhatsApp"
-            className="shrink-0"
-          >
-            <Button variant="whatsapp" className="h-12 w-12 px-0">
-              <WhatsAppIcon className="h-5 w-5" />
-            </Button>
-          </a>
-          <Button
-            onClick={add}
-            disabled={!inStock}
-            className={cn("h-12 shrink-0 px-4 overflow-hidden", isAdded && "bg-whatsapp hover:bg-whatsapp border-transparent text-[#000000]")}
-          >
-            {isAdded ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
-            {isAdded ? "¡Agregado!" : inStock ? "Agregar" : "Agotado"}
-          </Button>
-        </div>
-      )}
-
-
-
-      <PublicFooter />
+      {/* Ajustamos los márgenes del footer con Tailwind arbitrario para:
+          1. Eliminar el espacio muerto arriba (!mt-4) */}
+      <div className="[&>footer]:!mt-4 md:[&>footer]:!mt-8">
+        <PublicFooter />
+      </div>
     </div>
   );
 }

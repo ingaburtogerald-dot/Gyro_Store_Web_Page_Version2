@@ -23,6 +23,7 @@ export function FilterSheet() {
   const priceMax = useAppSelector((s) => s.ui.priceMax);
   const onlyOnSale = useAppSelector((s) => s.ui.onlyOnSale);
   const onlyInStock = useAppSelector((s) => s.ui.onlyInStock);
+  const search = useAppSelector((s) => s.ui.search);
 
   // Bloquea el scroll del fondo y cierra con Escape mientras el sheet está abierto.
   useEffect(() => {
@@ -41,7 +42,8 @@ export function FilterSheet() {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center"
+          key="filter-sheet"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -50,7 +52,7 @@ export function FilterSheet() {
           <button
             aria-label="Cerrar filtros"
             onClick={() => dispatch(closeFilterSheet())}
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 w-full h-full bg-black/60 cursor-default"
           />
 
           {/* Panel */}
@@ -58,17 +60,13 @@ export function FilterSheet() {
             role="dialog"
             aria-modal="true"
             aria-label="Filtros"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-lg rounded-t-3xl border-t border-border bg-surface pb-[max(1rem,env(safe-area-inset-bottom))]"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="relative w-full max-w-lg rounded-2xl border border-border shadow-2xl bg-surface pb-4"
           >
-            {/* Asa de arrastre + título */}
-            <div className="flex flex-col items-center pt-3">
-              <span className="h-1.5 w-10 rounded-full bg-border" />
-            </div>
-            <div className="flex items-center justify-between px-5 pb-2 pt-3">
+            <div className="flex items-center justify-between px-5 pb-2 pt-5">
               <h2 className="font-heading text-lg font-bold">Filtros</h2>
               <button
                 onClick={() => dispatch(closeFilterSheet())}
@@ -80,6 +78,20 @@ export function FilterSheet() {
             </div>
 
             <div className="max-h-[70vh] space-y-6 overflow-y-auto px-5 py-2">
+              {/* Búsqueda */}
+              <section>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
+                  Búsqueda
+                </h3>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => dispatch({ type: "ui/setSearch", payload: e.target.value })}
+                  placeholder="Buscar productos..."
+                  className="w-full rounded-xl border border-border bg-surface-2/50 px-4 py-2.5 text-sm font-medium text-text placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </section>
+
               {/* Rango de precio */}
               <section>
                 <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
@@ -120,9 +132,12 @@ export function FilterSheet() {
             </div>
 
             {/* Acciones */}
-            <div className="flex gap-3 border-t border-border px-5 pt-4">
+            <div className="flex gap-3 border-t border-border px-5 pt-4 pb-12">
               <button
-                onClick={() => dispatch(resetFilters())}
+                onClick={() => {
+                  dispatch(resetFilters());
+                  dispatch({ type: "ui/setSearch", payload: "" });
+                }}
                 className="min-h-[48px] flex-1 rounded-xl border border-border text-sm font-semibold text-muted transition-colors hover:text-text"
               >
                 Limpiar

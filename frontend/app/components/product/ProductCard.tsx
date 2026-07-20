@@ -17,12 +17,16 @@ export function ProductCard({
   categories,
   layout = "grid",
   index = 0,
+  showPills = true,
 }: {
   product: CatalogProduct;
   categories: Category[];
   layout?: "grid" | "list";
   /** Posición en la grilla: escalona la entrada de las tarjetas visibles. */
   index?: number;
+  /** Muestra los pills de variantes. Se apaga en las recomendaciones de la ficha
+   *  (el usuario los veía "raros" ahí y pidió omitirlos para tarjetas más limpias). */
+  showPills?: boolean;
 }) {
   const dispatch = useAppDispatch();
   const { data: config } = useGetConfigQuery();
@@ -95,17 +99,17 @@ export function ProductCard({
       aria-label={product.name}
       className={cn(
         "product-stage ease-expo relative block overflow-hidden",
-        isList ? "aspect-square h-full w-full shrink-0 rounded-xl" : "aspect-square w-full rounded-t-xl",
+        isList ? "aspect-square h-full w-full shrink-0 rounded-xl" : "aspect-[4/3] w-full rounded-t-xl",
       )}
     >
       <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
         {onSale && (
-          <span className="rounded-md bg-accent px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-bg">
+          <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] sm:px-2.5 sm:text-[11px] font-bold tabular-nums text-bg">
             −{discountPct}%
           </span>
         )}
         {product.isPromo && !onSale && (
-          <span className="rounded-md bg-accent px-2.5 py-0.5 text-[11px] font-bold text-bg">
+          <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] sm:px-2.5 sm:text-[11px] font-bold text-bg">
             Oferta
           </span>
         )}
@@ -113,7 +117,7 @@ export function ProductCard({
 
       {lowStock && (
         <div className="absolute right-2 top-2 z-10">
-          <span className="rounded-md bg-warning px-2.5 py-0.5 text-[11px] font-bold text-bg shadow-sm">
+          <span className="rounded-md bg-warning px-2 py-0.5 text-[10px] sm:px-2.5 sm:text-[11px] font-bold text-bg shadow-sm">
             ¡Últimas {product.stock}!
           </span>
         </div>
@@ -139,7 +143,7 @@ export function ProductCard({
       )}
 
       {soldOut && (
-        <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-bg/80 px-3 py-1 text-[11px] font-semibold text-text backdrop-blur-md">
+        <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-md bg-bg/80 px-2 py-1 text-[10px] sm:bottom-3 sm:px-3 sm:text-[11px] font-semibold text-text backdrop-blur-md">
           Agotado
         </span>
       )}
@@ -148,7 +152,7 @@ export function ProductCard({
 
   // Eyebrow editorial: categoría en label tracked (sin emoji; DESIGN.md §8).
   const Eyebrow = category ? (
-    <span className="truncate text-[11px] font-medium uppercase tracking-[0.22em] text-muted">
+    <span className="truncate text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.22em] text-muted">
       {category.name}
     </span>
   ) : null;
@@ -158,7 +162,7 @@ export function ProductCard({
       to={getProductUrl(product.id, product.name)}
       prefetch="intent"
       viewTransition
-      className="line-clamp-2 min-h-10 text-sm font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2"
+      className="line-clamp-2 min-h-[32px] text-[12px] font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2 sm:text-sm sm:min-h-10"
     >
       {product.name}
     </Link>
@@ -183,11 +187,11 @@ export function ProductCard({
 
   const Price = (
     <div className="flex items-baseline gap-2">
-      <span className="text-lg font-extrabold tabular-nums leading-none text-accent">
+      <span className="text-[14px] font-extrabold tabular-nums leading-none text-accent sm:text-lg">
         {formatCordobas(product.price)}
       </span>
       {onSale && (
-        <span className="text-xs text-muted line-through tabular-nums">
+        <span className="text-[11px] sm:text-xs text-muted line-through tabular-nums">
           {formatCordobas(compareAt)}
         </span>
       )}
@@ -201,9 +205,9 @@ export function ProductCard({
         onClick={handleCta}
         disabled={soldOut}
         aria-haspopup={needsPicker ? "dialog" : undefined}
-        className="h-11 flex-1"
+        className="h-9 text-xs sm:text-sm sm:h-11 flex-1"
       >
-        <ShoppingCart className="h-4 w-4" />
+        <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         {soldOut ? "Agotado" : "Agregar"}
       </Button>
       {/* Secundario/ghost: nunca se deshabilita, ni agotado — "avísame" sigue
@@ -213,9 +217,9 @@ export function ProductCard({
         onClick={handleWhatsAppOrder}
         aria-label={soldOut ? `Avísame cuando ${product.name} esté disponible, por WhatsApp` : `Pedir ${product.name} por WhatsApp`}
         title={soldOut ? "Avísame por WhatsApp" : "Pedir por WhatsApp"}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-whatsapp/30 bg-whatsapp/10 text-whatsapp transition-colors hover:bg-whatsapp/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp/60"
+        className="grid h-9 w-9 sm:h-11 sm:w-11 shrink-0 place-items-center rounded-lg border border-whatsapp/30 bg-whatsapp/10 text-whatsapp transition-colors hover:bg-whatsapp/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp/60"
       >
-        <MessageCircle className="h-[18px] w-[18px]" />
+        <MessageCircle className="h-[15px] w-[15px] sm:h-[18px] sm:w-[18px]" />
       </button>
     </div>
   );
@@ -251,7 +255,7 @@ export function ProductCard({
               {String(product.description).replace(/<[^>]*>?/gm, "")}
             </p>
           )}
-          {Pills}
+          {showPills && Pills}
           <div className="mt-3 flex flex-col gap-3">
             {Price}
             <div className="w-full max-w-[200px]">{Cta}</div>
@@ -265,10 +269,10 @@ export function ProductCard({
   return (
     <motion.article {...motionProps} className={cn(shell, "h-full flex-col")}>
       {Stage}
-      <div className="flex flex-1 flex-col gap-1.5 p-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-2 md:p-4">
         {Eyebrow}
         {Name}
-        {Pills}
+        {showPills && Pills}
         <div className="mt-auto space-y-3 pt-3">
           {Price}
           {Cta}

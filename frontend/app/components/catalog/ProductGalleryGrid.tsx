@@ -45,7 +45,7 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
             // que ocupa es inequívoca, el padding-box de este `relative`) + object-contain
             // para "letterboxear" (se ve completa, sin recortar). Desde md vuelve a su
             // comportamiento de siempre (alto natural, estático, sticky).
-            className="product-stage group relative block w-full h-[48vh] md:h-auto cursor-zoom-in overflow-hidden rounded-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+            className="product-stage group relative block w-full h-[48vh] md:h-auto cursor-zoom-in overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             aria-label="Ampliar imagen"
           >
             <AnimatePresence mode="wait">
@@ -58,7 +58,7 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
                   transition={{ duration: 0.2 }}
                   src={gallery[activeImage] ?? gallery[0]}
                   alt={baseName}
-                  fetchPriority="high"
+                  {...{ fetchpriority: "high" }}
                   loading="eager"
                   decoding="async"
                   drag={gallery.length > 1 ? "x" : false}
@@ -123,7 +123,7 @@ export function ProductGalleryGrid({ gallery, baseName, inStock, productId }: Pr
                 key={i}
                 onClick={() => setActiveImage(i)}
                 className={cn(
-                  "product-stage relative h-20 w-20 overflow-hidden rounded-none border transition-all hover:scale-105",
+                  "product-stage relative h-20 w-20 overflow-hidden rounded-lg border transition-all hover:scale-105",
                   i === activeImage ? "border-accent ring-2 ring-accent ring-offset-2 ring-offset-bg opacity-100" : "border-border hover:border-accent/50 opacity-70 hover:opacity-100"
                 )}
               >

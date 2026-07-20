@@ -48,18 +48,18 @@ export function ReviewsWidget() {
       href={googleUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-surface/40 px-6 py-10 text-center transition-colors hover:border-accent/40 hover:bg-surface/60"
+      className="group flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-surface/40 px-4 py-6 sm:px-6 sm:py-10 text-center transition-colors hover:border-accent/40 hover:bg-surface/60"
     >
       <div className="flex items-center gap-1" aria-hidden>
         {Array.from({ length: 5 }).map((_, i) => (
-          <Star key={i} className="h-5 w-5 fill-accent-2 text-accent-2" />
+          <Star key={i} className="h-4 w-4 sm:h-5 sm:w-5 fill-accent-2 text-accent-2" />
         ))}
       </div>
-      <p className="max-w-md text-balance text-sm text-muted">
+      <p className="max-w-md text-balance text-[12px] sm:text-sm text-muted">
         Lee las reseñas reales de nuestros clientes en Google — y si ya compraste, dejanos la tuya.
       </p>
-      <span className="inline-flex items-center gap-1.5 text-sm font-bold text-accent-2 transition-transform group-hover:translate-x-0.5">
-        Ver reseñas en Google <ArrowUpRight className="h-4 w-4" />
+      <span className="inline-flex items-center gap-1.5 text-[13px] sm:text-sm font-bold text-accent-2 transition-transform group-hover:translate-x-0.5">
+        Ver reseñas en Google <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </span>
     </a>
   );

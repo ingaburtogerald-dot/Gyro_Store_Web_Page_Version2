@@ -14,6 +14,7 @@ import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
 import { ShoppingBag, Search, User, X, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Plus, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { Logo } from "~/components/ui/Logo";
+import { IconButton } from "~/components/ui/IconButton";
 import { SearchBar } from "~/components/filters/SearchBar";
 import { CartDrawer } from "~/components/cart/CartDrawer";
 import { CategoriesDrawer } from "./CategoriesDrawer";
@@ -69,7 +70,7 @@ export function CartButton({ variant }: { variant?: "bar" }) {
       <button
         onClick={() => dispatch(openCart())}
         aria-label={label}
-        className="relative flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] font-medium text-muted transition-colors hover:text-accent-2"
+        className="relative flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] sm:text-[11px] font-medium text-muted transition-colors hover:text-accent-2"
       >
         <span className="relative">
           <motion.span animate={controls} className="block">
@@ -85,7 +86,7 @@ export function CartButton({ variant }: { variant?: "bar" }) {
             />
           )}
           {count > 0 && (
-            <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-pill bg-accent px-1 text-[10px] font-bold tabular-nums text-bg ring-2 ring-surface">
+            <span className="absolute -right-1.5 -top-1.5 grid h-3.5 min-w-3.5 place-items-center rounded-pill bg-accent px-0.5 text-[9px] sm:text-[10px] sm:h-4 sm:min-w-4 sm:px-1 font-bold tabular-nums text-bg ring-2 ring-surface">
               {count}
             </span>
           )}
@@ -101,10 +102,10 @@ export function CartButton({ variant }: { variant?: "bar" }) {
       whileTap={{ scale: 0.92 }}
       onClick={() => dispatch(openCart())}
       aria-label={label}
-      className="relative grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="relative grid h-9 w-9 sm:h-11 sm:w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <motion.span animate={controls} className="block">
-        <ShoppingBag className="h-[22px] w-[22px]" />
+        <ShoppingBag className="h-[18px] w-[18px] sm:h-[22px] sm:w-[22px]" />
       </motion.span>
       {/* Anillo "ping" al agregar */}
       <AnimatePresence>
@@ -127,40 +128,13 @@ export function CartButton({ variant }: { variant?: "bar" }) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 520, damping: 20 }}
-            className="absolute right-0.5 top-0.5 grid h-5 min-w-5 place-items-center rounded-pill bg-accent px-1 text-[11px] font-bold tabular-nums text-bg ring-2 ring-bg"
+            className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-pill bg-accent px-1 text-[10px] sm:text-[11px] sm:h-5 sm:min-w-5 font-bold tabular-nums text-bg ring-2 ring-bg"
           >
             {count}
           </motion.span>
         )}
       </AnimatePresence>
     </motion.button>
-  );
-}
-
-/** Botón de icono simple del cluster derecho (Apple/Razer): sin borde, ghost. */
-function IconButton({
-  icon: Icon,
-  label,
-  onClick,
-  active,
-}: {
-  icon: typeof Search;
-  label: string;
-  onClick?: () => void;
-  active?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className={cn(
-        "grid h-11 w-11 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-        active ? "bg-surface-hover text-accent-2" : "text-muted hover:bg-surface-hover hover:text-accent-2",
-      )}
-    >
-      <Icon className="h-[22px] w-[22px]" />
-    </button>
   );
 }
 
@@ -335,10 +309,21 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
     setSearchOpen(false);
   }
 
+  // Enter (o elegir una sugerencia) ejecuta la búsqueda Y cierra el overlay. Antes
+  // solo navegaba a "/" y el panel quedaba abierto, obligando al usuario a tocar la
+  // X para cerrarlo (bug reportado en móvil). Cerrar aquí también baja el teclado.
+  function submitSearch() {
+    setSearchOpen(false);
+    setOpenCat(null);
+    navigate("/");
+  }
+
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-bg/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-17 w-full max-w-[1600px] items-center gap-4 px-4 md:px-8">
+      {/* pt-[env(safe-area-inset-top)]: con viewport-fit=cover el contenido puede ir
+          borde a borde; sin este padding el header queda bajo la Dynamic Island. */}
+      <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-bg/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+        <div className="mx-auto flex h-14 sm:h-17 w-full max-w-[1600px] items-center gap-3 sm:gap-4 px-3 sm:px-4 md:px-8">
           {/* ── Logo (izquierda) — imagen ancha (80×40) que ya es la marca completa ── */}
           <Logo asLink size={50} className="shrink-0" />
 
@@ -360,7 +345,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                     value={search}
                     onChange={(v) => dispatch(setSearch(v))}
                     onClear={() => dispatch(setSearch(""))}
-                    onSubmit={() => navigate("/")}
+                    onSubmit={submitSearch}
                     variant="pill"
                     withPanel
                     autoFocus
@@ -497,18 +482,17 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
             {/* Solo <md: el mega-menú de categorías de arriba es hidden md:flex, así
                 que en móvil esta es la única entrada a categorías desde el header. */}
             <div className="md:hidden">
-              <IconButton
-                icon={LayoutGrid}
-                label="Menú"
-                onClick={() => setCategoriesOpen(true)}
-              />
+              <IconButton label="Menú" onClick={() => setCategoriesOpen(true)}>
+                <LayoutGrid className="h-[18px] w-[18px] sm:h-[22px] sm:w-[22px]" />
+              </IconButton>
             </div>
             <IconButton
-              icon={searchOpen ? X : Search}
               label={searchOpen ? "Cerrar búsqueda" : "Buscar"}
               onClick={openSearch}
               active={searchOpen}
-            />
+            >
+              {searchOpen ? <X className="h-[18px] w-[18px] sm:h-[22px] sm:w-[22px]" /> : <Search className="h-[18px] w-[18px] sm:h-[22px] sm:w-[22px]" />}
+            </IconButton>
             <CartButton />
             {/* Sesión: con usuario → menú (foto, nombre, Cerrar sesión); sin usuario → login. */}
             {user ? (
@@ -517,9 +501,9 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
               <Link
                 to="/login"
                 aria-label="Iniciar sesión"
-                className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="grid h-9 w-9 sm:h-11 sm:w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                <User className="h-[22px] w-[22px]" />
+                <User className="h-[18px] w-[18px] sm:h-[22px] sm:w-[22px]" />
               </Link>
             )}
           </div>
@@ -542,7 +526,7 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
                 value={search}
                 onChange={(v) => dispatch(setSearch(v))}
                 onClear={() => dispatch(setSearch(""))}
-                onSubmit={() => navigate("/")}
+                onSubmit={submitSearch}
                 variant="pill"
                 withPanel
                 autoFocus

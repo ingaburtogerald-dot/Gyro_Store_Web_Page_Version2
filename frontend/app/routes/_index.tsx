@@ -5,11 +5,12 @@ import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { Container } from "~/components/layout/Container";
 import { Hero } from "~/components/catalog/Hero";
 import { TrustStrip } from "~/components/catalog/TrustStrip";
+import { QuickLinksStrip } from "~/components/catalog/QuickLinksStrip";
 import { PublicFooter } from "~/components/layout/PublicFooter";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { ProductCarousel } from "~/components/product/ProductCarousel";
 import { ComboSection } from "~/components/catalog/ComboSection";
-import { SocialProof } from "~/components/catalog/SocialProof";
+
 import { LeadCapture } from "~/components/catalog/LeadCapture";
 import { OurStoryStrip } from "~/components/catalog/OurStoryStrip";
 import { SortableCatalogGrid } from "~/components/catalog/SortableCatalogGrid";
@@ -197,7 +198,7 @@ export default function Index() {
         {!hasFilters && (
           <motion.div key="hero" {...collapse}>
             <Hero initialLanding={landing} />
-            <TrustStrip />
+            <QuickLinksStrip />
           </motion.div>
         )}
       </AnimatePresence>
@@ -215,7 +216,7 @@ export default function Index() {
                 variant="showcase"
               />
               <ComboSection combos={combos} />
-              <SocialProof />
+
             </motion.div>
           )}
         </AnimatePresence>
@@ -223,7 +224,7 @@ export default function Index() {
         {editing ? (
           <SortableCatalogGrid />
         ) : (
-          <div id="catalogo" className="scroll-mt-20 pt-3 lg:pt-5">
+          <div id="catalogo" className="scroll-mt-[68px] pt-1 lg:pt-3">
             <FilterBar products={products} />
             <ActiveFilters categories={categories} />
             <ProductGrid products={products} categories={categories} />
@@ -231,7 +232,7 @@ export default function Index() {
         )}
 
         {!editing && (
-          <div className="space-y-8 pb-10 pt-2">
+          <div className="space-y-5 pb-0 pt-0 sm:space-y-8 sm:pb-6">
             <OurStoryStrip />
             <LeadCapture />
           </div>

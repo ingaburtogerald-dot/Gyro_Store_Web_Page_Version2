@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "@remix-run/react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useDragControls, useReducedMotion } from "framer-motion";
 import { ShoppingCart, X, ImageOff, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { VariantPicker, type VariantSelection } from "~/components/product/VariantPicker";
@@ -24,6 +24,8 @@ export function QuickAddSheet({
   onClose: () => void;
 }) {
   const dispatch = useAppDispatch();
+  const reduce = useReducedMotion();
+  const dragControls = useDragControls();
   const [selection, setSelection] = useState<VariantSelection | null>(null);
   const { data: detail, isFetching, isError } = useGetCatalogItemQuery(product.id, {
     skip: !open,
@@ -91,7 +93,12 @@ export function QuickAddSheet({
             className="absolute inset-0 bg-black/60"
           />
 
-          {/* Panel */}
+          {/* Panel: arrastrable hacia abajo para cerrar (drag-to-dismiss). El
+              gesto se dispara SOLO desde el asa (dragListener={false} +
+              dragControls.start en su onPointerDown) para no robarle el touch
+              al scroll interno del selector de variantes. `dragConstraints
+              top:0` impide arrastrarlo por ENCIMA de su posición de reposo.
+              Sin reduced-motion no se ofrece drag. */}
           <motion.div
             role="dialog"
             aria-modal="true"
@@ -100,16 +107,27 @@ export function QuickAddSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            drag={reduce ? false : "y"}
+            dragListener={false}
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.65 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100 || info.velocity.y > 500) onClose();
+            }}
             className="relative w-full max-w-lg rounded-t-none border-t border-border bg-surface pb-[max(1rem,env(safe-area-inset-bottom))] text-text"
           >
-            {/* Asa de arrastre */}
-            <div className="flex flex-col items-center pt-3">
+            {/* Asa de arrastre: única zona que inicia el drag-to-dismiss. */}
+            <div
+              onPointerDown={(e) => !reduce && dragControls.start(e)}
+              className="flex cursor-grab flex-col items-center pt-3 pb-1 touch-none active:cursor-grabbing"
+            >
               <span className="h-1.5 w-10 rounded-full bg-border" />
             </div>
 
             {/* Cabecera: miniatura + nombre + precio de la variante elegida */}
             <div className="flex items-center gap-3 px-5 pb-2 pt-3">
-              <div className="product-stage grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-none">
+              <div className="product-stage grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg">
                 {thumb ? (
                   <img src={thumb} alt="" className="h-full w-full object-contain p-1.5" />
                 ) : (
@@ -131,7 +149,7 @@ export function QuickAddSheet({
               </button>
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto px-5 pb-3">
+            <div className="max-h-[60vh] overflow-y-auto overscroll-contain px-5 pb-3">
               {isFetching && !detail ? (
                 // Skeleton con la silueta del picker (dos ejes de ejemplo)
                 <div className="mt-5 space-y-5" aria-hidden>
@@ -139,8 +157,8 @@ export function QuickAddSheet({
                     <div key={i}>
                       <div className="skeleton mb-2.5 h-4 w-24 rounded" />
                       <div className="flex gap-2.5">
-                        <div className="skeleton h-11 w-24 rounded-none" />
-                        <div className="skeleton h-11 w-24 rounded-none" />
+                        <div className="skeleton h-11 w-24 rounded-lg" />
+                        <div className="skeleton h-11 w-24 rounded-lg" />
                       </div>
                     </div>
                   ))}
@@ -165,7 +183,7 @@ export function QuickAddSheet({
                 onClick={add}
                 disabled={!variant || !inStock}
                 className={cn(
-                  "ease-expo flex min-h-[48px] w-full items-center justify-center gap-2 rounded-none text-sm font-bold transition duration-300 active:scale-[0.97]",
+                  "ease-expo flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg text-sm font-bold transition duration-300 active:scale-[0.97]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
                   variant && inStock
                     ? "bg-accent text-bg hover:bg-accent-hover"

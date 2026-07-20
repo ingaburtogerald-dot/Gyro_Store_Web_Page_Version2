@@ -38,10 +38,10 @@ la grilla del catálogo (dejan huecos), tarjetas apiladas en desorden.
 Todo color se consume vía **token semántico** (`bg-bg`, `text-accent`, `border-border`…).
 **Nunca** colores crudos de Tailwind (`bg-slate-800`, `text-cyan-400`) en componentes.
 
-### Superficies (neutros medianoche, no negro puro)
+### Superficies (neutros medianoche)
 | Token | Valor | Uso |
 |---|---|---|
-| `--color-bg` | `#060910` | Fondo de página (near-black azulado, nunca `#000`) |
+| `--color-bg` | `#000000` | Fondo de página (negro puro — deliberado: se funde con el fondo negro del logo para que el header no muestre costura) |
 | `--color-surface` | `#0d1320` | Paneles, tarjetas, dropdowns |
 | `--color-surface-2` | `#151d2f` | Stage de producto, controles, barra de categorías |
 | `--color-surface-hover` | `#1c2740` | Hover de superficies |
@@ -115,8 +115,9 @@ Dos reglas que hacen que el modo claro no se rompa:
 
 ## 3. Tipografía
 
-- **Familia única:** **Plus Jakarta Sans** (`--font-sans` y `--font-heading`). Grotesk
-  moderna, limpia. **Prohibido** Inter, Times, Georgia, fuentes de sistema como marca.
+- **Familia única:** **Inter** (`--font-sans` y `--font-heading` apuntan a la MISMA
+  familia a propósito — ver `globals.css`). Se carga vía `<link>` en `root.tsx`.
+  **Prohibido** mezclar una segunda familia (Times, Georgia, fuentes de sistema como marca).
 - **Contraste por PESO y COLOR, no por tamaño.** El patrón del sistema:
 
 | Rol | Peso | Color | Ejemplo |
@@ -135,8 +136,11 @@ Dos reglas que hacen que el modo claro no se rompa:
 
 ## 4. Espaciado, radios, layout
 
-- **Radios:** tarjetas `rounded-xl` (12px), controles/CTA `rounded-lg`, pills `rounded-pill`.
-  El stage de imagen puede `rounded-2xl`. Crispado, no globo.
+- **Radios (escala única — el catálogo y el "abrir artículo" DEBEN coincidir):**
+  cards/paneles `rounded-2xl` · controles/CTA `rounded-lg` · stage de imagen `rounded-xl`
+  (galería grande `rounded-2xl`) · chips/badges `rounded-pill` · botones-ícono `rounded-full`.
+  **Prohibido `rounded-none`** en el storefront: las esquinas rectas en la ficha/combo
+  rompían la armonía con la grilla redondeada del catálogo. Crispado pero coherente, no globo.
 - **Grilla del catálogo (uniforme, cero huecos):**
   `grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4`, `gap-4/5`. Todas las tarjetas
   con el mismo tamaño (sin `col-span-2`, sin `grid-auto-flow:dense`, sin tiles
@@ -187,10 +191,21 @@ Regla de oro: **el motion encaja con lo que revela.** Prohibido el "spring en to
 
 ## 7. Componentes (contratos)
 
+### `Button` (fuente única de botones — `components/ui/Button.tsx`)
+- **Todo botón con texto usa este componente.** No re-escribas padding/radio/hover a mano.
+- **Variantes:** `primary` (sólido accent en desktop / outline neón en móvil, `text-bg`),
+  `whatsapp` (outline teal), `ghost` (solo texto), `outline`, `destructive`.
+  `submit` === `primary` (alias, misma constante). Máximo **un `primary` por vista**.
+- **Tamaños:** `sm` · `md` · `lg` · `icon` (cuadrado 44px para botones de ícono).
+- **Forma (`shape`):** `default` (`rounded-lg`) · `pill` (`rounded-pill`) · `circle`
+  (`rounded-full`, para botones-ícono). Un botón-ícono = `size="icon" shape="circle"`.
+- **Estados:** hover `-translate-y-0.5` + sombra, tactile `whileTap scale 0.98`,
+  `focus-visible:ring-2 ring-accent`, `disabled:opacity-50`. `loading` muestra spinner.
+
 ### `ProductCard` (unidad repetida)
 - Panel `bg-surface` + `border-white/10` → hover `border-white/25`. Sin glass, sin glow.
-- Foto en `product-stage` (foco radial sutil), `object-contain p-6`, blur-up al cargar,
-  hover-swap a la 2ª foto, view-transition al PDP.
+- Foto en `product-stage` (marcador de layout, sin fondo propio — la foto ya trae el suyo),
+  `object-cover` en `aspect-[4/3]`, blur-up al cargar, hover-swap a la 2ª foto, view-transition al PDP.
 - Nombre `font-bold`; pills de variante `font-light`; precio `text-accent font-extrabold`.
 - CTA "Agregar al carrito" SIEMPRE visible, `bg-accent text-bg` (texto oscuro, AA ~10:1),
   con tactile push. Si hay >1 variante, abre `QuickAddSheet`.
@@ -199,9 +214,12 @@ Regla de oro: **el motion encaja con lo que revela.** Prohibido el "spring en to
   (horizontal) sin uso actual, reservado por si vuelve a hacer falta un tile ancho.
 
 ### `Hero`
-- Emblema (mascota Gyro) protagonista, centrado, un solo gesto (flotar) + halo sereno.
-- Titular display extrabold, subtítulo `font-light`, franja de confianza fina (íconos
-  lucide, **sin emojis**), contador. Compacto en móvil (el producto asoma sobre el pliegue).
+- Carrusel de slides estilo showcase (dbrand): contenedor `rounded-[2.5rem]` con layout
+  split — media (imagen/GIF/video) a un lado, texto al otro (columna en móvil, fila en md+).
+  Autoplay pausable + barra de progreso + flechas/puntos. Admin edita/reordena slides inline.
+- Cada slide: eyebrow `uppercase tracking`, titular display extrabold, descripción `font-light`
+  (2 líneas en móvil), y **dos CTAs simétricos** (mismo patrón outline, uno acento / uno
+  WhatsApp — nunca uno relleno y otro no). Compacto en móvil (el CTA entra sobre el pliegue).
 
 ### `ProductCarousel`
 - Fila con scroll-snap + flechas prev/next (se deshabilitan en extremos) + degradado de
@@ -243,7 +261,9 @@ Regla de oro: **el motion encaja con lo que revela.** Prohibido el "spring en to
 - ❌ **Gradient-text**, glassmorphism decorativo, side-stripe borders, eyebrow tracked
   en CADA sección.
 - ❌ **Spring en todo** / animaciones lineales / rebote-elástico.
-- ❌ **Negro puro** `#000000`. Usar `--color-bg`.
+- ❌ **Colores crudos fuera de tokens** (`bg-[#111]`, `text-[#000000]` sueltos). El único
+  negro puro válido es el token `--color-bg` (fondo de página, ver §2). Un hex suelto no
+  se adapta al modo claro.
 - ❌ Copys de relleno: "Scroll to explore", "Unleash", "Next-Gen", "Descubre el futuro".
 - ❌ Diferenciar elementos solo por color (usar peso/tamaño/jerarquía).
 - ❌ Texto muted claro "por elegancia" que baja el contraste bajo 4.5:1.

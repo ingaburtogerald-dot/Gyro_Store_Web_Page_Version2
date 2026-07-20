@@ -45,7 +45,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <html lang="es" className="dark" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* viewport-fit=cover: sin esto env(safe-area-inset-*) vale 0 en iPhone
+            (Dynamic Island / home indicator) y las barras fijas/sheets pueden
+            quedar tapadas o tapar contenido. */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#0a0a0f" />
         {/* Las etiquetas Open Graph (preview al compartir) las define cada ruta vía
             su función meta() — homepage y página de producto — con URL absoluta. */}
@@ -133,15 +136,15 @@ export default function App() {
   // sin shell, para no duplicar cabeceras. Las acciones de contacto (reseña,
   // WhatsApp, opinión) viven en el menú móvil (CategoriesDrawer) que esta ruta ya
   // monta, no en botones flotantes.
-  if (path.startsWith("/producto")) {
-    return <Outlet />;
+  if (path.startsWith("/producto") || path.startsWith("/combo")) {
+    return <Outlet key="product-layout" />;
   }
 
   // Storefront público (home, combos, contacto): header full-width (Apple/Razer).
   // Sin botones flotantes: las acciones de contacto (reseña, WhatsApp, opinión)
   // están embebidas en el menú móvil (CategoriesDrawer) y en el footer (PublicFooter).
   return (
-    <StorefrontShell>
+    <StorefrontShell key="storefront-layout">
       <Outlet />
     </StorefrontShell>
   );

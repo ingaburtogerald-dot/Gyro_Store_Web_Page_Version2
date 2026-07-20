@@ -13,7 +13,7 @@ export function comboToCartItem(combo: Combo): CartItem {
     name: combo.name,
     variantName: "Combo",
     price: combo.price,
-    image: combo.products[0]?.image || "",
+    image: combo.image || combo.products[0]?.image || "",
     quantity: 1,
     comboProducts: combo.products.map((p) => ({ name: p.name })),
   };

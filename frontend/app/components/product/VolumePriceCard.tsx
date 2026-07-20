@@ -29,7 +29,10 @@ export function VolumePriceCard({ label, qty, active, basePrice, tier, onClick }
         // altura de contenido y "Media docena" (2 líneas) se veía más alta que el resto.
         // Compacta a propósito: las 3 deben caber SIEMPRE en línea, también a 375px
         // (un tercio de ancho ≈ 105px), así que el padding/tipografía son mínimos.
-        "relative flex h-full min-w-0 flex-col items-start rounded-xl border p-2.5 text-left transition-colors ease-expo duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:p-4",
+        // w-full: el botón DEBE llenar su celda del grid. Sin esto encogía a su propio
+        // contenido y, como "Media docena" es más ancho, las 3 cards salían con anchos
+        // distintos (87/122/86px) — la asimetría reportada. Con w-full quedan iguales.
+        "relative flex h-full w-full min-w-0 flex-col items-start rounded-xl border p-2 sm:p-4 text-left transition-colors ease-expo duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
         active
           ? "border-accent bg-surface-hover shadow-[0_4px_24px_rgba(0,0,0,0.25)]"
           : "border-border bg-surface-2 hover:border-white/25 hover:bg-surface-hover",

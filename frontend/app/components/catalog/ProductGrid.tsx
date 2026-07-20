@@ -7,6 +7,7 @@
 // o filtrar, colapsa a una única grilla de resultados (sin encabezados de sección).
 import { PackageSearch, Flame, LayoutGrid } from "lucide-react";
 import { ProductCard } from "~/components/product/ProductCard";
+import { ProductCarousel } from "~/components/product/ProductCarousel";
 import type { CatalogProduct, Category } from "~/store/api/catalogApi";
 import { useCatalogFilter, isDeal } from "~/lib/useCatalogFilter";
 import { useSearchTelemetry } from "~/hooks/useSearchTelemetry";
@@ -32,29 +33,30 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
     if (filtered.length === 0) return <EmptyState text="Aún no hay productos publicados." />;
 
     return (
-      <div className="space-y-10 pb-12">
+      <div className="space-y-4 md:space-y-10 pb-2 md:pb-12">
         {deals.length > 0 && (
-          <section>
-            <SectionHeader
-              icon={<Flame className="h-4 w-4" />}
-              title="SuperOfertas"
-              subtitle="Precios rebajados por tiempo limitado"
-              count={deals.length}
-              tone="deal"
-            />
-            <Grid products={deals} categories={categories} />
-          </section>
+          <ProductCarousel
+            title="SuperOfertas"
+            subtitle="Precios rebajados por tiempo limitado"
+            products={deals}
+            categories={categories}
+            variant="showcase"
+          />
         )}
 
-        <section>
-          <SectionHeader
-            icon={<LayoutGrid className="h-4 w-4" />}
-            title="Todo el catálogo"
-            subtitle="Explora todos nuestros productos"
-            count={rest.length}
-          />
-          <Grid products={rest} categories={categories} />
-        </section>
+        {categories.map((c) => {
+          const catProducts = rest.filter((p) => p.category === c.id || p.category === c.name);
+          if (catProducts.length === 0) return null;
+          return (
+            <ProductCarousel
+              key={c.id}
+              title={c.name}
+              products={catProducts}
+              categories={categories}
+              variant="showcase"
+            />
+          );
+        })}
       </div>
     );
   }
@@ -64,11 +66,16 @@ export function ProductGrid({ products, categories }: { products: CatalogProduct
     return <EmptyState text="No hay productos que coincidan con tu búsqueda." />;
   }
   return (
-    <div className="pb-12">
+    <div className="pb-2 md:pb-12 pt-4">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-heading text-lg font-bold text-text md:text-xl">
+          Resultados <span className="text-muted tabular-nums font-medium text-sm ml-2">({filtered.length})</span>
+        </h2>
+      </div>
       <Grid
         products={filtered}
         categories={categories}
-        onProductClick={search ? (id) => logResultClick(search, id) : undefined}
+        onProductClick={(id) => logResultClick(search, id)}
       />
     </div>
   );
@@ -89,7 +96,7 @@ function Grid({
   onProductClick?: (id: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-0 md:gap-5 md:grid-cols-3 xl:grid-cols-4">
       {products.map((p, i) => (
         <div
           key={p.id}

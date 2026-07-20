@@ -3,21 +3,15 @@
 // Mientras no se configure el id del widget, ReviewsWidget muestra una tarjeta que
 // lleva a las reseñas de Google — nunca reseñas inventadas.
 // La fila de marcas de abajo reusa BrandStrip.tsx (marquee de marcas reales).
-import { BrandStrip } from "./BrandStrip";
 import { ReviewsWidget } from "./ReviewsWidget";
 
 export function SocialProof() {
   return (
-    <section aria-label="Lo que dicen nuestros clientes" className="py-8">
-      <h2 className="font-heading text-xl font-bold leading-none text-text">Lo que dicen nuestros clientes</h2>
-      <p className="mb-4 mt-2 text-sm text-muted">Reseñas verificadas de nuestros clientes en Google y Facebook.</p>
+    <section aria-label="Lo que dicen nuestros clientes" className="py-6 sm:py-8">
+      <h2 className="font-heading text-[17px] font-bold leading-none text-text sm:text-xl">Lo que dicen nuestros clientes</h2>
+      <p className="mb-4 mt-2 text-[13px] sm:text-sm text-muted">Reseñas verificadas de nuestros clientes en Google y Facebook.</p>
 
       <ReviewsWidget />
-
-      {/* Marcas que distribuimos — fila de autoridad (marquee, contenido real). */}
-      <div className="mt-8">
-        <BrandStrip />
-      </div>
     </section>
   );
 }
