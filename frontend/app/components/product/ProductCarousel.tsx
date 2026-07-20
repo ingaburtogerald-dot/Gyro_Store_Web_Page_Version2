@@ -16,6 +16,7 @@ export function ProductCarousel({
   products,
   categories,
   variant = "product",
+  hidePills = false,
 }: {
   title: string;
   subtitle?: string;
@@ -24,6 +25,8 @@ export function ProductCarousel({
   /** "product" = tarjetas con precio+CTA (PDP). "showcase" = tiles editoriales
    *  grandes (imagen + nombre + descripción, sin precio) estilo dbrand. */
   variant?: "product" | "showcase";
+  /** Oculta los pills de variantes en las tarjetas (recomendaciones de la ficha). */
+  hidePills?: boolean;
 }) {
   const showcase = variant === "showcase";
   const trackRef = useRef<HTMLUListElement>(null);
@@ -52,15 +55,16 @@ export function ProductCarousel({
   if (!products.length) return null;
 
   return (
-    <section className="py-8" aria-label={title}>
+    <section className="py-2 md:py-8" aria-label={title}>
       <div className="mb-5 flex items-end justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="font-heading text-xl font-bold tracking-tight text-text sm:text-2xl">{title}</h2>
-          {subtitle && <p className="mt-0.5 text-sm font-light text-muted">{subtitle}</p>}
+          <h2 className="font-heading text-[17px] font-bold tracking-tight text-text sm:text-2xl">{title}</h2>
+          {subtitle && <p className="mt-0.5 text-[11px] font-light text-muted sm:text-sm">{subtitle}</p>}
         </div>
 
-        {/* Flechas (desktop): se deshabilitan en los extremos. */}
-        <div className="hidden shrink-0 gap-2 sm:flex">
+        {/* Flechas (también en móvil ahora): se deshabilitan en los extremos. En móvil
+            son la pista visible de que el carrusel se desliza de izquierda a derecha. */}
+        <div className="flex shrink-0 gap-2">
           {([-1, 1] as const).map((dir) => {
             const enabled = dir === -1 ? canPrev : canNext;
             const Icon = dir === -1 ? ChevronLeft : ChevronRight;
@@ -72,7 +76,7 @@ export function ProductCarousel({
                 disabled={!enabled}
                 aria-label={dir === -1 ? "Anterior" : "Siguiente"}
                 className={cn(
-                  "ease-expo grid h-10 w-10 place-items-center rounded-full transition active:scale-95",
+                  "ease-expo grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-full transition active:scale-95",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
                   // showcase (dbrand "Popular Devices"): círculo claro sólido + flecha oscura.
                   // product (resto de carruseles): outline sutil sobre superficie oscura (sin cambios).
@@ -87,7 +91,7 @@ export function ProductCarousel({
                       ),
                 )}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             );
           })}
@@ -107,7 +111,7 @@ export function ProductCarousel({
           ref={trackRef}
           onScroll={update}
           className={cn(
-            "flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 sm:gap-5",
+            "flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:gap-5",
             "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           )}
         >
@@ -115,16 +119,16 @@ export function ProductCarousel({
             showcase ? (
               <li
                 key={p.id}
-                className="w-[70%] shrink-0 snap-start sm:w-[46%] md:w-[31%] lg:w-[23.5%]"
+                className="w-[54%] shrink-0 snap-start md:w-[31%] lg:w-[23.5%]"
               >
                 <ShowcaseCard product={p} index={i} />
               </li>
             ) : (
               <li
                 key={p.id}
-                className="w-[47%] shrink-0 snap-start sm:w-[31%] md:w-[23.5%] lg:w-[19%]"
+                className="w-[40%] shrink-0 snap-start md:w-[23.5%] lg:w-[19%]"
               >
-                <ProductCard product={p} categories={categories} index={i} />
+                <ProductCard product={p} categories={categories} index={i} showPills={!hidePills} />
               </li>
             ),
           )}
@@ -183,19 +187,19 @@ function ShowcaseCard({ product, index }: { product: CatalogProduct; index: numb
           )}
         </div>
 
-        <h3 className="mt-4 text-xl font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2 sm:text-2xl">
+        <h3 className="mt-3 text-[13px] font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2 sm:text-xl sm:mt-4">
           {product.name}
         </h3>
         <div className="mt-1.5 flex items-baseline gap-2">
-          <span className="text-lg font-extrabold tabular-nums text-accent-2">{formatCordobas(product.price)}</span>
+          <span className="text-[13px] font-extrabold tabular-nums text-accent-2 sm:text-lg">{formatCordobas(product.price)}</span>
           {onSale && (
-            <span className="text-sm text-muted line-through tabular-nums">{formatCordobas(compareAt)}</span>
+            <span className="text-xs text-muted line-through tabular-nums sm:text-sm">{formatCordobas(compareAt)}</span>
           )}
         </div>
-        {/* line-clamp-3 en móvil: menos altura por tarjeta en el carrusel showcase
+        {/* line-clamp-2 en móvil: menos altura por tarjeta en el carrusel showcase
             (aspect-[4/5] ya es alto de por sí). Desktop conserva 4 líneas. */}
         {description && (
-          <p className="mt-2 line-clamp-3 sm:line-clamp-4 max-w-[400px] text-sm font-light leading-relaxed text-pretty text-muted">
+          <p className="mt-1.5 line-clamp-2 sm:line-clamp-4 max-w-[400px] text-[11px] font-light leading-relaxed text-pretty text-muted sm:text-sm sm:mt-2">
             {description}
           </p>
         )}

@@ -18,9 +18,11 @@ export function ComboSection({ combos }: { combos: Combo[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 lg:grid-cols-4">
         {combos.map((combo, i) => (
-          <ComboCard key={combo.id} combo={combo} index={i} />
+          <div key={combo.id} className="w-[70%] shrink-0 snap-start sm:w-auto">
+            <ComboCard combo={combo} index={i} />
+          </div>
         ))}
       </div>
     </section>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link } from "@remix-run/react";
+import { Link, useNavigate } from "@remix-run/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Play, Pause, ArrowRight, MessageCircle, Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
@@ -30,6 +30,7 @@ function newBlankSlide(): HeroSlide {
 }
 
 export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null }) {
+  const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
@@ -200,7 +201,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
               contenedor (bg-[#111], sin /50) para que no haya costura detrás
               de la media; antes bg-black/50 sobre bg-[#111] se veía como un
               rectángulo más oscuro. */}
-          <div className="w-full md:w-1/2 relative bg-[#111] overflow-hidden h-[190px] sm:h-[260px] md:h-auto flex items-center justify-center border-b border-border/30 md:border-b-0 md:border-r border-border/30">
+          <div className={cn("w-full md:w-1/2 relative bg-[#111] overflow-hidden h-[190px] sm:h-[260px] md:h-auto flex items-center justify-center border-b border-border/30 md:border-b-0 md:border-r border-border/30", safeIndex > 0 && "max-md:bg-black")}>
             {/* Glow radial muy sutil detrás de la media: le da profundidad
                 intencional al vacío negro sin leerse como un círculo — blur
                 alto + opacidad baja, no un halo obvio. */}
@@ -208,9 +209,15 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
               aria-hidden
               className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.16),transparent_60%)] blur-3xl"
             />
+            {/* Slide 1 (Marca): object-contain con padding para que el logo respire.
+                Slide 2+ (Productos): scale-125 y p-0 SOLO EN MÓVIL (max-md) para hacer
+                el zoom sin afectar el diseño en escritorio. */}
             <SlideMedia
               slide={activeSlide}
-              className="absolute inset-0 w-full h-full object-contain p-6 transition-opacity duration-700 ease-out"
+              className={cn(
+                "absolute inset-0 w-full h-full object-contain transition-opacity duration-700 ease-out", 
+                safeIndex === 0 ? "p-2 sm:p-6" : "p-6 max-md:p-0 max-md:scale-125"
+              )}
             />
             {/* Velo oscuro para armonía de colores */}
             <div className="absolute inset-0 bg-black/10 pointer-events-none" />
@@ -228,77 +235,61 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                 className="space-y-2.5 sm:space-y-6"
               >
                 {/* Eyebrow / Subtítulo superior */}
-                <span className="inline-block text-xs font-black uppercase tracking-[0.2em] text-accent-2">
+                <span className="inline-block text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-accent-2">
                   {activeSlide.eyebrow}
                 </span>
 
                 {/* Título Protagonista */}
-                <h1 className="font-heading text-2xl sm:text-4xl md:text-6xl font-black tracking-tight text-white leading-[0.95] text-balance">
+                <h1 className="font-heading text-[20px] sm:text-4xl md:text-6xl font-black tracking-tight text-white leading-[0.95] text-balance">
                   {activeSlide.title}
                 </h1>
 
                 {/* Descripción editorial: recortada a 2 líneas en móvil — el CTA no
                     puede depender de qué tan larga sea la descripción de cada slide. */}
-                <p className="line-clamp-2 sm:line-clamp-none text-sm sm:text-base text-white/70 font-medium leading-relaxed max-w-lg">
+                <p className="line-clamp-2 sm:line-clamp-none text-[12px] sm:text-base text-white/70 font-medium leading-relaxed max-w-lg">
                   {activeSlide.description}
                 </p>
 
                 {/* Jerarquía de venta: Primario = configurado por el admin (ej. Ver catálogo o un link a un producto),
                     Secundario = Ordenar por WhatsApp. Lado a lado en móvil, fila en desktop. */}
                 <div className="pt-2.5 sm:pt-4">
+                  {/* Ambos CTAs comparten el MISMO patrón: outline sin relleno, mismo
+                      tamaño y una sola línea (truncate) → simétricos. Se diferencian
+                      solo por color: acento (acción principal) vs verde WhatsApp. En
+                      móvil son 2 columnas iguales; desde sm van lado a lado auto-width. */}
                   <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:gap-3">
                     {(() => {
                       const target = activeSlide.actionTarget || "/#catalogo";
                       const isExternal = target.startsWith("http");
-                      
-                      const btn = (
-                        // Primario: variant="primary" ya trae el gradiente sólido
-                        // accent→accent-hover + sombra correctos — no dupliques esas
-                        // clases aquí (dos gradientes/sombras compitiendo sin
-                        // tailwind-merge es ambiguo). Solo agregamos layout y el
-                        // tamaño compacto de desktop.
-                        <Button
-                          size="sm"
-                          className="w-full sm:w-auto group relative overflow-hidden rounded-xl focus-visible:outline-none sm:py-2.5 sm:px-6 sm:text-sm"
-                        >
-                          {activeSlide.buttonText || "Ver catálogo"}
-                          <ArrowRight className="inline-block h-4 w-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" />
-                        </Button>
-                      );
-
-                      if (isExternal) {
-                        return (
-                          <a href={target} target="_blank" rel="noopener noreferrer" className="inline-block">
-                            {btn}
-                          </a>
-                        );
-                      }
 
                       return (
-                        <Link to={target} className="inline-block">
-                          {btn}
-                        </Link>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (isExternal) {
+                              window.open(target, "_blank", "noopener,noreferrer");
+                            } else {
+                              navigate(target);
+                            }
+                          }}
+                          className="group w-full sm:w-auto justify-center rounded-xl border border-accent/50 !text-accent transition-colors hover:!bg-accent/10 hover:border-accent py-2 text-[12px] sm:py-2.5 sm:px-6 sm:text-sm"
+                        >
+                          <span className="truncate">{activeSlide.buttonText || "Ver catálogo"}</span>
+                          <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1" />
+                        </Button>
                       );
                     })()}
 
-                    {/* Secundario: outline verde sobre transparente, no relleno sólido —
-                        así el ojo va directo al primario. variant="ghost" es la base
-                        (sin fondo/borde propios); el color/hover se fuerzan con `!`
-                        porque colisionan con las clases de color de ghost y, sin
-                        tailwind-merge, el orden de las clases en el className no
-                        garantiza cuál gana. */}
-                    <a href={whatsappOrderUrl} target="_blank" rel="noopener noreferrer" className="inline-block">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-full sm:w-auto rounded-xl border border-whatsapp/40 !text-whatsapp hover:!bg-whatsapp/10 hover:border-whatsapp/60 transition-colors sm:py-2.5 sm:px-6 sm:text-sm"
-                      >
-                        <MessageCircle className="h-4 w-4 shrink-0" />
-                        {/* Texto corto en móvil (columna angosta); completo desde sm. */}
-                        <span className="sm:hidden">WhatsApp</span>
-                        <span className="hidden sm:inline">Ordenar por WhatsApp</span>
-                      </Button>
-                    </a>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => window.open(whatsappOrderUrl, "_blank", "noopener,noreferrer")}
+                      className="group w-full sm:w-auto justify-center rounded-xl border border-whatsapp/50 !text-whatsapp transition-colors hover:!bg-whatsapp/10 hover:border-whatsapp py-2 text-[12px] sm:py-2.5 sm:px-6 sm:text-sm"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 transition-transform duration-300 group-hover:scale-110" />
+                      <span className="truncate">WhatsApp</span>
+                    </Button>
                   </div>
                 </div>
               </motion.div>

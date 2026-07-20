@@ -5,24 +5,24 @@ import { Loader2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 type Variant = "primary" | "submit" | "destructive" | "whatsapp" | "ghost" | "outline";
-type Size = "sm" | "md" | "lg";
+type Size = "sm" | "md" | "lg" | "icon";
+// Forma unificada del control: rectángulo suave (default), píldora o círculo. Antes
+// cada botón-ícono re-escribía `rounded-full` a mano; ahora sale de aquí (shape).
+type Shape = "default" | "pill" | "circle";
+
+// Primaria sólida — Escritorio (relleno), Móvil (outline neón). `submit` es idéntica
+// a `primary` (misma constante, no dupliques la cadena): antes eran dos strings
+// gigantes copiados, fácil de desincronizar.
+const SOLID_ACCENT =
+  "font-semibold hover:-translate-y-0.5 transition-all border border-accent/40 bg-accent/10 text-accent shadow-none hover:bg-accent/20 hover:border-accent hover:shadow-md hover:shadow-accent/20";
 
 const VARIANTS: Record<Variant, string> = {
-  // Primaria — acento sólido brillante con texto oscuro (una sola convención en
-  // toda la app: mismo look que tarjetas, buscador y toolbar). Con esmeralda el
-  // texto oscuro da contraste ≈9:1 (AA holgado) donde el texto blanco fallaba.
-  primary: "bg-gradient-to-b from-accent to-accent-hover shadow-md shadow-accent/20 border-t border-accent-2/20 text-bg font-semibold hover:from-accent-hover hover:to-accent hover:shadow-lg hover:shadow-accent/30 hover:-translate-y-0.5",
-  // Sólido — submits dentro de modales y formularios (idéntico a primary para
-  // que no haya dos "botones principales" distintos).
-  submit: "bg-gradient-to-b from-accent to-accent-hover shadow-md shadow-accent/20 border-t border-accent-2/20 text-bg font-semibold hover:from-accent-hover hover:to-accent hover:shadow-lg hover:shadow-accent/30 hover:-translate-y-0.5",
+  primary: SOLID_ACCENT,
+  submit: SOLID_ACCENT,
   // Destructivo — eliminar, rechazar
   destructive: "bg-danger/10 text-danger hover:bg-danger hover:text-white hover:shadow-md hover:shadow-danger/20",
-  // WhatsApp — solo para botones que abren un chat de WhatsApp real. Antes era un
-  // gradiente verde casi idéntico a `primary` (ambos leían como "el mismo botón").
-  // Tratamiento distinto a propósito: tinte/outline (no sólido) para que la
-  // jerarquía "Agregar = acción principal" vs "WhatsApp = vía alterna" se lea
-  // al instante, tanto inline como en la barra fija móvil.
-  whatsapp: "border-2 border-whatsapp bg-whatsapp/10 text-whatsapp font-semibold hover:bg-whatsapp/20 hover:border-whatsapp hover:shadow-md hover:shadow-whatsapp/20 hover:-translate-y-0.5",
+  // WhatsApp — outline con borde delgado (1px) para ambas pantallas.
+  whatsapp: "border border-whatsapp/50 bg-whatsapp/10 text-whatsapp font-semibold hover:bg-whatsapp/20 hover:border-whatsapp hover:shadow-md hover:shadow-whatsapp/20 hover:-translate-y-0.5",
   ghost: "bg-transparent text-muted hover:text-text hover:bg-surface-2",
   outline: "border border-border text-text hover:bg-surface-2 hover:shadow-sm",
 };
@@ -31,16 +31,26 @@ const SIZES: Record<Size, string> = {
   sm: "px-3 py-1.5 text-sm",
   md: "px-5 py-2.5 text-sm",
   lg: "px-7 py-3 text-base",
+  // Botón-ícono cuadrado de 44px (target táctil WCAG 2.5.5). Úsalo con shape="circle"
+  // para la lupa/carrito/favorito/flechas — hoy repetidos a mano en 6+ lugares.
+  icon: "h-11 w-11 p-0 shrink-0",
+};
+
+const SHAPES: Record<Shape, string> = {
+  default: "rounded-lg",
+  pill: "rounded-pill",
+  circle: "rounded-full",
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
+  shape?: Shape;
   loading?: boolean;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "primary", size = "md", loading, className, children, disabled, ...props },
+  { variant = "primary", size = "md", shape = "default", loading, className, children, disabled, ...props },
   ref,
 ) {
   return (
@@ -50,9 +60,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       disabled={disabled || loading}
       className={cn(
-        "ease-expo inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors",
+        "ease-expo inline-flex items-center justify-center gap-2 font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
         "disabled:opacity-50 disabled:cursor-not-allowed",
+        SHAPES[shape],
         VARIANTS[variant],
         SIZES[size],
         className,

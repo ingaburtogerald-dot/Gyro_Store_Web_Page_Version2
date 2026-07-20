@@ -202,6 +202,11 @@ export function CategoryChips({ categories }: { categories: Category[] }) {
                       active ? "text-accent-2" : "text-muted hover:text-text",
                     )}
                   >
+                    {/* Hit-area real de 44px en móvil sin agrandar el chip visual: el
+                        botón sigue siendo h-7/w-7 (no afecta la altura de la fila —
+                        esto es `absolute`, fuera de flujo), pero el tap responde en
+                        toda esta zona ampliada. */}
+                    <span className="absolute -inset-[8.5px] md:inset-0" aria-hidden />
                     <ChevronDown
                       className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")}
                     />

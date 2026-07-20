@@ -145,14 +145,19 @@ export function VariantPicker({
     <div className="mt-5 space-y-5">
       {safeAxisLabels.map((label, axis) => {
         if (!options[axis] || options[axis].length === 0) return null;
-        const isColorAxis = axis === effectiveColorAxisIndex;
+        // Asegurar que si el backend manda 0 por defecto (zero-value), no convierta
+        // opciones como 'Conector' en paletas de color.
+        const isColorLabel = label.toLowerCase().includes("color") || label.toLowerCase().includes("colour") || label.toLowerCase().includes("tono");
+        const isColorAxis = (axis === effectiveColorAxisIndex && isColorLabel) || (effectiveColorAxisIndex === -1 && isColorLabel);
         const selectedLabel = selected[axis];
 
         return (
           <div key={label}>
-            <p className="mb-2.5 text-sm font-medium text-text/80">
+            {/* Label y valor en blanco (antes text-text/80 + text-muted gris): el
+                usuario pidió que estas letras hagan contraste con el fondo oscuro. */}
+            <p className="mb-2.5 text-[12px] sm:text-sm font-medium text-text">
               {label}
-              {selectedLabel && <span className="ml-2 text-muted">· {selectedLabel}</span>}
+              {selectedLabel && <span className="ml-2 text-text/90">· {selectedLabel}</span>}
             </p>
 
             {isColorAxis ? (
@@ -184,7 +189,7 @@ export function VariantPicker({
                     >
                       <span
                         className={cn(
-                          "relative grid h-10 w-10 place-items-center rounded-full border shadow-inner transition-all",
+                          "relative grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-full border shadow-inner transition-all",
                           isSel
                             ? "border-transparent ring-2 ring-accent ring-offset-2 ring-offset-bg"
                             : isLight
@@ -205,7 +210,7 @@ export function VariantPicker({
                       </span>
                       <span
                         className={cn(
-                          "max-w-[5rem] truncate text-xs",
+                          "max-w-[5rem] truncate text-[10px] sm:text-xs",
                           isSel ? "font-medium text-text" : "text-muted",
                         )}
                       >
@@ -230,13 +235,13 @@ export function VariantPicker({
                       onClick={() => pick(axis, opt)}
                       aria-pressed={isSel}
                       className={cn(
-                        "flex min-w-[5rem] items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all active:scale-95",
+                        "relative flex min-w-[5rem] items-center justify-center gap-2 rounded-xl border px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all duration-300 active:scale-95 backdrop-blur-md overflow-hidden",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
                         isSel
-                          ? "border-accent bg-accent/5 text-accent shadow-sm ring-1 ring-accent"
+                          ? "border-accent/80 bg-accent/15 text-accent shadow-[0_0_15px_rgba(var(--color-accent),0.2)]"
                           : enabled
-                            ? "border-border/60 bg-surface-2 text-muted hover:border-accent hover:text-accent hover:bg-surface-hover"
-                            : "cursor-not-allowed border-border/30 bg-surface-2/30 text-muted/30 line-through",
+                            ? "border-white/10 bg-surface-2/40 text-text/80 hover:border-accent/50 hover:bg-surface-2/60 hover:text-accent-2"
+                            : "cursor-not-allowed border-white/5 bg-surface-2/10 text-muted/30 line-through",
                       )}
                     >
                       {isSel && <Check className="h-4 w-4 shrink-0 text-accent" />}

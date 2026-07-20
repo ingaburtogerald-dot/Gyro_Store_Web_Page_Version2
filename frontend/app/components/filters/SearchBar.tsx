@@ -121,13 +121,13 @@ export function SearchBar({
           pill
             ? // Píldora limpia: borde suave, totalmente redondeada, foco con halo contenido.
               cn(
-                "rounded-pill border bg-surface/70 backdrop-blur-xl",
-                focused ? "border-accent/60 ring-4 ring-accent/15" : "border-border/70 hover:border-border",
+                "rounded-pill border bg-surface/80 backdrop-blur-xl shadow-sm",
+                focused ? "border-accent/50 shadow-[0_0_15px_rgba(var(--color-accent),0.15)] ring-1 ring-accent/30" : "border-border hover:border-accent/40",
               )
             : // Glass clásico (comportamiento previo intacto).
               cn(
-                "overflow-hidden rounded-lg border bg-surface/60 backdrop-blur-xl",
-                focused ? "border-accent/60 shadow-none ring-4 ring-accent/15" : "border-border/70 hover:border-border",
+                "overflow-hidden rounded-lg border bg-surface/80 backdrop-blur-xl shadow-sm",
+                focused ? "border-accent/50 shadow-[0_0_15px_rgba(var(--color-accent),0.15)] ring-1 ring-accent/30" : "border-border hover:border-accent/40",
               ),
         )}
       >
@@ -217,8 +217,9 @@ export function SearchBar({
             submit(value);
           }}
           className={cn(
-            "my-1.5 mr-1.5 flex aspect-square shrink-0 items-center justify-center bg-accent text-bg transition-all duration-300 hover:bg-accent-hover active:scale-95",
+            "my-1 mr-1 flex aspect-square shrink-0 items-center justify-center transition-all duration-300 active:scale-95",
             pill ? "rounded-full" : "rounded-md",
+            "bg-surface-2/80 text-text hover:bg-accent hover:text-bg border border-white/5 hover:border-transparent hover:shadow-[0_0_10px_rgba(var(--color-accent),0.5)]"
           )}
         >
           <Search className="h-[18px] w-[18px]" />
@@ -234,7 +235,7 @@ export function SearchBar({
             animate={{ opacity: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
             transition={{ duration: 0.28, ease: EASE }}
-            className="absolute left-0 right-0 top-full z-50 mt-3 overflow-hidden rounded-2xl border border-border/70 bg-surface/95 p-5 shadow-premium backdrop-blur-2xl"
+            className="absolute left-0 right-0 top-full z-50 mt-3 overflow-hidden rounded-2xl border border-border bg-surface/90 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.6)] backdrop-blur-2xl"
             // Evita que el blur del input cierre el panel al hacer clic dentro.
             onMouseDown={(e) => e.preventDefault()}
           >
@@ -252,7 +253,7 @@ export function SearchBar({
                         key={kw}
                         type="button"
                         onClick={() => pickKeyword(kw)}
-                        className="rounded-pill border border-border bg-surface-2/60 px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:border-accent/40 hover:text-text"
+                        className="rounded-pill border border-border/80 bg-surface-2/50 px-3 py-1.5 text-[13px] font-medium text-muted transition-all duration-300 hover:border-accent/50 hover:text-accent-2 hover:bg-accent/10 hover:-translate-y-0.5"
                       >
                         {kw}
                       </button>
@@ -273,7 +274,7 @@ export function SearchBar({
                         key={p.id}
                         to={getProductUrl(p.id, p.name)}
                         prefetch="intent"
-                        className="group/card flex items-center gap-3 rounded-xl border border-border/60 bg-surface-2/40 p-2 text-left transition-colors hover:border-accent/40 hover:bg-surface-2/70"
+                        className="group/card flex items-center gap-3 rounded-xl border border-border/50 bg-surface-2/40 p-2 text-left transition-all duration-300 hover:border-accent/50 hover:bg-surface-3/80 hover:-translate-y-0.5 hover:shadow-lg"
                       >
                         <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-surface-2">
                           {p.image ? (

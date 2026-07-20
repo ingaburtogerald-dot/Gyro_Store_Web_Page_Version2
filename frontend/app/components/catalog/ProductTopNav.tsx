@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "@remix-run/react";
 import { motion, AnimatePresence, useAnimationControls, useReducedMotion } from "framer-motion";
-import { ArrowLeft, Heart, LayoutGrid, Share2, ShoppingCart, User } from "lucide-react";
+import { ArrowLeft, Heart, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { CartDrawer } from "~/components/cart/CartDrawer";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
@@ -62,29 +62,15 @@ export function ProductTopNav({
     else navigate("/");
   }, [navigate]);
 
-  // Compartir: Web Share API nativa; si no existe, copia el enlace.
-  const share = useCallback(async () => {
-    const url = window.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title, text: `Mira este producto en Gyro Store: ${title}`, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Enlace copiado al portapapeles");
-      }
-    } catch (err) {
-      if ((err as Error).name !== "AbortError") {
-        await navigator.clipboard.writeText(url);
-        toast.success("Enlace copiado al portapapeles");
-      }
-    }
-  }, [title]);
+
 
   return (
     <>
       <header
+        // pt-[env(safe-area-inset-top)]: con viewport-fit=cover el contenido puede ir
+        // borde a borde; sin este padding el nav queda bajo la Dynamic Island en iPhone.
         className={cn(
-          "sticky top-0 z-50 transition-all duration-300 ease-out",
+          "sticky top-0 z-30 pt-[env(safe-area-inset-top)] transition-all duration-300 ease-out",
           scrolled
             ? "border-b border-white/5 bg-surface/70 backdrop-blur-xl shadow-sm"
             : "border-b border-transparent bg-bg",
@@ -97,9 +83,11 @@ export function ProductTopNav({
               type="button"
               onClick={goBack}
               aria-label="Volver al catálogo"
-              className="ease-expo flex h-10 w-10 md:h-9 md:w-auto items-center justify-center md:justify-start gap-1.5 rounded-full bg-surface-2/80 border border-border/50 md:px-3.5 text-text transition-all hover:bg-surface-hover hover:border-accent/30 hover:text-accent-2 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:-ml-2"
+              className="group ease-expo flex h-10 w-10 md:h-9 md:w-auto items-center justify-center md:justify-start gap-1.5 rounded-full bg-surface-2/80 border border-border/50 md:px-3.5 text-text transition-all hover:bg-surface-hover hover:border-accent/30 hover:text-accent-2 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:-ml-2"
             >
-              <ArrowLeft className="h-5 w-5 md:h-4 md:w-4 shrink-0" />
+              {/* La flecha se desliza a la izquierda al hover/activar — micro-animación
+                  que refuerza el gesto "volver" sin ocupar más espacio. */}
+              <ArrowLeft className="h-5 w-5 md:h-4 md:w-4 shrink-0 transition-transform duration-300 group-hover:-translate-x-0.5 group-active:-translate-x-1" />
               <span className="hidden text-xs font-semibold uppercase tracking-wider md:inline">Volver</span>
             </button>
           </div>
@@ -108,7 +96,7 @@ export function ProductTopNav({
           <div className="flex-[2] text-center min-w-0 px-2">
             <h1
               aria-current="page"
-              className="truncate font-heading text-base md:text-lg font-bold text-text"
+              className="truncate font-heading text-base md:text-lg font-bold tracking-tight text-text"
             >
               {title}
             </h1>
@@ -117,9 +105,6 @@ export function ProductTopNav({
           {/* Derecha: Favorito, Compartir, Carrito */}
           <div className="flex flex-1 justify-end shrink-0 items-center gap-0.5 sm:gap-1">
             <FavoriteButton productId={productId} />
-            <IconButton onClick={share} label="Compartir producto">
-              <Share2 className="h-5 w-5" />
-            </IconButton>
             <CartButton />
           </div>
         </div>
@@ -128,35 +113,6 @@ export function ProductTopNav({
       {/* Drawer del carrito montado aquí (este nav reemplaza a PublicHeader en la ficha). */}
       <CartDrawer />
     </>
-  );
-}
-
-// Botón de icono con hit-area 44×44, hover en superficie y focus ring de acento.
-function IconButton({
-  onClick,
-  label,
-  children,
-  className,
-  ...rest
-}: {
-  onClick: () => void;
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-} & Partial<Pick<React.AriaAttributes, "aria-pressed">>) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      {...rest}
-      className={cn(
-        "grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-2/50",
-        className,
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -198,8 +154,8 @@ function FavoriteButton({ productId }: { productId: string }) {
       aria-label={fav ? "Quitar de favoritos" : "Añadir a favoritos"}
       aria-pressed={fav}
       className={cn(
-        "grid h-11 w-11 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-2/50",
-        fav ? "text-accent hover:bg-surface-2" : "text-muted hover:bg-surface-2 hover:text-text",
+        "grid h-11 w-11 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+        fav ? "text-accent hover:bg-surface-hover" : "text-muted hover:bg-surface-hover hover:text-accent-2",
       )}
     >
       <motion.span
@@ -233,7 +189,7 @@ function CartButton() {
       animate={controls}
       onClick={() => dispatch(openCart())}
       aria-label={count > 0 ? `Abrir carrito, ${count} artículo${count === 1 ? "" : "s"}` : "Abrir carrito"}
-      className="relative grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-2/50"
+      className="relative grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-surface-hover hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <ShoppingCart className="h-5 w-5" />
       <AnimatePresence>

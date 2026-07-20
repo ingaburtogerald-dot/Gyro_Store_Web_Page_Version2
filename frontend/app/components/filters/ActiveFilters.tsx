@@ -12,11 +12,19 @@ import type { Category } from "~/store/api/catalogApi";
 
 export function ActiveFilters({ categories }: { categories: Category[] }) {
   const dispatch = useAppDispatch();
-  const { priceMin, priceMax, onlyOnSale, onlyInStock, activeCategory } = useAppSelector(
+  const { search, priceMin, priceMax, onlyOnSale, onlyInStock, activeCategory } = useAppSelector(
     (s) => s.ui
   );
 
   const activeFilters = [];
+
+  if (search.trim()) {
+    activeFilters.push({
+      id: "search",
+      label: `Búsqueda: "${search}"`,
+      onRemove: () => dispatch({ type: "ui/setSearch", payload: "" }),
+    });
+  }
 
   if (activeCategory) {
     const cat = categories.find((c) => c.id === activeCategory);
@@ -68,11 +76,11 @@ export function ActiveFilters({ categories }: { categories: Category[] }) {
 
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2">
-      <span className="text-sm font-semibold text-text mr-2">Filtros activos:</span>
+      <span className="text-[12px] sm:text-sm font-semibold text-text mr-1.5 sm:mr-2">Filtros activos:</span>
       {activeFilters.map((filter) => (
         <span
           key={filter.id}
-          className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 border border-border px-3 py-1 text-sm font-medium text-text"
+          className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full bg-surface-2 border border-border px-2.5 py-0.5 text-[11px] sm:px-3 sm:py-1 sm:text-sm font-medium text-text"
         >
           {filter.label}
           <button
@@ -81,7 +89,7 @@ export function ActiveFilters({ categories }: { categories: Category[] }) {
             className="ml-1 rounded-full p-0.5 hover:bg-surface-hover text-muted hover:text-text transition-colors"
             aria-label={`Quitar filtro ${filter.label}`}
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           </button>
         </span>
       ))}
@@ -90,8 +98,9 @@ export function ActiveFilters({ categories }: { categories: Category[] }) {
         onClick={() => {
           dispatch(resetFilters());
           dispatch(setCategory(null));
+          dispatch({ type: "ui/setSearch", payload: "" });
         }}
-        className="ml-2 text-sm font-semibold text-accent hover:text-accent-2 transition-colors"
+        className="ml-1 sm:ml-2 text-[12px] sm:text-sm font-semibold text-accent hover:text-accent-2 transition-colors"
       >
         Limpiar todo
       </button>

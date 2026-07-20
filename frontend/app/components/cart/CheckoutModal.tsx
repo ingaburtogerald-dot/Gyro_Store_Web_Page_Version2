@@ -4,7 +4,7 @@ import { forwardRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, MapPin } from "lucide-react";
+import { X, MapPin, Store, Truck, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { checkoutSchema, type CheckoutInput } from "~/lib/validators";
@@ -150,19 +150,30 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-card border border-border bg-surface shadow-premium p-6"
+            // max-h + overflow-y-auto: en móvil, con "Envío a domicilio" + todos los
+            // campos + teclado abierto, el formulario puede superar el alto visible;
+            // sin esto el CTA final quedaba inalcanzable. pb con safe-area para que
+            // el home indicator no tape el botón de confirmar.
+            className="fixed left-1/2 top-1/2 z-[60] flex max-h-[85dvh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-card border border-border bg-surface shadow-premium"
             role="dialog"
             aria-modal="true"
             aria-labelledby="checkout-title"
           >
-            <div className="mb-4 flex items-center justify-between">
+            <div className="flex shrink-0 items-center justify-between p-6 pb-4">
               <h2 id="checkout-title" className="text-lg font-bold">Tus datos</h2>
-              <button onClick={onClose} aria-label="Cerrar">
-                <X className="h-5 w-5 text-muted hover:text-text" />
+              <button
+                onClick={onClose}
+                aria-label="Cerrar"
+                className="grid h-11 w-11 place-items-center text-muted hover:text-text md:h-8 md:w-8"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-3">
+            <form
+              onSubmit={handleSubmit(onSubmit, onInvalid)}
+              className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+            >
               <Field label="Nombre completo *" error={errors.customerName?.message}>
                 <input className="input" autoComplete="name" placeholder="Ej. Juan Pérez" {...register("customerName")} />
               </Field>
@@ -174,8 +185,8 @@ export function CheckoutModal({ open, onClose }: { open: boolean; onClose: () =>
               <fieldset>
                 <legend className="mb-1.5 text-sm font-medium">¿Cómo querés recibirlo?</legend>
                 <div className="grid grid-cols-2 gap-2">
-                  <Radio value="retiro" label="🏬 Retiro en tienda" {...register("deliveryMethod")} />
-                  <Radio value="envio" label="🚚 Envío a domicilio" {...register("deliveryMethod")} />
+                  <Radio value="retiro" label="Retiro en tienda" icon={Store} {...register("deliveryMethod")} />
+                  <Radio value="envio" label="Envío a domicilio" icon={Truck} {...register("deliveryMethod")} />
                 </div>
               </fieldset>
 
@@ -283,11 +294,12 @@ function Field({
 // checkout no envía (validación falla en silencio).
 const Radio = forwardRef<
   HTMLInputElement,
-  { label: string; value: string } & React.InputHTMLAttributes<HTMLInputElement>
->(function Radio({ label, value, ...props }, ref) {
+  { label: string; value: string; icon: LucideIcon } & React.InputHTMLAttributes<HTMLInputElement>
+>(function Radio({ label, value, icon: Icon, ...props }, ref) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-bg px-3 py-2.5 text-sm has-[:checked]:border-accent">
+    <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-border bg-bg px-3 py-2.5 text-sm has-[:checked]:border-accent">
       <input ref={ref} type="radio" value={value} className="accent-accent" {...props} />
+      <Icon className="h-4 w-4 shrink-0 text-muted" aria-hidden />
       {label}
     </label>
   );

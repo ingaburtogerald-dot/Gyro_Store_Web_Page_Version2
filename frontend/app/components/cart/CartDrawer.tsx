@@ -2,11 +2,12 @@
 // ajustar cantidad/eliminar y abre el modal de checkout.
 import { useState } from "react";
 import { useNavigate } from "@remix-run/react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Minus, Plus, Trash2, ImageOff, Pencil } from "lucide-react";
+import { motion, AnimatePresence, useDragControls, useReducedMotion } from "framer-motion";
+import { X, Minus, Plus, Trash2, ImageOff, Pencil, Gift } from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { CheckoutModal } from "./CheckoutModal";
 import { EditCartItemSheet } from "./EditCartItemSheet";
+import { useMediaQuery } from "~/hooks/useMediaQuery";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import {
   closeCart,
@@ -15,12 +16,9 @@ import {
   selectCartItems,
   selectCartOpen,
   selectCartTotal,
+  lineKey,
 } from "~/store/slices/cartSlice";
 import { formatCordobas } from "~/lib/utils";
-
-function lineKey(i: { catalogId: string; variantName: string }) {
-  return `${i.catalogId}::${i.variantName}`;
-}
 
 export function CartDrawer() {
   const dispatch = useAppDispatch();
@@ -30,6 +28,12 @@ export function CartDrawer() {
   const total = useAppSelector(selectCartTotal);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
+
+  // Desktop conserva el panel lateral de siempre; en móvil se vuelve un bottom
+  // sheet (al alcance del pulgar), arrastrable desde el asa para cerrar.
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const reduce = useReducedMotion();
+  const dragControls = useDragControls();
 
   // "Seguir comprando": cierra el carrito y lleva directo a la grilla del catálogo.
   // El #catalogo lo resuelve la home (efecto al montar, si venís de otra página);
@@ -64,19 +68,26 @@ export function CartDrawer() {
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-surface"
-              role="dialog"
-              aria-label="Carrito de compras"
-            >
-              <header className="flex items-center justify-between border-b border-border p-4">
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            drag={false}
+            // Se usa el panel lateral de siempre tanto en móvil como en desktop.
+            // Ocupará el 100% del ancho en móvil y un max-w-md en desktop.
+            className="fixed inset-y-0 right-0 z-50 flex h-[100dvh] w-full max-w-md flex-col border-l border-border bg-surface shadow-2xl"
+            role="dialog"
+            aria-label="Carrito de compras"
+          >
+              <header className="flex shrink-0 items-center justify-between border-b border-border p-4">
                 <h2 className="text-lg font-bold">Tu carrito</h2>
-                <button onClick={() => dispatch(closeCart())} aria-label="Cerrar">
-                  <X className="h-5 w-5 text-muted hover:text-text" />
+                <button
+                  onClick={() => dispatch(closeCart())}
+                  aria-label="Cerrar"
+                  className="grid h-11 w-11 place-items-center text-muted hover:text-text md:h-8 md:w-8"
+                >
+                  <X className="h-5 w-5" />
                 </button>
               </header>
 
-              <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              <div className="flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
                 {items.length === 0 ? (
                   <p className="py-12 text-center text-sm text-muted">Tu carrito está vacío.</p>
                 ) : (
@@ -96,8 +107,8 @@ export function CartDrawer() {
                           )}
                         </div>
                         <div className="flex flex-1 flex-col">
-                          <p className="text-sm font-medium leading-tight">
-                            {isCombo && <span className="mr-1 text-accent">🎁</span>}
+                          <p className="flex items-center gap-1 text-sm font-medium leading-tight">
+                            {isCombo && <Gift className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />}
                             {item.name}
                           </p>
                           {isCombo ? (
@@ -124,13 +135,15 @@ export function CartDrawer() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex flex-col gap-3 self-start">
-                          {/* Editar variante no aplica a un combo (es una línea atómica). */}
+                        <div className="flex flex-col self-start">
+                          {/* Editar variante no aplica a un combo (es una línea atómica).
+                              h-11/w-11 = hit-area real de 44px en móvil (el ícono visual
+                              sigue chico); desde md vuelve al tamaño compacto original. */}
                           {!isCombo && (
                             <button
                               onClick={() => setEditingItemKey(key)}
                               aria-label="Editar"
-                              className="text-muted hover:text-text"
+                              className="grid h-11 w-11 shrink-0 place-items-center text-muted hover:text-text active:scale-95 md:h-8 md:w-8"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
@@ -138,7 +151,7 @@ export function CartDrawer() {
                           <button
                             onClick={() => dispatch(removeItem(key))}
                             aria-label="Eliminar"
-                            className="text-muted hover:text-danger"
+                            className="grid h-11 w-11 shrink-0 place-items-center text-muted hover:text-danger active:scale-95 md:h-8 md:w-8"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -161,7 +174,7 @@ export function CartDrawer() {
               </div>
 
               {items.length > 0 && (
-                <footer className="border-t border-border p-4">
+                <footer className="shrink-0 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-muted">Total</span>
                     <span className="font-heading text-xl font-bold">{formatCordobas(total)}</span>
@@ -188,11 +201,13 @@ export function CartDrawer() {
   );
 }
 
+// h-11/w-11 = hit-area real de 44px en móvil (el borde visible sigue del mismo
+// tamaño que antes gracias al ícono chico centrado); desde md vuelve a compacto.
 function QtyBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="grid h-6 w-6 place-items-center rounded-md border border-border text-muted hover:text-text"
+      className="grid h-11 w-11 place-items-center rounded-md border border-border text-muted transition-colors hover:text-text active:scale-95 md:h-6 md:w-6"
     >
       {children}
     </button>

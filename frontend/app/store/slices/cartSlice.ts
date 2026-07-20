@@ -25,7 +25,7 @@ function persist(items: CartItem[]) {
 
 const initialState: CartState = { items: [], isOpen: false };
 
-function lineKey(i: Pick<CartItem, "catalogId" | "variantName" | "comboId">) {
+export function lineKey(i: Pick<CartItem, "catalogId" | "variantName" | "comboId">) {
   // Un combo es su propia línea atómica (no se fusiona con productos sueltos).
   if (i.comboId) return `combo::${i.comboId}`;
   return `${i.catalogId}::${i.variantName}`;
@@ -40,8 +40,16 @@ const cartSlice = createSlice({
     },
     addItem(state, action: PayloadAction<CartItem>) {
       const existing = state.items.find((i) => lineKey(i) === lineKey(action.payload));
-      if (existing) existing.quantity += action.payload.quantity;
-      else state.items.push(action.payload);
+      if (existing) {
+        existing.quantity += action.payload.quantity;
+        // Refrescar metadatos por si el catálogo cambió
+        existing.price = action.payload.price;
+        existing.image = action.payload.image;
+        existing.name = action.payload.name;
+        if (action.payload.comboProducts) existing.comboProducts = action.payload.comboProducts;
+      } else {
+        state.items.push(action.payload);
+      }
       persist(state.items);
     },
     setQuantity(state, action: PayloadAction<{ key: string; quantity: number }>) {
