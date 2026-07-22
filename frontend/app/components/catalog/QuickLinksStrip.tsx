@@ -3,6 +3,7 @@ import { useReducedMotion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
 import { buildWhatsappUrl, cn } from "~/lib/utils";
+import { FOOTER_CHIP_BASE, FOOTER_CHIP_ICON } from "~/lib/chipStyles";
 import { GOOGLE_REVIEW_URL, WHATSAPP_DEFAULT_MESSAGE } from "~/lib/storeLinks";
 import { FeedbackModal } from "~/components/layout/FeedbackModal";
 import { ReviewChoiceModal } from "~/components/catalog/ReviewChoiceModal";
@@ -15,8 +16,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
-const FOOTER_CHIP =
-  "ease-expo inline-flex shrink-0 snap-start items-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-full border border-border bg-surface-2/60 px-3 py-2 text-[11px] sm:px-4 sm:py-2.5 sm:text-[13px] font-semibold text-text transition-all duration-300 active:scale-95 shadow-sm hover:border-accent/40 hover:text-accent-2 hover:-translate-y-1";
+const FOOTER_CHIP = `${FOOTER_CHIP_BASE} border border-border bg-surface-2/60 text-text shadow-sm hover:border-accent/40 hover:text-accent-2`;
 
 export function QuickLinksStrip() {
   const { data: config } = useGetConfigQuery();
@@ -32,20 +32,25 @@ export function QuickLinksStrip() {
   const buttons = (
     <>
       <button type="button" onClick={() => setFeedbackOpen(true)} className={FOOTER_CHIP}>
-        💡 Tu opinión
+        <span className={FOOTER_CHIP_ICON} aria-hidden="true">💡</span>
+        <span>Tu opinión</span>
       </button>
       <button type="button" onClick={() => setReviewModalOpen(true)} className={FOOTER_CHIP}>
-        ⭐ Reseña
+        <span className={FOOTER_CHIP_ICON} aria-hidden="true">⭐</span>
+        <span>Reseña</span>
       </button>
       <a href="/#catalogo" className={FOOTER_CHIP}>
-        🛍️ Catálogo
+        <span className={FOOTER_CHIP_ICON} aria-hidden="true">🛍️</span>
+        <span>Catálogo</span>
       </a>
       <a href="/?promo=true" className={FOOTER_CHIP}>
-        🏷️ Ofertas
+        <span className={FOOTER_CHIP_ICON} aria-hidden="true">🏷️</span>
+        <span>Ofertas</span>
       </a>
       {whatsappUrl && (
         <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className={FOOTER_CHIP}>
-          <WhatsAppIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span>WhatsApp</span>
+          <WhatsAppIcon className={FOOTER_CHIP_ICON} />
+          <span>WhatsApp</span>
         </a>
       )}
       <a
@@ -54,7 +59,8 @@ export function QuickLinksStrip() {
         rel="noreferrer"
         className={FOOTER_CHIP}
       >
-        📍 Ubicación
+        <span className={FOOTER_CHIP_ICON} aria-hidden="true">📍</span>
+        <span>Ubicación</span>
       </a>
     </>
   );
@@ -65,7 +71,7 @@ export function QuickLinksStrip() {
       className="mx-auto w-full max-w-[1400px] px-4 pb-4 pt-1 sm:pb-6 sm:pt-4"
     >
       <div className="rounded-2xl border border-white/5 bg-surface-2/20 p-4 shadow-sm">
-        <h3 className="mb-2.5 sm:mb-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-text flex items-center gap-1.5 sm:gap-2">
+        <h3 className="mb-2.5 sm:mb-3 text-[10px] sm:text-xs font-bold text-text flex items-center gap-1.5 sm:gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
           <span>Enlaces Rápidos</span>
         </h3>

@@ -58,7 +58,7 @@ export function VariantMappingTable({ axes, variantMappings, onChange, inventory
   }, [variantMappings]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pb-64">
       {combinations.length === 0 && customVariants.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted">
           La plantilla no tiene opciones.
@@ -154,30 +154,45 @@ function VariantRow({
       {/* Lista de selectores de SKU */}
       <div className="space-y-2 border-l-2 border-border/40 pl-4 mt-1">
         {displaySkus.map((sku, index) => (
-          <div key={index} className="w-full sm:max-w-md">
-            <SkuAutocomplete 
-              value={sku} 
-              inventory={inventory} 
-              isLoading={isLoading} 
-              excludeSkus={excludeSkus}
-              onSelect={(newSku) => {
-                const copy = [...displaySkus];
-                copy[index] = newSku;
-                onUpdate(copy, price);
-              }} 
-              onClear={() => {
-                const copy = [...displaySkus];
-                copy[index] = "";
-                // Remove empty items if they are not the only one left
-                const cleaned = copy.filter(s => !!s);
-                onUpdate(cleaned.length > 0 ? cleaned : [], price);
-              }} 
-            />
+          <div key={index} className="flex items-center gap-2 w-full sm:max-w-md">
+            <div className="flex-1 min-w-0">
+              <SkuAutocomplete 
+                value={sku} 
+                inventory={inventory} 
+                isLoading={isLoading} 
+                excludeSkus={excludeSkus}
+                onSelect={(newSku) => {
+                  const copy = [...displaySkus];
+                  copy[index] = newSku;
+                  onUpdate(copy, price);
+                }} 
+                onClear={() => {
+                  const copy = [...displaySkus];
+                  copy[index] = "";
+                  const cleaned = copy.filter(s => !!s);
+                  onUpdate(cleaned.length > 0 ? cleaned : [], price);
+                }} 
+              />
+            </div>
+            {!sku && displaySkus.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const copy = [...displaySkus];
+                  copy.splice(index, 1);
+                  onUpdate(copy, price);
+                }}
+                className="shrink-0 rounded p-1 text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                title="Cancelar adición"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         ))}
         
         {/* Precio individual de variante */}
-        {hasSku && displaySkus.every((s) => !!s) && (
+        {hasSku && (
           <div className="flex items-start gap-3 mt-2">
             <input
               type="number"

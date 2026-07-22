@@ -12,14 +12,14 @@ import { cn } from "~/lib/utils";
 
 // Media polimórfica: renderiza <video> o <img> según el tipo. Reutilizada por el
 // preview del editor y por el Hero real.
-export function SlideMedia({ slide, className }: { slide: Pick<HeroSlide, "mediaUrl" | "mediaType" | "title">; className?: string }) {
+export function SlideMedia({ slide, className, forceReplayKey }: { slide: Pick<HeroSlide, "mediaUrl" | "mediaType" | "title">; className?: string; forceReplayKey?: number }) {
   if (!slide.mediaUrl) {
     return <div className={cn("grid place-items-center bg-black/40 text-xs text-white/40", className)}>Sin media</div>;
   }
   if (slide.mediaType === "video") {
     return (
       <video
-        key={slide.mediaUrl}
+        key={slide.mediaUrl + (forceReplayKey || 0)}
         src={slide.mediaUrl}
         autoPlay
         muted
@@ -28,10 +28,22 @@ export function SlideMedia({ slide, className }: { slide: Pick<HeroSlide, "media
         controls={false}
         disablePictureInPicture
         className={className}
+        ref={(el) => {
+          if (el) {
+            el.defaultMuted = true;
+            el.muted = true;
+            el.play().catch(() => {});
+          }
+        }}
       />
     );
   }
-  return <img key={slide.mediaUrl} src={slide.mediaUrl} alt={slide.title || ""} className={className} />;
+  
+  // Append the key as a cache-buster so animations actually restart from frame 0,
+  // even if the URL doesn't end in .gif (e.g. Firebase storage URLs)
+  const url = forceReplayKey ? `${slide.mediaUrl}${slide.mediaUrl.includes("?") ? "&" : "?"}t=${forceReplayKey}` : slide.mediaUrl;
+  
+  return <img key={url} src={url} alt={slide.title || ""} className={className} />;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

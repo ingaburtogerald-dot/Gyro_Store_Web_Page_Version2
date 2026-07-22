@@ -50,6 +50,7 @@ import {
   resetFilters,
   openPublicSidebar,
   closePublicSidebar,
+  triggerHeroReplay,
 } from "~/store/slices/uiSlice";
 import { hydrate } from "~/store/slices/cartSlice";
 import { useGetAgendaQuery } from "~/store/api/contactsApi";
@@ -217,7 +218,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   function handleGoHome() {
     dispatch(resetFilters());
     dispatch(setCategory(null));
+    dispatch(setSearch(""));
+    // Trigger Hero animation replay without page reload
+    dispatch(triggerHeroReplay());
     closePanel();
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   return (
@@ -343,7 +350,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col pb-16 md:pb-0 md:pl-[76px]">
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-black/80 px-4 backdrop-blur-xl md:px-6">
           {/* En escritorio el rail ya muestra el logo: aquí solo en móvil (evita duplicado). */}
-          <Link to="/" className="flex shrink-0 items-center transition-transform active:scale-95 md:hidden">
+          <Link to="/" onClick={handleGoHome} className="flex shrink-0 items-center transition-transform active:scale-95 md:hidden">
             <Logo size={30} withText textClassName="text-lg" />
           </Link>
 

@@ -59,33 +59,40 @@ export function CartDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => dispatch(closeCart())}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-30 md:z-50 bg-black/60 backdrop-blur-sm"
           />
         )}
         {isOpen && (
           <motion.aside
             key="cart-panel"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            drag={false}
-            // Se usa el panel lateral de siempre tanto en móvil como en desktop.
-            // Ocupará el 100% del ancho en móvil y un max-w-md en desktop.
-            className="fixed inset-y-0 right-0 z-50 flex h-[100dvh] w-full max-w-md flex-col border-l border-border bg-surface shadow-2xl"
+            initial={isDesktop ? { x: "100%", y: 0 } : { x: 0, y: "-100%" }}
+            animate={{ x: 0, y: 0 }}
+            exit={isDesktop ? { x: "100%", y: 0 } : { x: 0, y: "-100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            drag={isDesktop ? false : "y"}
+            dragConstraints={{ top: -1000, bottom: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(e, info) => {
+              if (!isDesktop && (info.velocity.y < -300 || info.offset.y < -100)) {
+                dispatch(closeCart());
+              }
+            }}
+            // Desktop: Panel lateral de toda la altura.
+            // Móvil: Top sheet (85vh), arrastrable hacia arriba, z-30 para quedar tras el header (z-40).
+            className="fixed z-30 md:z-50 flex flex-col bg-surface shadow-2xl md:inset-y-0 md:right-0 md:h-[100dvh] md:w-full md:max-w-md md:border-l md:border-border max-md:inset-x-0 max-md:top-0 max-md:h-[85dvh] max-md:w-full max-md:rounded-b-3xl max-md:border-b max-md:border-border max-md:pt-[calc(env(safe-area-inset-top)+69px)]"
             role="dialog"
             aria-label="Carrito de compras"
           >
-              <header className="flex shrink-0 items-center justify-between border-b border-border p-4">
-                <h2 className="text-lg font-bold">Tu carrito</h2>
-                <button
-                  onClick={() => dispatch(closeCart())}
-                  aria-label="Cerrar"
-                  className="grid h-11 w-11 place-items-center text-muted hover:text-text md:h-8 md:w-8"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </header>
+            <header className="flex shrink-0 items-center justify-between border-b border-border p-4">
+              <h2 className="text-lg font-bold">Tu carrito</h2>
+              <button
+                onClick={() => dispatch(closeCart())}
+                aria-label="Cerrar"
+                className="grid h-11 w-11 place-items-center text-muted hover:text-text md:h-8 md:w-8"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </header>
 
               <div className="flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
                 {items.length === 0 ? (
@@ -184,6 +191,11 @@ export function CartDrawer() {
                   </Button>
                 </footer>
               )}
+
+              {/* Asa de arrastre en móvil (al fondo) */}
+              <div className="flex w-full justify-center pb-3 pt-2 md:hidden" aria-hidden>
+                <div className="h-1.5 w-12 rounded-full bg-border/80" />
+              </div>
             </motion.aside>
         )}
       </AnimatePresence>

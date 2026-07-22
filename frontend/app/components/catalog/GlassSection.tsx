@@ -29,7 +29,7 @@ export function GlassSection({
   const bodyVisible = !collapsible || open;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/5 bg-surface/40 shadow-xl shadow-black/20 backdrop-blur-md">
+    <section className="rounded-2xl border border-white/5 bg-surface/40 shadow-xl shadow-black/20 backdrop-blur-md">
       <header
         onClick={collapsible ? () => setOpen((o) => !o) : undefined}
         className={cn(
@@ -52,11 +52,10 @@ export function GlassSection({
       <AnimatePresence initial={false}>
         {bodyVisible && (
           <motion.div
-            initial={collapsible ? { height: 0, opacity: 0 } : false}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={collapsible ? { height: 0, opacity: 0, overflow: "hidden" } : false}
+            animate={{ height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } }}
+            exit={{ height: 0, opacity: 0, transition: { overflow: "hidden" } }}
             transition={{ duration: 0.3, ease: EASE }}
-            style={{ overflow: "hidden" }}
           >
             <div className="space-y-4 border-t border-white/5 p-5">{children}</div>
           </motion.div>

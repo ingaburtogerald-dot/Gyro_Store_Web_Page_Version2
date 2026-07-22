@@ -89,6 +89,10 @@ function LogoRow({
   // Qué mostrar: archivo nuevo (local) → quitar (nada) → logo actual.
   const src = staged instanceof File ? localUrl : staged === "remove" ? "" : currentUrl || "";
 
+  const isVideo = staged instanceof File 
+    ? staged.type.startsWith('video/')
+    : (src && src.match(/\.(mp4|webm|ogg|mov)$/i));
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
@@ -103,7 +107,11 @@ function LogoRow({
         {/* Vista previa sobre negro, como el header real */}
         <div className="grid h-16 w-32 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-black">
           {src ? (
-            <img src={src} alt="" className="max-h-full max-w-full object-contain" />
+            isVideo ? (
+              <video key="video" src={src} autoPlay muted loop playsInline className="max-h-full max-w-full object-contain" />
+            ) : (
+              <img key="img" src={src} alt="" className="max-h-full max-w-full object-contain" />
+            )
           ) : (
             <span className="text-[11px] text-muted">Sin logo</span>
           )}
@@ -209,9 +217,9 @@ function LogoSection({ branding }: { branding?: { logoStaticUrl?: string; logoAn
         onUndo={() => setKind("static", null)}
       />
       <LogoRow
-        label="Logo animado (GIF)"
-        accept="image/gif"
-        hint="GIF animado. Debe coincidir en tamaño/proporción con el estático."
+        label="Logo animado (GIF/Video)"
+        accept="image/gif,video/mp4,video/webm,video/ogg,video/quicktime"
+        hint="GIF animado o Video corto. Debe coincidir en tamaño/proporción con el estático."
         currentUrl={branding?.logoAnimatedUrl}
         staged={staged.animated}
         onSelect={(f) => setKind("animated", f)}

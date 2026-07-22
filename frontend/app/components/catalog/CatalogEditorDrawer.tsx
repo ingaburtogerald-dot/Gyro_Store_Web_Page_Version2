@@ -236,20 +236,18 @@ export function CatalogEditorDrawer({
     setSubmitted(true);
     if (!name.trim() || !category || !templateId) return toast.error("Nombre, categoría y plantilla son obligatorios.");
     // Eliminada la validación estricta de basePrice ya que ahora los precios van en las variantes.
-    let calculatedBasePrice = Number(basePrice) || 0;
-    if (calculatedBasePrice === 0) {
-      // Auto-calcular basePrice buscando el menor precio entre las variantes mapeadas
-      let minPrice = Infinity;
-      Object.values(variantMappings).forEach(m => {
-        if (m.price) minPrice = Math.min(minPrice, m.price);
-        else {
-           // buscar en inventario
-           const skuItem = inventory.find(i => i.sku === m.sku);
-           if (skuItem && skuItem.price) minPrice = Math.min(minPrice, skuItem.price);
-        }
-      });
-      if (minPrice !== Infinity) calculatedBasePrice = minPrice;
-    }
+    // Auto-calcular basePrice buscando el menor precio entre las variantes mapeadas
+    let calculatedBasePrice = 0;
+    let minPrice = Infinity;
+    Object.values(variantMappings).forEach(m => {
+      if (m.price) minPrice = Math.min(minPrice, m.price);
+      else {
+         // buscar en inventario
+         const skuItem = inventory.find(i => i.sku === m.sku);
+         if (skuItem && skuItem.price) minPrice = Math.min(minPrice, skuItem.price);
+      }
+    });
+    if (minPrice !== Infinity) calculatedBasePrice = minPrice;
 
     // Aviso: combos sin SKU se mostrarán como «Agotado» permanente.
     const unmapped = allCombos.filter((c) => !variantSku(variantMappings[c])).length;

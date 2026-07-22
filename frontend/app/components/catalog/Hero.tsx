@@ -37,7 +37,15 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
 
   const isAdmin = useAppSelector(selectIsAdmin);
   const editMode = useAppSelector(selectEditMode);
+  const heroReplayKey = useAppSelector((s) => s.ui.heroReplayKey);
   const editing = isAdmin && editMode;
+
+  useEffect(() => {
+    if (heroReplayKey > 0) {
+      setActiveIndex(0);
+      setPlaying(true);
+    }
+  }, [heroReplayKey]);
 
   // Fuente de verdad en cliente: RTK (fresca tras guardar). El loader SSR solo
   // siembra el primer render para que el Hero no parpadee.
@@ -213,7 +221,9 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                 Slide 2+ (Productos): scale-125 y p-0 SOLO EN MÓVIL (max-md) para hacer
                 el zoom sin afectar el diseño en escritorio. */}
             <SlideMedia
+              key={`${activeSlide.id}-${heroReplayKey}`}
               slide={activeSlide}
+              forceReplayKey={heroReplayKey}
               className={cn(
                 "absolute inset-0 w-full h-full object-contain transition-opacity duration-700 ease-out", 
                 safeIndex === 0 ? "p-2 sm:p-6" : "p-6 max-md:p-0 max-md:scale-125"
@@ -266,11 +276,18 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => {
+                          onClick={(e) => {
                             if (isExternal) {
                               window.open(target, "_blank", "noopener,noreferrer");
                             } else {
                               navigate(target);
+                              // Smooth scroll manually if it's a hash link on the same page
+                              if (target.includes("#")) {
+                                const id = target.split("#")[1];
+                                setTimeout(() => {
+                                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }, 50);
+                              }
                             }
                           }}
                           className="group w-full sm:w-auto justify-center rounded-xl border border-accent/50 !text-accent transition-colors hover:!bg-accent/10 hover:border-accent py-2 text-[12px] sm:py-2.5 sm:px-6 sm:text-sm"

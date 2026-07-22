@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import { cn } from "~/lib/utils";
-import type { CatalogVariant } from "~/store/api/catalogApi";
+import type { CatalogVariant, TemplateAxis } from "~/store/api/catalogApi";
 
 export interface VariantSelection {
   variant: CatalogVariant | null; // combo exacto resuelto (puede estar agotado)
@@ -59,21 +59,27 @@ export function VariantPicker({
   variants,
   axisLabels,
   colorAxisIndex,
+  templateAxes,
   onChange,
 }: {
   variants: CatalogVariant[];
   axisLabels?: string[];
   colorAxisIndex?: number;
+  templateAxes?: TemplateAxis[];
   onChange: (s: VariantSelection) => void;
 }) {
   const safeAxisLabels = axisLabels || [];
   const axisCount = safeAxisLabels.length;
   // If not provided by backend, assume the last axis is the color axis if its label is 'Color' (fallback)
+  const tplColorIdx = templateAxes ? templateAxes.findIndex(a => a.isColor) : -1;
   const effectiveColorAxisIndex = colorAxisIndex ?? 
-    (safeAxisLabels[axisCount - 1]?.toLowerCase().trim() === "color" ? axisCount - 1 : -1);
+    (tplColorIdx >= 0 ? tplColorIdx : (safeAxisLabels[axisCount - 1]?.toLowerCase().trim() === "color" ? axisCount - 1 : -1));
 
   // Opciones distintas por eje, en orden de aparición.
   const options = useMemo(() => {
+    if (templateAxes && templateAxes.length > 0) {
+      return templateAxes.map((a) => a.options || []);
+    }
     const opts: string[][] = Array.from({ length: axisCount }, () => []);
     for (const v of variants) {
       for (let i = 0; i < axisCount; i++) {
@@ -82,7 +88,7 @@ export function VariantPicker({
       }
     }
     return opts;
-  }, [variants, axisCount]);
+  }, [variants, axisCount, templateAxes]);
 
   // Selección inicial: los ejes de la primera variante con más stock.
   const initial = useMemo(() => {

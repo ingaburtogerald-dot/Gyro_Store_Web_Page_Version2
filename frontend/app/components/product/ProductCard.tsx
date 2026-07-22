@@ -90,7 +90,8 @@ export function ProductCard({
   }
 
   // ── Escenario de la imagen (Link al detalle) ──
-  // Grid: foto a tope del borde superior → rounded-t-xl. List: panel inset → rounded-xl.
+  // Grid y List: adopta el estilo moderno (ShowcaseCard) con fondo transparente y
+  // foto con bordes redondeados completos. El hover levanta la foto, no toda la tarjeta.
   const Stage = (
     <Link
       to={getProductUrl(product.id, product.name)}
@@ -98,8 +99,8 @@ export function ProductCard({
       viewTransition
       aria-label={product.name}
       className={cn(
-        "product-stage ease-expo relative block overflow-hidden",
-        isList ? "aspect-square h-full w-full shrink-0 rounded-xl" : "aspect-[4/3] w-full rounded-t-xl",
+        "product-stage ease-expo relative block overflow-hidden rounded-2xl transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_20px_48px_-16px_rgba(0,0,0,0.5)] focus-visible:outline-none",
+        isList ? "aspect-square h-full w-full shrink-0" : "aspect-square sm:aspect-[4/3] w-full",
       )}
     >
       <div className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
@@ -162,7 +163,7 @@ export function ProductCard({
       to={getProductUrl(product.id, product.name)}
       prefetch="intent"
       viewTransition
-      className="line-clamp-2 min-h-[32px] text-[12px] font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2 sm:text-sm sm:min-h-10"
+      className="line-clamp-2 min-h-[32px] text-[13px] font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2 sm:text-lg sm:min-h-10"
     >
       {product.name}
     </Link>
@@ -187,11 +188,11 @@ export function ProductCard({
 
   const Price = (
     <div className="flex items-baseline gap-2">
-      <span className="text-[14px] font-extrabold tabular-nums leading-none text-accent sm:text-lg">
+      <span className="text-[14px] font-extrabold tabular-nums leading-none text-accent-2 sm:text-lg">
         {formatCordobas(product.price)}
       </span>
       {onSale && (
-        <span className="text-[11px] sm:text-xs text-muted line-through tabular-nums">
+        <span className="text-[11px] sm:text-sm text-muted line-through tabular-nums">
           {formatCordobas(compareAt)}
         </span>
       )}
@@ -229,14 +230,10 @@ export function ProductCard({
     whileInView: { opacity: 1, y: 0 },
     viewport: { once: true, margin: "-40px" },
     transition: { duration: 0.5, delay: (index % 4) * 0.06, ease: [0.16, 1, 0.3, 1] as const },
-    // Se ELEVA en hover (no crece). El spring va anidado para que solo aplique al
-    // hover (objeto táctil); la entrada sigue con ease-expo. DESIGN.md §5.
-    whileHover: reduce ? undefined : { y: -4, transition: { type: "spring", stiffness: 260, damping: 24 } },
-    whileTap: reduce ? undefined : { scale: 0.985, transition: { duration: 0.15 } },
   };
 
-  // Sin sombra ni glow: la profundidad la carga el hairline que se aclara. DESIGN.md §6.
-  const shell = "ease-expo group relative flex overflow-hidden rounded-xl border border-white/10 bg-surface transition-colors duration-300 hover:border-white/25";
+  // Sin fondo ni borde (Showcase style). El container principal es transparente.
+  const shell = "group relative flex w-full transition-colors duration-300";
 
   const Sheet = sheetMounted ? (
     <QuickAddSheet product={product} open={sheetOpen} onClose={() => setSheetOpen(false)} />
@@ -244,23 +241,34 @@ export function ProductCard({
 
   if (isList) {
     return (
-      <motion.article {...motionProps} className={cn(shell, "p-3 sm:gap-4 sm:p-4")}>
+      <motion.article {...motionProps} className={cn(shell, "gap-3 sm:gap-4")}>
         <div className="relative w-[40%] max-w-[200px] shrink-0 self-center">{Stage}</div>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 py-1 pl-4">
-          {Eyebrow}
-          {Name}
+        <Link
+          to={getProductUrl(product.id, product.name)}
+          prefetch="intent"
+          viewTransition
+          className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-1 focus-visible:outline-none"
+        >
+          <h3 className="line-clamp-2 text-[13px] font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2 sm:text-lg">
+            {product.name}
+          </h3>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-[13px] font-extrabold tabular-nums text-accent-2 sm:text-lg">
+              {formatCordobas(product.price)}
+            </span>
+            {onSale && (
+              <span className="text-xs text-muted line-through tabular-nums sm:text-sm">
+                {formatCordobas(compareAt)}
+              </span>
+            )}
+          </div>
           {product.description && (
-            <p className="line-clamp-2 text-xs font-light leading-relaxed text-muted">
+            <p className="mt-1.5 line-clamp-2 text-xs font-light leading-relaxed text-muted sm:text-sm">
               {String(product.description).replace(/<[^>]*>?/gm, "")}
             </p>
           )}
-          {showPills && Pills}
-          <div className="mt-3 flex flex-col gap-3">
-            {Price}
-            <div className="w-full max-w-[200px]">{Cta}</div>
-          </div>
-        </div>
+        </Link>
         {Sheet}
       </motion.article>
     );
@@ -269,15 +277,31 @@ export function ProductCard({
   return (
     <motion.article {...motionProps} className={cn(shell, "h-full flex-col")}>
       {Stage}
-      <div className="flex flex-1 flex-col gap-1.5 p-2 md:p-4">
-        {Eyebrow}
-        {Name}
-        {showPills && Pills}
-        <div className="mt-auto space-y-3 pt-3">
-          {Price}
-          {Cta}
+      <Link
+        to={getProductUrl(product.id, product.name)}
+        prefetch="intent"
+        viewTransition
+        className="flex flex-1 flex-col gap-1 pt-3 sm:pt-4 focus-visible:outline-none"
+      >
+        <h3 className="line-clamp-2 text-[13px] font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2 sm:text-lg">
+          {product.name}
+        </h3>
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-[13px] font-extrabold tabular-nums text-accent-2 sm:text-lg">
+            {formatCordobas(product.price)}
+          </span>
+          {onSale && (
+            <span className="text-xs text-muted line-through tabular-nums sm:text-sm">
+              {formatCordobas(compareAt)}
+            </span>
+          )}
         </div>
-      </div>
+        {product.description && (
+          <p className="mt-1.5 line-clamp-2 text-xs font-light leading-relaxed text-muted sm:text-sm">
+            {String(product.description).replace(/<[^>]*>?/gm, "")}
+          </p>
+        )}
+      </Link>
       {Sheet}
     </motion.article>
   );

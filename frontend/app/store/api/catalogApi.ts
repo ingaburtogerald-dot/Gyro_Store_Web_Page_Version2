@@ -75,6 +75,7 @@ export interface CatalogDetail extends CatalogProduct {
   templateId?: string;
   basePrice?: number;
   variantMappings?: VariantMappings;
+  templateAxes?: TemplateAxis[];
   // Opciones que ESTE producto ofrece por eje (poda estructural, no stock).
   // Si un eje no aparece, se asumen todas sus opciones. { conector: ["Tipo C"], color: ["Negro","Azul"] }
   axisOptions?: Record<string, string[]>;
