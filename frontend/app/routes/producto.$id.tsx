@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
-import { useParams, useLoaderData } from "@remix-run/react";
+import { useParams, useLoaderData, useNavigate } from "@remix-run/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ShoppingCart,
@@ -11,12 +11,13 @@ import {
   Banknote,
   Share2,
   Sparkles,
+  ChevronLeft,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PublicFooter } from "~/components/layout/PublicFooter";
 import { CategoriesDrawer } from "~/components/layout/CategoriesDrawer";
-import { ProductTopNav } from "~/components/catalog/ProductTopNav";
+import { PublicHeader } from "~/components/layout/PublicHeader";
 import { VariantPicker, type VariantSelection } from "~/components/product/VariantPicker";
 import { TikTokButton } from "~/components/product/TikTokButton";
 import { Button } from "~/components/ui/Button";
@@ -25,6 +26,7 @@ import { FrequentlyBoughtTogetherCard } from "~/components/product/FrequentlyBou
 import { ProductGalleryGrid } from "~/components/catalog/ProductGalleryGrid";
 import { ProductSpecs } from "~/components/catalog/ProductSpecs";
 import { MobileStoreActions } from "~/components/layout/MobileStoreActions";
+import { SocialLinksStrip } from "~/components/catalog/SocialLinksStrip";
 import { ProductCarousel } from "~/components/product/ProductCarousel";
 import {
   useGetConfigQuery,
@@ -148,6 +150,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   // El producto viene del loader SSR (mejor FCP y meta para compartir). Ya no se
   // re-pide en cliente con RTK Query: era un fetch duplicado.
   const { product, catalog, categories, url } = useLoaderData<typeof loader>();
@@ -297,18 +300,15 @@ export default function ProductDetail() {
   }, [selectedVariant, baseName, pageUrl]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-bg font-sans text-text">
-      {/* Nav sticky de la ficha: volver, breadcrumb, categorías (móvil), favorito,
-          compartir y carrito. Esta ruta no monta PublicHeader (ver root.tsx), así
-          que este es el único acceso al carrito y a "otra categoría" desde acá. */}
-      <ProductTopNav
-        title={baseName || "Producto"}
-        productId={id!}
-        onOpenCategories={() => setCategoriesOpen(true)}
-      />
-
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-0 md:pb-4">
-        <CategoriesDrawer open={categoriesOpen} onClose={() => setCategoriesOpen(false)} />
+    <div className="flex flex-col font-sans text-text">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-0 md:px-4 pt-6 pb-0 md:pb-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 ml-4 md:ml-0 self-start inline-flex items-center gap-1.5 text-[13px] font-semibold text-text transition-all bg-surface-2/60 hover:bg-surface-2 border border-white/5 rounded-full px-3 py-1.5 shadow-sm hover:shadow-md hover:border-white/10"
+        >
+          <ChevronLeft className="h-4 w-4 text-accent" />
+          Atrás
+        </button>
 
         {!product ? (
           <p className="py-24 text-center text-muted">Producto no encontrado.</p>
@@ -415,6 +415,7 @@ export default function ProductDetail() {
                     variants={product.variants}
                     axisLabels={product.axisLabels}
                     colorAxisIndex={product.colorAxisIndex}
+                    templateAxes={product.templateAxes}
                     onChange={(s) => {
                       setSelection(s);
                     }}
@@ -548,7 +549,7 @@ export default function ProductDetail() {
                   )}
 
                   {/* CTA secundario (WhatsApp) */}
-                  <div className="mb-6 flex">
+                  <div className="mb-0 flex">
                     <a href={whatsappUrl} target="_blank" rel="noreferrer" className="flex-1">
                       <Button
                         variant="whatsapp"
@@ -564,7 +565,7 @@ export default function ProductDetail() {
                       publicado (nunca un "relacionado" arbitrario), con el precio
                       real del paquete. */}
                   {combo && (
-                    <div className="mb-4">
+                    <div className="mb-0">
                       <FrequentlyBoughtTogetherCard
                         combo={combo}
                         mainProductId={product.id}
@@ -582,7 +583,7 @@ export default function ProductDetail() {
                       padding del card (p-4 = 1rem en móvil). Antes -mx-6 (1.5rem) contra
                       p-4 sobresalía 0.5rem por lado y, sumado al min-width:auto del grid,
                       empujaba el ancho de la página a 589px. -mx-4 px-4 encaja exacto. */}
-                  <div className="mt-4 flex overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 gap-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  <div className="mt-0 flex overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 gap-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {TRUST_ITEMS.map((t) => {
                       const Icon = t.icon;
                       return (
@@ -646,6 +647,9 @@ export default function ProductDetail() {
 
         {product && related.length > 0 && (
           <div className="border-t border-white/5 md:mt-8 -mb-4">
+            <div className="md:hidden mt-6 mb-[-1rem]">
+              <SocialLinksStrip />
+            </div>
             {/* The mobile action buttons (moved from footer) */}
             <MobileStoreActions />
             

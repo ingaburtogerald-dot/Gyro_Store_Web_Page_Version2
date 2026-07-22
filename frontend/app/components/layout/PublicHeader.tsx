@@ -22,7 +22,12 @@ import { UserMenu } from "./UserMenu";
 import { useAuth } from "~/hooks/useAuth";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { hydrate, openCart, selectCartCount } from "~/store/slices/cartSlice";
-import { setSearch, setCategory } from "~/store/slices/uiSlice";
+import {
+  setSearch,
+  setCategory,
+  resetFilters,
+  triggerHeroReplay,
+} from "~/store/slices/uiSlice";
 import { selectIsAdmin, selectEditMode } from "~/store/slices/authSlice";
 import {
   useGetCatalogQuery,
@@ -318,14 +323,25 @@ export function PublicHeader({ bottomBar }: { bottomBar?: React.ReactNode }) {
     navigate("/");
   }
 
+  function handleGoHome() {
+    dispatch(resetFilters());
+    dispatch(setCategory(null));
+    dispatch(setSearch(""));
+    // Trigger Hero animation replay without page reload
+    dispatch(triggerHeroReplay());
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
   return (
     <>
       {/* pt-[env(safe-area-inset-top)]: con viewport-fit=cover el contenido puede ir
           borde a borde; sin este padding el header queda bajo la Dynamic Island. */}
-      <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-bg/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-black pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex h-14 sm:h-17 w-full max-w-[1600px] items-center gap-3 sm:gap-4 px-3 sm:px-4 md:px-8">
           {/* ── Logo (izquierda) — imagen ancha (80×40) que ya es la marca completa ── */}
-          <Logo asLink size={50} className="shrink-0" />
+          <Logo asLink onClick={handleGoHome} size={50} className="shrink-0" />
 
           {/* ── Zona central: navegación ⇄ búsqueda ──
               Ambas capas se superponen en posición absoluta y hacen cross-fade a la

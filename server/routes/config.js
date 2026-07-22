@@ -9,8 +9,8 @@ const storage = require('../services/storage');
 const { imageUpload, mediaUpload } = require('../utils/upload');
 
 const APP_CONFIG = config.collections.appConfig;
-// Subida del logo del header (imagen estática o GIF animado). Máx 10 MB.
-const logoUpload = imageUpload({ maxSizeMb: 10 });
+// Subida del logo del header (imagen estática o GIF animado/video). Máx 25 MB para videos del logo.
+const logoUpload = mediaUpload({ maxSizeMb: 25 });
 // Subida de la media de un slide del Hero (imagen, GIF o video). Videos pesan → 50 MB.
 const slideUpload = mediaUpload({ maxSizeMb: 50 });
 
@@ -290,8 +290,8 @@ const defaultLanding = {
       eyebrow: 'MONITOREO PROFESIONAL',
       title: 'KZ EDX Pro',
       description: 'Sonido de alta resolución, graves potentes y diseño ergonómico. El favorito de músicos y entusiastas del audio en Nicaragua.',
-      mediaUrl: '/videos/kz-edx-pro.mp4',
-      mediaType: 'video',
+      mediaUrl: '/slide-demo.png',
+      mediaType: 'image',
       buttonText: 'Comprar KZ EDX Pro',
       actionType: 'link',
       actionTarget: '/#catalogo',

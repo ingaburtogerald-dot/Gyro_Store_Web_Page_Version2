@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useReducedMotion } from "framer-motion";
-import { Instagram, Facebook, Star, MapPin, MessageCircle, Lightbulb } from "lucide-react";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
 import { buildWhatsappUrl, cn } from "~/lib/utils";
 import { GOOGLE_REVIEW_URL, WHATSAPP_DEFAULT_MESSAGE } from "~/lib/storeLinks";
 import { FeedbackModal } from "./FeedbackModal";
+import { ReviewChoiceModal } from "~/components/catalog/ReviewChoiceModal";
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -15,65 +15,61 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 const FOOTER_CHIP =
-  "ease-expo inline-flex shrink-0 snap-start items-center gap-2 whitespace-nowrap rounded-full border bg-surface-2/50 px-4 py-2.5 text-[13px] font-semibold transition-all duration-300 active:scale-95 shadow-sm";
+  "ease-expo inline-flex shrink-0 snap-start items-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-full border border-border bg-surface-2/60 px-3 h-[34px] sm:px-4 sm:h-[42px] text-[11px] sm:text-[13px] font-semibold text-text transition-all duration-300 active:scale-95 shadow-sm hover:border-accent/40 hover:text-accent-2 hover:-translate-y-1";
 
 export function MobileStoreActions() {
   const { data: config } = useGetConfigQuery();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   
-  const address = config?.storeAddress ?? "Managua, Nicaragua";
-  const whatsappUrl = config?.whatsapp ? buildWhatsappUrl(config.whatsapp, WHATSAPP_DEFAULT_MESSAGE) : null;
   const googleUrl = config?.reviewLinks?.google || GOOGLE_REVIEW_URL;
-  const instagramUrl = config?.socialLinks?.instagram;
-  const facebookUrl = config?.socialLinks?.facebook;
-  const tiktokUrl = config?.socialLinks?.tiktok || "https://www.tiktok.com/@gyro_store";
-
+  const whatsappUrl = config?.whatsapp ? buildWhatsappUrl(config.whatsapp, WHATSAPP_DEFAULT_MESSAGE) : null;
   const reduce = useReducedMotion();
 
   const buttons = (
     <>
-      <a href="/" className={cn(FOOTER_CHIP, "bg-gradient-to-r from-blue-500/15 to-indigo-500/15 border-blue-500/40 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]")}>
+      <button type="button" onClick={() => setFeedbackOpen(true)} className={FOOTER_CHIP}>
+        💡 Tu opinión
+      </button>
+      <button type="button" onClick={() => setReviewModalOpen(true)} className={FOOTER_CHIP}>
+        ⭐ Reseña
+      </button>
+      <a href="/#catalogo" className={FOOTER_CHIP}>
         🛍️ Catálogo
       </a>
-      <a href="/?promo=true" className={cn(FOOTER_CHIP, "bg-gradient-to-r from-rose-500/15 to-pink-500/15 border-rose-500/40 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(244,63,94,0.5)] animate-[pulse_3s_ease-in-out_infinite]")}>
+      <a href="/?promo=true" className={FOOTER_CHIP}>
         🏷️ Ofertas
       </a>
       {whatsappUrl && (
-        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className={cn(FOOTER_CHIP, "bg-gradient-to-r from-green-500/15 to-emerald-500/15 border-green-500/40 text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] animate-[pulse_2s_ease-in-out_infinite]")}>
-          <WhatsAppIcon className="h-4 w-4" /> <span>WhatsApp</span>
+        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className={FOOTER_CHIP}>
+          <WhatsAppIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span>WhatsApp</span>
         </a>
       )}
-      <a href={googleUrl} target="_blank" rel="noopener noreferrer" className={cn(FOOTER_CHIP, "bg-gradient-to-r from-yellow-500/15 to-amber-500/15 border-yellow-500/40 text-yellow-400 shadow-[0_0_12px_rgba(234,179,8,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(234,179,8,0.5)]")}>
-        ⭐ Reseña
-      </a>
       <a
-        href={`https://maps.google.com/?q=${encodeURIComponent(address)}`}
+        href={googleUrl}
         target="_blank"
         rel="noreferrer"
-        className={cn(FOOTER_CHIP, "bg-gradient-to-r from-purple-500/15 to-fuchsia-500/15 border-purple-500/40 text-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)]")}
+        className={FOOTER_CHIP}
       >
         📍 Ubicación
       </a>
-      <button type="button" onClick={() => setFeedbackOpen(true)} className={cn(FOOTER_CHIP, "bg-gradient-to-r from-cyan-500/15 to-teal-500/15 border-cyan-500/40 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]")}>
-        💡 Tu opinión
-      </button>
     </>
   );
 
   return (
     <div className="md:hidden mt-8 mb-2">
       <div className="rounded-2xl border border-white/5 bg-surface-2/20 p-4 shadow-sm">
-        <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-text flex items-center gap-2">
+        <h3 className="mb-2.5 sm:mb-3 text-[10px] sm:text-xs font-bold text-text flex items-center gap-1.5 sm:gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
           <span>Enlaces Rápidos</span>
         </h3>
         
         {reduce ? (
-          <div className="flex gap-2.5 overflow-x-auto pb-2 pt-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex gap-2.5 overflow-x-auto pb-3 pt-1 -mx-4 px-4 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {buttons}
           </div>
         ) : (
-          <div className="group/marquee marquee-mask relative overflow-hidden pb-2 pt-1">
+          <div className="group/marquee marquee-mask relative overflow-hidden pb-3 pt-1 -mx-4 px-4">
             <div className="animate-marquee flex w-max items-center gap-2.5" style={{ "--marquee-duration": "30s" } as React.CSSProperties}>
               {buttons}
               <div aria-hidden="true" className="flex items-center gap-2.5">
@@ -85,6 +81,8 @@ export function MobileStoreActions() {
       </div>
 
       <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <ReviewChoiceModal open={reviewModalOpen} onClose={() => setReviewModalOpen(false)} />
     </div>
   );
 }
+

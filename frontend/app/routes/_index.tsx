@@ -6,6 +6,7 @@ import { Container } from "~/components/layout/Container";
 import { Hero } from "~/components/catalog/Hero";
 import { TrustStrip } from "~/components/catalog/TrustStrip";
 import { QuickLinksStrip } from "~/components/catalog/QuickLinksStrip";
+import { SocialLinksStrip } from "~/components/catalog/SocialLinksStrip";
 import { PublicFooter } from "~/components/layout/PublicFooter";
 import { ProductGrid } from "~/components/catalog/ProductGrid";
 import { ProductCarousel } from "~/components/product/ProductCarousel";
@@ -122,7 +123,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const origin = data?.origin ?? "";
   const img = `${origin}/logo.jpg`;
-  const title = "Gyro Store — Audífonos KZ y accesorios tech en Managua";
+  const title = "Gyro Store";
   const description = "Audífonos KZ, adaptadores Bluetooth y accesorios para PC en Managua, Nicaragua.";
   return [
     { title },
@@ -190,7 +191,7 @@ export default function Index() {
   }, [isAdmin, searchParams, setSearchParams, dispatch]);
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       {/* El drawer de categorías (chip "Todo") ahora lo sirve el rail unificado del
           AppShell — fuente única del panel expandido para toda la app. */}
       {!editing && <FilterSheet />}
@@ -198,6 +199,7 @@ export default function Index() {
         {!hasFilters && (
           <motion.div key="hero" {...collapse}>
             <Hero initialLanding={landing} />
+            <SocialLinksStrip />
             <QuickLinksStrip />
           </motion.div>
         )}
@@ -242,6 +244,6 @@ export default function Index() {
       {/* Antes solo vivía en /contacto — el visitante que nunca sale de la home
           nunca lo veía. Confianza + ubicación al cierre de la página. */}
       <PublicFooter />
-    </>
+    </div>
   );
 }

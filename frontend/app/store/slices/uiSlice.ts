@@ -18,6 +18,7 @@ export interface UiState {
   sidebarCollapsed: boolean; // sidebar del admin en escritorio (oculto/visible)
   activeModal: string | null;
   publicSidebarOpen: boolean; // sidebar de Amazon (público)
+  heroReplayKey: number; // Trigger for replaying the Hero splash animation
 }
 
 const initialState: UiState = {
@@ -33,6 +34,7 @@ const initialState: UiState = {
   sidebarCollapsed: false,
   activeModal: null,
   publicSidebarOpen: false,
+  heroReplayKey: 0,
 };
 
 const uiSlice = createSlice({
@@ -97,6 +99,9 @@ const uiSlice = createSlice({
     closePublicSidebar(state) {
       state.publicSidebarOpen = false;
     },
+    triggerHeroReplay(state) {
+      state.heroReplayKey += 1;
+    },
   },
 });
 
@@ -119,6 +124,7 @@ export const {
   closeModal,
   openPublicSidebar,
   closePublicSidebar,
+  triggerHeroReplay,
 } = uiSlice.actions;
 export default uiSlice.reducer;
 

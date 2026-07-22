@@ -473,6 +473,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
       variants,
       axisLabels,
       colorAxisIndex,
+      templateAxes: template.axes || [],
       imagesByColor: item.imagesByColor || {},
       badges: Array.isArray(item.badges) ? item.badges : [],
       tiktokUrl: item.tiktokUrl || '',

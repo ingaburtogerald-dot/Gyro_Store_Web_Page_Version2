@@ -22,8 +22,8 @@ import tailwind from "~/styles/globals.css?url";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: tailwind },
-  { rel: "icon", type: "image/jpeg", href: "/logo.jpg" },
-  { rel: "apple-touch-icon", href: "/logo.jpg" },
+  { rel: "icon", type: "image/png", href: "/logo-favicon.png" },
+  { rel: "apple-touch-icon", href: "/logo-favicon.png" },
   // Inter (fuente única): <link> de primer nivel (no @import anidado en globals.css)
   // para que el navegador la descubra y pida en paralelo, no en cadena tras bajar
   // y parsear el CSS de la app. preconnect acelera la conexión a ambos hosts.
@@ -132,16 +132,8 @@ export default function App() {
     );
   }
 
-  // Ficha de producto: trae su propio breadcrumb + acciones (producto.$id.tsx),
-  // sin shell, para no duplicar cabeceras. Las acciones de contacto (reseña,
-  // WhatsApp, opinión) viven en el menú móvil (CategoriesDrawer) que esta ruta ya
-  // monta, no en botones flotantes.
-  if (path.startsWith("/producto") || path.startsWith("/combo")) {
-    return <Outlet key="product-layout" />;
-  }
-
-  // Storefront público (home, combos, contacto): header full-width (Apple/Razer).
-  // Sin botones flotantes: las acciones de contacto (reseña, WhatsApp, opinión)
+  // Storefront público (home, combos, contacto, producto): header full-width.
+  // Las acciones de contacto (reseña, WhatsApp, opinión)
   // están embebidas en el menú móvil (CategoriesDrawer) y en el footer (PublicFooter).
   return (
     <StorefrontShell key="storefront-layout">

@@ -34,6 +34,7 @@ export function Logo({
   textClassName,
   className,
   asLink = false,
+  onClick,
 }: {
   /** Altura del logo en px (el ancho se calcula manteniendo la proporción). */
   size?: number;
@@ -42,11 +43,14 @@ export function Logo({
   className?: string;
   /** Si es true, el logo se comporta como enlace al inicio ("/"). */
   asLink?: boolean;
+  /** Manejador de click opcional. */
+  onClick?: (e: React.MouseEvent) => void;
 }) {
   const [active, setActive] = useState(false);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const objUrlRef = useRef<string | null>(null);
+  const forceActiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Logo configurable desde el admin (branding). Fallback a los archivos del repo.
   const { data: cfg } = useGetConfigQuery();
@@ -72,23 +76,46 @@ export function Logo({
         URL.revokeObjectURL(objUrlRef.current);
         objUrlRef.current = null;
       }
+      if (forceActiveTimerRef.current) {
+        clearTimeout(forceActiveTimerRef.current);
+      }
     };
   }, [animatedUrl]);
 
   const activate = () => {
-    // URL única → el GIF reinicia desde el frame 0, siempre y de inmediato.
+    if (active) return; // Ya está activo, no reiniciar para evitar flickering
     if (blobRef.current) {
       if (objUrlRef.current) URL.revokeObjectURL(objUrlRef.current);
       const url = URL.createObjectURL(blobRef.current);
       objUrlRef.current = url;
       setGifUrl(url);
     } else {
-      // Fallback (el Blob aún no cargó o falló por CORS): cache-busting único.
       setGifUrl(`${animatedUrl}${animatedUrl.includes("?") ? "&" : "?"}t=${Date.now()}`);
     }
     setActive(true);
   };
-  const deactivate = () => setActive(false);
+
+  const deactivate = () => {
+    if (forceActiveTimerRef.current) return; // Bloquear desactivación si se forzó por click
+    setActive(false);
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!active) activate();
+    
+    // Forzar que la animación se reproduzca al menos 2.5s al hacer click
+    if (forceActiveTimerRef.current) clearTimeout(forceActiveTimerRef.current);
+    forceActiveTimerRef.current = setTimeout(() => {
+      forceActiveTimerRef.current = null;
+      setActive(false);
+    }, 2500);
+
+    if (onClick) onClick(e);
+  };
+
+  const isVideo = blobRef.current 
+    ? blobRef.current.type.startsWith('video/')
+    : (animatedUrl && animatedUrl.match(/\.(mp4|webm|ogg|mov)$/i));
 
   const mark = (
     <span className="relative block shrink-0" style={{ height: size }}>
@@ -100,17 +127,32 @@ export function Logo({
         className="block h-full w-auto select-none object-contain"
         draggable={false}
       />
-      {/* GIF animado: montado solo mientras está activo, con URL única por activación
-          (key = url) → reinicia desde el frame 0 en cada hover/press. */}
+      {/* GIF animado o Video: montado solo mientras está activo, con URL única por activación
+          (key = url) → reinicia desde el frame 0 en cada hover/press. aislarlo en un div previene errores de insertBefore. */}
       {active && gifUrl && (
-        <img
-          key={gifUrl}
-          src={gifUrl}
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain"
-          draggable={false}
-        />
+        <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
+          {isVideo ? (
+            <video
+              key={`vid-${gifUrl}`}
+              src={gifUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              disablePictureInPicture
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <img
+              key={`img-${gifUrl}`}
+              src={gifUrl}
+              alt=""
+              aria-hidden
+              className="h-full w-full object-contain"
+              draggable={false}
+            />
+          )}
+        </div>
       )}
     </span>
   );
@@ -146,6 +188,7 @@ export function Logo({
         to="/"
         aria-label="Ir al inicio de Gyro Store"
         className={cn("inline-flex items-center gap-2.5 outline-none", className)}
+        onClick={handleClick}
         {...activation}
       >
         {content}
@@ -154,7 +197,7 @@ export function Logo({
   }
 
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)} {...activation}>
+    <span onClick={handleClick} className={cn("inline-flex items-center gap-2.5", className)} {...activation}>
       {content}
     </span>
   );
