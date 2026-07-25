@@ -1,11 +1,3 @@
-// Campana de notificaciones del header.
-//  - Para todos: seguimientos vencidos / de hoy (CRM).
-//  - Para vendedores: avisos de sus ventas aprobadas / pagadas / rechazadas, AGRUPADOS
-//    por tipo (ej. "Te pagaron 23 ventas"). Se derivan de sus datos (sin colección nueva).
-//  - Para admin: ventas por aprobar AGRUPADAS POR VENDEDOR (no un total genérico), con
-//    una fila propia y separada para las ventas del propio admin.
-//    Red: una sola query de pendientes (limit 50, poll 15s) → agrupada en cliente.
-//  Se marcan como "vistos" en localStorage al abrir la campana.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@remix-run/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -17,7 +9,11 @@ import { useGetUsersQuery } from "~/store/api/usersApi";
 import { useAppSelector } from "~/store/hooks";
 import { selectIsAdmin, selectRoles, selectUser } from "~/store/slices/authSlice";
 import { dueState, isDue, DUE_META, fmtDate } from "~/components/admin/crm/crmMeta";
-import { formatCordobas, cn } from "~/lib/utils";
+import { cn } from "~/lib/utils";
+
+import { SectionLabel } from "./notifications/SectionLabel";
+import { Avatar } from "./notifications/Avatar";
+import { NotifRow, Money, CommissionTag } from "./notifications/NotifRow";
 
 const SALE_META: Record<
   string,
@@ -30,7 +26,6 @@ const SALE_META: Record<
 const SALE_ORDER = ["paid", "approved", "rejected"] as const;
 const SEEN_KEY = "seenSaleNotifs";
 
-// Paleta de avatares (tinte + texto brillante) para reconocer al vendedor de un vistazo.
 const AVATAR_COLORS = [
   "bg-tone-indigo/15 text-tone-indigo",
   "bg-info/15 text-info",
@@ -60,15 +55,13 @@ export function NotificationsBell() {
   const { data: agenda = [] } = useGetAgendaQuery();
   const { data: sales = [] } = useGetSalesQuery(undefined, { skip: isAdmin });
   const { data: shipments = [] } = useGetShipmentsQuery(undefined, { skip: !isLogisticsAdmin });
-  // Una sola query trae hasta 50 pendientes reales; el agrupamiento es en cliente.
   const { data: pendingData } = useGetSalesPaginatedQuery(
     { page: 1, limit: 50, status: "pending_approval", sellerEmail: "all", date: "all" },
     { skip: !isAdmin, pollingInterval: 15000 },
   );
   const { data: publicOrders = [] } = useGetPublicOrdersQuery(undefined, { skip: !isAdmin });
   const pendingWhatsApp = useMemo(() => publicOrders.filter(o => !o.contacted && !o.archived), [publicOrders]);
-  // Fotos de los vendedores (mapa email→foto). La query ya la usa el admin, así
-  // que RTK reutiliza la caché: cero red extra.
+  
   const { data: users = [] } = useGetUsersQuery(undefined, { skip: !isAdmin });
   const photoByEmail = useMemo(() => {
     const m = new Map<string, string>();
@@ -97,10 +90,7 @@ export function NotificationsBell() {
     [agenda],
   );
 
-  // ── Ventas por aprobar, AGRUPADAS por vendedor + fila propia del admin ──
   const { sellerGroups, mine, othersPending } = useMemo(() => {
-    // Acumulamos la COMISIÓN estimada a pagar (comisionVendedor) — es lo que el
-    // admin decide al aprobar — en vez del monto de venta.
     const map = new Map<string, { email: string; name: string; count: number; comision: number }>();
     let mineCount = 0;
     let mineComision = 0;
@@ -117,7 +107,6 @@ export function NotificationsBell() {
       g.comision += s.comisionVendedor || 0;
       map.set(key, g);
     }
-    // Ordenado por comisión (mayor plata en juego primero), luego por cantidad.
     const sellerGroups = [...map.values()].sort((a, b) => b.comision - a.comision || b.count - a.count);
     return {
       sellerGroups,
@@ -126,7 +115,6 @@ export function NotificationsBell() {
     };
   }, [pendingData, myEmail]);
 
-  // Avisos de ventas del vendedor, agrupados por estado.
   const { groups, saleIds } = useMemo(() => {
     const map: Record<string, { status: string; count: number; comision: number; ids: string[] }> = {};
     for (const s of sales) {
@@ -140,7 +128,6 @@ export function NotificationsBell() {
     return { groups, saleIds: groups.flatMap((g) => g.ids) };
   }, [sales]);
 
-  // Avisos de logística para admins.
   const logistics = useMemo(() => {
     if (!isLogisticsAdmin) return [];
     return shipments
@@ -151,8 +138,6 @@ export function NotificationsBell() {
   const allIds = useMemo(() => [...saleIds, ...logistics.map((l) => l.notifId)], [saleIds, logistics]);
   const unseenCount = allIds.filter((id) => !seen.has(id)).length;
 
-  // El badge rojo cuenta solo lo ACCIONABLE: ventas de otros por aprobar (tus propias
-  // no te las apruebas → no inflan la alarma) + avisos + seguimientos + pedidos whatsapp.
   const badge = due.length + unseenCount + (isAdmin ? othersPending + pendingWhatsApp.length : 0);
   const headerCount = badge + (isAdmin ? mine.count : 0);
 
@@ -219,7 +204,6 @@ export function NotificationsBell() {
             transition={reduce ? { duration: 0.12 } : { type: "spring", stiffness: 500, damping: 32, mass: 0.7 }}
             className="absolute right-0 z-50 mt-2.5 w-[23rem] max-w-[calc(100vw-1.5rem)] origin-top-right overflow-hidden rounded-2xl border border-border/70 bg-surface p-1.5 shadow-[0_20px_50px_-16px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.03)]"
           >
-            {/* Cabecera */}
             <div className="flex items-center justify-between px-3 pb-1.5 pt-2">
               <span className="text-sm font-semibold text-text">Notificaciones</span>
               {headerCount > 0 && (
@@ -240,7 +224,6 @@ export function NotificationsBell() {
                 </div>
               ) : (
                 <>
-                  {/* ── Ventas por aprobar (admin): por vendedor + propias ── */}
                   {isAdmin && (othersPending > 0 || mine.count > 0) && (
                     <>
                       <SectionLabel>Ventas por aprobar</SectionLabel>
@@ -273,7 +256,6 @@ export function NotificationsBell() {
                     </>
                   )}
 
-                  {/* ── Logística ── */}
                   {logistics.length > 0 && (
                     <>
                       <SectionLabel>Gyro Logistics</SectionLabel>
@@ -299,7 +281,6 @@ export function NotificationsBell() {
                     </>
                   )}
 
-                  {/* ── Pedidos por WhatsApp ── */}
                   {isAdmin && pendingWhatsApp.length > 0 && (
                     <>
                       <SectionLabel>Catálogo (WhatsApp)</SectionLabel>
@@ -318,7 +299,6 @@ export function NotificationsBell() {
                     </>
                   )}
 
-                  {/* ── Ventas del vendedor ── */}
                   {groups.length > 0 && (
                     <>
                       <SectionLabel>Tus ventas</SectionLabel>
@@ -344,7 +324,6 @@ export function NotificationsBell() {
                     </>
                   )}
 
-                  {/* ── Seguimientos (CRM) ── */}
                   {due.length > 0 && (
                     <>
                       <SectionLabel>Seguimientos por atender</SectionLabel>
@@ -370,86 +349,5 @@ export function NotificationsBell() {
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-/* ── Piezas internas ── */
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted/70">
-      {children}
-    </p>
-  );
-}
-
-function Avatar({ label, src, className }: { label: React.ReactNode; src?: string; className?: string }) {
-  const [imgError, setImgError] = useState(false);
-  const showImg = !!src && !imgError;
-  return (
-    <span className={cn("relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full text-xs font-semibold", className)}>
-      {/* Iniciales de base: quedan visibles si no hay foto o si la imagen falla. */}
-      {label}
-      {showImg && (
-        <img
-          src={src}
-          alt=""
-          loading="lazy"
-          onError={() => setImgError(true)}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      )}
-    </span>
-  );
-}
-
-function Money({ value, className }: { value: number; className?: string }) {
-  return (
-    <span className={cn("shrink-0 text-[11px] font-medium tabular-nums text-muted", className)}>
-      {formatCordobas(value)}
-    </span>
-  );
-}
-
-// Comisión estimada a pagar: el número que el admin realmente sopesa al aprobar.
-function CommissionTag({ value }: { value: number }) {
-  return (
-    <span className="block text-right leading-tight" title="Comisión estimada a pagar">
-      <span className="block text-sm font-semibold tabular-nums text-text">{formatCordobas(value)}</span>
-      <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-wide text-muted/70">
-        comisión est.
-      </span>
-    </span>
-  );
-}
-
-function NotifRow({
-  avatar,
-  title,
-  subtitle,
-  right,
-  onClick,
-  titleClass,
-}: {
-  avatar: React.ReactNode;
-  title: React.ReactNode;
-  subtitle?: React.ReactNode;
-  right?: React.ReactNode;
-  onClick: () => void;
-  titleClass?: string;
-}) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.985 }}
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-surface-2/60"
-    >
-      {avatar}
-      <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-sm font-semibold text-text", titleClass)}>{title}</span>
-        {subtitle && <span className="mt-0.5 block truncate text-xs text-muted">{subtitle}</span>}
-      </span>
-      {right && <span className="shrink-0 self-center">{right}</span>}
-    </motion.button>
   );
 }
