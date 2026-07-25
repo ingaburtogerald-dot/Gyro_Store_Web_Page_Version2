@@ -5,7 +5,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { Modal } from "~/components/ui/Modal";
-import { SubTab } from "./_shared/SubTab";
+import { TabBtn } from "~/components/ui/TabBtn";
 import { LossForm } from "./losses/LossForm";
 import { ExpenseForm } from "./expenses/ExpenseForm";
 
@@ -28,8 +28,8 @@ export function RegisterPanel() {
       <Modal open={open} onClose={() => setOpen(false)} title="Registrar movimiento" maxWidth="max-w-2xl">
         <div className="space-y-4">
           <div className="flex gap-1 rounded-pill border border-border bg-surface-2/50 p-1">
-            <SubTab active={type === "loss"} onClick={() => setType("loss")}>Pérdida de producto</SubTab>
-            <SubTab active={type === "expense"} onClick={() => setType("expense")}>Gasto</SubTab>
+            <TabBtn active={type === "loss"} onClick={() => setType("loss")}>Pérdida de producto</TabBtn>
+            <TabBtn active={type === "expense"} onClick={() => setType("expense")}>Gasto</TabBtn>
           </div>
           {type === "loss" ? <LossForm bare onDone={() => setOpen(false)} /> : <ExpenseForm bare onDone={() => setOpen(false)} />}
         </div>

@@ -6,7 +6,7 @@ import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { Field } from "~/components/ui/Field";
-import { purchaseFormSchema, type PurchaseFormInput } from "~/lib/validators";
+import { purchaseFormSchema, type PurchaseFormInput } from "~/schemas/validators";
 import { useCreatePurchaseMutation, useGetPurchasesQuery } from "~/store/api/inventoryApi";
 import { DateField } from "~/components/ui/DatePicker";
 import { Autocomplete } from "~/components/ui/Autocomplete";

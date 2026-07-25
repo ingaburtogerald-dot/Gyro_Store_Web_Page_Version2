@@ -13,7 +13,7 @@ import { Logo } from "~/components/ui/Logo";
 import { cn, buildWhatsappUrl } from "~/lib/utils";
 import { useAuth } from "~/hooks/useAuth";
 import { GoogleStrategy, MicrosoftStrategy, EmailStrategy } from "~/lib/authStrategies";
-import { loginSchema, type LoginInput } from "~/lib/validators";
+import { loginSchema, type LoginInput } from "~/schemas/validators";
 import { roleLandingPath, type Role, WHATSAPP_NUMBER } from "~/lib/constants";
 
 export const meta: MetaFunction = () => [{ title: "Iniciar Sesión · Gyro Store" }];

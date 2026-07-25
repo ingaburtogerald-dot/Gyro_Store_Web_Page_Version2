@@ -14,6 +14,17 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.22, ease: "easeOut" } },
 };
 
+export const formStagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05, delayChildren: 0.04 } },
+};
+
+export const fieldItem: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
+};
+
+
 // Contenedor que hace entrar a sus hijos en cascada (stagger).
 export function StaggerList({ children, className }: { children: ReactNode; className?: string }) {
   const reduce = useReducedMotion();

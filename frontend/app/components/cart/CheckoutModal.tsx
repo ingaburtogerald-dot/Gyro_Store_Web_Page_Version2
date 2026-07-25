@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { X, MapPin, Store, Truck, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
-import { checkoutSchema, type CheckoutInput } from "~/lib/validators";
+import { checkoutSchema, type CheckoutInput } from "~/schemas/validators";
 import { useAppDispatch, useAppSelector } from "~/store/hooks";
 import { clearCart, closeCart, selectCartItems, selectCartTotal } from "~/store/slices/cartSlice";
 import { useCreatePublicOrderMutation } from "~/store/api/ordersApi";

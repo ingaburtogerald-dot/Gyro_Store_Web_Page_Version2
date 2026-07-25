@@ -9,7 +9,7 @@ import { Button } from "~/components/ui/Button";
 import { Field } from "~/components/ui/Field";
 import { CreditCard } from "lucide-react";
 import { useCreateInstallmentMutation } from "~/store/api/installmentsApi";
-import { installmentFormSchema, type InstallmentFormInput } from "~/lib/validators";
+import { installmentFormSchema, type InstallmentFormInput } from "~/schemas/validators";
 import { DateField } from "~/components/ui/DatePicker";
 import { formatCordobas } from "~/lib/utils";
 

@@ -89,3 +89,99 @@ export const invoiceBaseSchema = z.object({
   }),
   contactId: z.string().nullable().optional().default(null),
 });
+
+// ── Schemas Consolidados Frontend / Server ──
+
+const requiredPositiveNumber = (msg = "Requerido") =>
+  z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? NaN : Number(v)),
+    z.number({ invalid_type_error: msg }).positive(msg)
+  );
+
+const requiredNumber = (msg = "Requerido") =>
+  z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? NaN : Number(v)),
+    z.number({ invalid_type_error: msg }).nonnegative("No puede ser negativo")
+  );
+
+export const contactSchema = z.object({
+  name: z.string().min(2, "Nombre muy corto").max(80),
+  email: z.string().email("Correo inválido"),
+  phone: z.string().max(20).optional().or(z.literal("")),
+  message: z.string().min(5, "Mensaje muy corto").max(2000),
+});
+
+export const feedbackSchema = z.object({
+  type: z.enum(["bug", "idea", "product"]),
+  message: z.string().min(5, "Mensaje muy corto").max(2000),
+  userPhone: z.string().min(7, "Teléfono inválido").max(20).optional().or(z.literal("")),
+});
+
+export const purchaseSchema = z.object({
+  purchaseDate: z.string().min(1, "Fecha requerida"),
+  lot: z
+    .string()
+    .min(1, "Lote requerido")
+    .regex(/^LT\d+$/i, "Formato incorrecto (ej. LT1, LT4)"),
+  code: z
+    .string()
+    .trim()
+    .min(1, "Código requerido")
+    .regex(/^IN\d+$/i, "Formato incorrecto (ej. IN1, IN13)"),
+  productName: z.string().min(2, "Nombre requerido"),
+  quantity: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? NaN : Number(v)),
+    z.number({ invalid_type_error: "Requerido" }).int("Debe ser entero").positive("Debe ser mayor a 0")
+  ),
+  costUnit: requiredPositiveNumber("Precio base requerido"),
+  taxUnit: requiredPositiveNumber("Impuesto requerido"),
+  suggestedPrice: z.coerce.number().nonnegative("No puede ser negativo").optional(),
+});
+
+export const migratedItemSchema = z.object({
+  purchaseDate: z.string().min(1, "Fecha requerida"),
+  lot: z.string().optional(),
+  code: z.string().min(1, "Código requerido"),
+  productName: z.string().min(2, "Nombre requerido"),
+  quantity: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? NaN : Number(v)),
+    z.number({ invalid_type_error: "Requerido" }).int("Debe ser entero").positive("Debe ser mayor a 0")
+  ),
+  costUnit: requiredNumber("Precio base requerido"),
+  shippingUnit: requiredNumber("Costo de envío requerido"),
+  comments: z.string().optional(),
+});
+
+export const arrivalSchema = z.object({
+  arrivalDate: z.string().min(1, "Fecha de ingreso requerida"),
+  shippingUnit: z.coerce.number().nonnegative("No puede ser negativo"),
+  category: z.string().min(1, "Selecciona una categoría"),
+  suggestedPrice: z.coerce.number().nonnegative("No puede ser negativo").optional(),
+});
+
+export const installmentSchema = z.object({
+  customerName: z.string().min(2, "Nombre del cliente requerido").max(80),
+  customerPhone: z.string().min(7, "Teléfono inválido").max(20).optional().or(z.literal("")),
+  sellerEmail: z.string().email("Correo inválido").optional().or(z.literal("")),
+  sellerName: z.string().max(80).optional().or(z.literal("")),
+  sellerUid: z.string().optional().or(z.literal("")), // Solo server, pero no estorba en UI
+  items: z.array(z.object({
+    productId: z.string().min(1),
+    name: z.string().min(1),
+    quantity: z.coerce.number().int().positive(),
+    salePrice: z.coerce.number().nonnegative(),
+  })).min(1, 'La venta debe tener al menos un producto').optional(), // Opcional en el form frontend
+  totalAmount: z.coerce.number().positive("Monto total requerido"),
+  numInstallments: z.coerce.number().int().min(2, "Mínimo 2 cuotas").max(24, "Máximo 24 cuotas"),
+  installmentAmount: z.coerce.number().positive("Monto por cuota requerido"),
+  firstPaymentDate: z.string().min(1, "Fecha del primer pago requerida"),
+  notes: z.string().max(500).optional().or(z.literal("")),
+});
+
+export const installmentPaymentSchema = z.object({
+  amount: z.coerce.number().positive("El monto del pago es requerido"),
+  paymentDate: z.string().min(1, "Fecha del pago requerida"),
+  nextPaymentDate: z.string().optional().or(z.literal("")),
+  paymentMethod: z.enum(["efectivo", "transferencia", "tarjeta"]).optional(),
+  notes: z.string().max(300).optional().or(z.literal("")),
+});

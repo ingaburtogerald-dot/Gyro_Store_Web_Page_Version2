@@ -13,11 +13,22 @@ export interface VolumeDiscount {
 
 export type DiscountTier = VolumeDiscount;
 
+// Recursos de imagen del sitio, editables desde Configuración → Recursos de imágenes.
+// Cada campo vacío → el front usa el archivo por defecto del repo. El backend guarda
+// cada uno en R2 y borra el anterior al reemplazar (server/routes/config.js).
 export interface Branding {
   /** Logo estático del header (imagen). Vacío → /logo-estatico.jpg del repo. */
   logoStaticUrl?: string;
-  /** Logo animado del header (GIF). Vacío → /logo-animado.gif del repo. */
+  /** Logo animado del header (GIF/video). Vacío → /logo-animado.gif del repo. */
   logoAnimatedUrl?: string;
+  /** Favicon (ícono de pestaña). Vacío → /logo-favicon.png. (Pendiente de cablear al SSR.) */
+  faviconUrl?: string;
+  /** Logo del ticket POS impreso. Vacío → /logo-ticket.png. */
+  ticketLogoUrl?: string;
+  /** Imagen Open Graph al compartir. Vacío → /logo.jpg. (Pendiente de cablear al SSR.) */
+  ogImageUrl?: string;
+  /** Foto "Quiénes somos" (fundador). Vacío → /images/founder.jpg. */
+  founderUrl?: string;
 }
 
 export interface BusinessConfig {
@@ -85,7 +96,7 @@ export interface CatalogProduct {
   badges?: string[];
 }
 
-export interface Combo {
+export interface PublicCombo {
   id: string;
   name: string;
   description?: string;
@@ -101,3 +112,134 @@ export interface Combo {
   }[];
   published: boolean;
 }
+
+
+// ── Plantillas (molde de características reutilizable por categoría) ──
+export interface TemplateAxis {
+  key: string;
+  label: string;
+  options: string[];
+  isColor?: boolean;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  axes: TemplateAxis[];
+  specs: SpecRow[];
+}
+
+// Mapeo 1-a-1: cada combinación de variante → UN SKU canónico del inventario
+// (que agrupa lotes) + un precio override opcional. El stock lo suma el backend
+// por `sku`; el catálogo nunca vuelve a ver "tandas".
+export interface VariantMapping {
+  sku?: string;
+  skus?: string[];
+  price?: number;
+}
+export type VariantMappings = Record<string, VariantMapping>;
+
+export interface CatalogVariant {
+  id: string;
+  name: string;
+  variantName: string;
+  axisValues?: string[];
+  price: number;
+  sku?: string;
+  stock: number;
+  specs?: string[];
+}
+
+export interface CatalogDetail extends CatalogProduct {
+  variants: CatalogVariant[];
+  axisLabels: string[];
+  colorAxisIndex?: number;
+  imagesByColor: Record<string, string[]>;
+  badges: string[];
+  tiktokUrl?: string;
+  compareAtPrice?: number;
+  specs: SpecRow[];
+  // Modo plantilla
+  templateId?: string;
+  basePrice?: number;
+  variantMappings?: VariantMappings;
+  templateAxes?: TemplateAxis[];
+  // Opciones que ESTE producto ofrece por eje (poda estructural, no stock).
+  // Si un eje no aparece, se asumen todas sus opciones. { conector: ["Tipo C"], color: ["Negro","Azul"] }
+  axisOptions?: Record<string, string[]>;
+}
+// ── Combos ──
+// Producto de un combo, ya resuelto por el backend (nombre/imagen/precio actuales).
+export interface ComboProduct {
+  id: string;
+  name: string;
+  description?: string;
+  image: string;
+  price: number;
+}
+
+export interface Combo {
+  id: string;
+  /** Nombre del combo; si no se definió, el backend lo arma como "A + B". */
+  name: string;
+  /** Foto propia del combo (opcional). Vacío ⇒ la card arma el split de las
+   *  fotos de los 2 productos. */
+  image: string;
+  productIds: string[];
+  /** Precio del paquete (con el descuento ya incorporado). */
+  price: number;
+  active: boolean;
+  products: ComboProduct[];
+  /** Suma de los precios normales de los productos. */
+  normalTotal: number;
+  /** normalTotal − price (nunca negativo). */
+  savings: number;
+  /** true si algún producto referenciado ya no existe en el catálogo. */
+  broken: boolean;
+}
+
+export interface ComboInput {
+  name?: string;
+  productIds: string[];
+  price: number;
+  active?: boolean;
+  /** Vacío/omitido ⇒ sin foto propia. */
+  image?: string;
+}
+
+export interface TemplateInput {
+  name: string;
+  category: string;
+  description?: string;
+  axes: TemplateAxis[];
+  specs: SpecRow[];
+}
+
+// SKU canónico del inventario con su stock ya sumado (todos los lotes que lo comparten).
+export interface InventorySku {
+  sku: string;
+  name: string;
+  stock: number;
+  price?: number;
+}
+
+export interface CatalogItemInput {
+  name: string;
+  description: string;
+  category: string;
+  imagesByColor?: Record<string, string[]>;
+  tiktokUrl?: string;
+  compareAtPrice?: number;
+  specs?: SpecRow[];
+  published?: boolean;
+  isPromo: boolean;
+  // Modo plantilla
+  templateId?: string;
+  basePrice?: number;
+  variantMappings?: VariantMappings;
+  // Opciones que ESTE producto ofrece por eje (poda estructural, no stock).
+  // Si un eje no aparece, se asumen todas sus opciones. { conector: ["Tipo C"], color: ["Negro","Azul"] }
+  axisOptions?: Record<string, string[]>;
+}

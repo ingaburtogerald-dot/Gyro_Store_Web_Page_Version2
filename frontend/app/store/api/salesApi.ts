@@ -1,5 +1,8 @@
 // API del portal de Ventas.
 import { baseApi } from "./baseApi";
+// Branding = tipo canónico de recursos de imagen del sitio (fuente única en types/).
+import type { Branding } from "~/types/catalog";
+export type { Branding };
 
 export type SaleStatus = "pending_approval" | "approved" | "rejected" | "paid";
 
@@ -213,10 +216,15 @@ export interface PublicOrder {
   createdAt: string | null;
 }
 
-export interface Branding {
-  logoStaticUrl?: string;
-  logoAnimatedUrl?: string;
-}
+// Tipos de recurso que acepta el endpoint /config/image (deben coincidir con
+// BRANDING_FIELDS del server).
+export type BrandingImageKind =
+  | "static"
+  | "animated"
+  | "favicon"
+  | "ticket"
+  | "og"
+  | "founder";
 
 export interface BusinessConfig {
   storeName: string;
@@ -480,15 +488,15 @@ export const salesApi = baseApi.injectEndpoints({
       query: (body) => ({ url: "/config/business", method: "PUT", body }),
       invalidatesTags: ["Config"],
     }),
-    // Sube el logo del header (estático o animado) a R2 y lo guarda en la config.
-    // `body` = FormData con `file` y `kind` ('static' | 'animated').
-    uploadLogo: build.mutation<{ ok: boolean; url: string; kind: string }, FormData>({
-      query: (body) => ({ url: "/config/logo", method: "POST", body }),
+    // Sube un recurso de imagen del sitio (logo, favicon, ticket, OG, fundador) a R2
+    // y lo guarda en la config. `body` = FormData con `file` y `kind` (BrandingImageKind).
+    uploadImage: build.mutation<{ ok: boolean; url: string; kind: string }, FormData>({
+      query: (body) => ({ url: "/config/image", method: "POST", body }),
       invalidatesTags: ["Config"],
     }),
-    // Quita el logo de la config y lo borra de R2 (vuelve al default del repo).
-    removeLogo: build.mutation<{ ok: boolean; kind: string }, "static" | "animated">({
-      query: (kind) => ({ url: `/config/logo?kind=${kind}`, method: "DELETE" }),
+    // Quita un recurso de la config y lo borra de R2 (vuelve al default del repo).
+    removeImage: build.mutation<{ ok: boolean; kind: string }, BrandingImageKind>({
+      query: (kind) => ({ url: `/config/image?kind=${kind}`, method: "DELETE" }),
       invalidatesTags: ["Config"],
     }),
     getPublicOrders: build.query<PublicOrder[], void>({
@@ -545,8 +553,8 @@ export const {
   useUpdatePricingConfigMutation,
   useUpdateCostosFijosMutation,
   useUpdateBusinessConfigMutation,
-  useUploadLogoMutation,
-  useRemoveLogoMutation,
+  useUploadImageMutation,
+  useRemoveImageMutation,
   useMarkContactedMutation,
   useLogOrderFollowUpMutation,
   useDeletePublicOrderMutation,

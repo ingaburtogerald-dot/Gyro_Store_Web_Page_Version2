@@ -4,6 +4,7 @@
 // TODO el texto es negro puro — las impresoras térmicas no reproducen grises.
 import { forwardRef } from "react";
 import type { Invoice } from "~/store/api/invoicesApi";
+import { useGetConfigQuery } from "~/store/api/catalogApi";
 
 const c$ = (n: number) => `C$${Math.round(n).toLocaleString("es-NI")}`;
 
@@ -11,6 +12,10 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
   { invoice },
   ref,
 ) {
+  // Logo del ticket configurable (Configuración → Recursos de imágenes). Sin custom,
+  // usa el PNG del repo con su recorte especial (oculta el texto del fondo).
+  const { data: cfg } = useGetConfigQuery();
+  const customTicketLogo = cfg?.branding?.ticketLogoUrl;
   const date = invoice.createdAt ? new Date(invoice.createdAt) : new Date();
   const hasDelivery = (invoice.deliveryFee || 0) > 0;
   const grandTotal = invoice.total + (invoice.deliveryFee || 0);
@@ -33,14 +38,21 @@ export const Ticket = forwardRef<HTMLDivElement, { invoice: Invoice }>(function 
           CABECERA: Logo centrado + info de contacto
           ═══════════════════════════════════════════ */}
       <div className="mb-2 text-center">
-        {/* Contenedor recortado: oculta el texto "GYRO STORE" del fondo del PNG */}
-        <div className="mx-auto mb-1 h-16 w-28 overflow-hidden">
-          <img
-            src="/logo-ticket.png"
-            alt="Gyro Store"
-            className="h-28 w-full object-cover object-top"
-          />
-        </div>
+        {customTicketLogo ? (
+          // Logo subido por el admin: se muestra completo, centrado (sin recorte).
+          <div className="mx-auto mb-1 flex h-16 items-center justify-center">
+            <img src={customTicketLogo} alt="Gyro Store" className="h-16 w-auto object-contain" />
+          </div>
+        ) : (
+          // Contenedor recortado: oculta el texto "GYRO STORE" del fondo del PNG por defecto.
+          <div className="mx-auto mb-1 h-16 w-28 overflow-hidden">
+            <img
+              src="/logo-ticket.png"
+              alt="Gyro Store"
+              className="h-28 w-full object-cover object-top"
+            />
+          </div>
+        )}
         <p className="text-[18px] font-black uppercase tracking-widest">GYRO STORE</p>
         <p className="mt-1 text-[11px] tracking-wide text-black">
           Tu tienda de tecnología &amp; accesorios

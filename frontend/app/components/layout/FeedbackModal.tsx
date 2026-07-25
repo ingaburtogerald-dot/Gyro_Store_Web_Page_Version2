@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
 import { Field } from "~/components/ui/Field";
-import { feedbackSchema, type FeedbackInput } from "~/lib/validators";
+import { feedbackSchema, type FeedbackInput } from "~/schemas/validators";
 import { useSendFeedbackMutation } from "~/store/api/feedbackApi";
 
 const TYPES: { value: FeedbackInput["type"]; label: string }[] = [

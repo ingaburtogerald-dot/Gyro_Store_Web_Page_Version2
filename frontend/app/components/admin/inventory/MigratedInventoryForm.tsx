@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/Button";
 import { Field } from "~/components/ui/Field";
-import { migratedItemFormSchema, type MigratedItemFormInput } from "~/lib/validators";
+import { migratedItemFormSchema, type MigratedItemFormInput } from "~/schemas/validators";
 import {
   useCreateMigratedItemMutation,
   useUpdateMigratedItemMutation,

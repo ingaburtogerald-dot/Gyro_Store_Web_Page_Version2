@@ -13,38 +13,40 @@
    (bg-bg, text-accent, rounded-card, font-heading, etc.)
    ─────────────────────────────────────────────────────────── */
 @theme {
-  /* Superficies — Midnight Neon.
-     --color-bg se iguala al fondo del logo (negro puro) para que el header y el
-     logo se fundan sin costura visible. */
-  --color-bg: #000000;
-  --color-surface: #0d1320;
-  --color-surface-2: #151d2f;
-  --color-surface-hover: #1c2740;
+  /* Superficies — Midnight (paleta de marca 2 colores).
+     Neutrales fríos casi-negros de la guía: cada nivel sube un peldaño real de
+     luminosidad para dar profundidad legible sobre el fondo. */
+  --color-bg: #0a0a0f;
+  --color-surface: #15151e;
+  --color-surface-2: #1e1e2a;
+  --color-surface-hover: #2a2a38;
   --color-border: rgba(148, 184, 255, 0.09);
 
-  /* Acentos — Esmeralda / Verde tech */
-  --color-accent: #10b981;
+  /* Acentos — Teal de marca (logo #42c5b0). El primario vivo #2dd4bf resalta sobre
+     el fondo oscuro; el hover baja al teal profundo #14b8a6. */
+  --color-accent: #2dd4bf;
   --color-accent-2: #5eead4;
-  --color-accent-hover: #059669;
-  --color-whatsapp: #00d4aa;
+  --color-accent-hover: #14b8a6;
+  /* WhatsApp en su verde canónico: distinto del teal de marca para no confundirse. */
+  --color-whatsapp: #25d366;
 
-  /* Gradiente de botones */
-  --color-grad-from: #047857;
-  --color-grad-to: #059669;
+  /* Gradiente de botones (teal → teal profundo) */
+  --color-grad-from: #14b8a6;
+  --color-grad-to: #0d9488;
 
   /* Texto */
   --color-text: #eaf1ff;
   --color-muted: #8b9bb8;
 
-  /* Estados semánticos */
-  --color-danger: #ef4444;
-  --color-warning: #f59e0b;
-  --color-info: #0ea5e9;
-  --color-success: #10b981;
+  /* Estados semánticos (guía de marca · avisos) */
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+  --color-info: #38bdf8;
+  --color-success: #22c55e;
 
-  /* Badge secundario */
-  --color-badge: #8b5cf6;
-  --color-badge-2: #c4b5fd;
+  /* Violeta acento (segundo color de marca) — badges y detalles */
+  --color-badge: #885cf6;
+  --color-badge-2: #a78bfa;
 
   /* Paleta CATEGÓRICA */
   --color-tone-indigo: #818cf8;
@@ -108,15 +110,15 @@
   --color-surface-hover: #e3e9f1; /* hover un paso más profundo */
   --color-border: rgba(15, 40, 70, 0.12); /* hairline con alma fría, no negro */
 
-  /* Acentos: Esmeralda profundo (brief #047857), legible como texto sobre blanco */
-  --color-accent: #047857;
-  --color-accent-2: #065f46;      /* un punto más oscuro → legible como texto sobre blanco */
-  --color-accent-hover: #065f46;
-  --color-whatsapp: #059669;
+  /* Acentos: Teal profundo, legible como texto sobre blanco (mantiene la marca) */
+  --color-accent: #0f766e;
+  --color-accent-2: #115e59;      /* un punto más oscuro → legible como texto sobre blanco */
+  --color-accent-hover: #115e59;
+  --color-whatsapp: #128c3e;      /* verde WhatsApp legible sobre blanco */
 
-  /* Gradiente de botones: Tonos profundos */
+  /* Gradiente de botones: Tonos teal profundos */
   --color-grad-from: #0f766e;
-  --color-grad-to: #047857;
+  --color-grad-to: #0d9488;
 
   /* Texto: Grafito casi negro y gris pizarra */
   --color-text: #0f2420;          /* grafito con tinte verde, no azul frío */
@@ -216,11 +218,11 @@
    Modo claro — profundidad y color (que no se vea "lavado").
    ─────────────────────────────────────────────────────────── */
 
-/* Fondo orgánico esmeralda muy sutil bajo todo el contenido. */
+/* Fondo orgánico teal muy sutil bajo todo el contenido. */
 [data-theme="light"] body {
   background-image:
-    radial-gradient(circle at 12% 14%, rgba(16, 185, 129, 0.08) 0%, transparent 44%),
-    radial-gradient(circle at 88% 86%, rgba(5, 150, 105, 0.07) 0%, transparent 46%);
+    radial-gradient(circle at 12% 14%, rgba(20, 184, 166, 0.08) 0%, transparent 44%),
+    radial-gradient(circle at 88% 86%, rgba(13, 148, 136, 0.07) 0%, transparent 46%);
 }
 /* `background-attachment: fixed` fuerza repaint del fondo en cada scroll → caro en
    móvil. El efecto parallax solo aporta en pantallas grandes; ahí lo activamos. */
@@ -343,9 +345,9 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    /* Ambiente: un foco esmeralda arriba + un halo verde-teal muy tenue abajo */
+    /* Ambiente: un foco teal arriba + un halo teal claro muy tenue abajo */
     background-image:
-      radial-gradient(1100px 560px at 82% -8%, rgba(16, 185, 129, 0.09), transparent 62%),
+      radial-gradient(1100px 560px at 82% -8%, rgba(45, 212, 191, 0.09), transparent 62%),
       radial-gradient(820px 520px at -12% 108%, rgba(94, 234, 212, 0.05), transparent 60%);
   }
 

@@ -161,7 +161,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
   return (
     <section className="mx-auto max-w-[1400px] w-full px-4 pt-3 pb-6 sm:pt-6 sm:pb-12">
       {/* ── CONTENEDOR PRINCIPAL ESTILO DBRAND ── */}
-      <div className="relative w-full bg-[#111] border border-border/40 rounded-[2.5rem] overflow-hidden shadow-2xl group">
+      <div className="relative w-full bg-surface border border-border/40 rounded-[2.5rem] overflow-hidden shadow-2xl group">
         {/* Controles de edición (solo admin en modo edición) */}
         {editing && (
           <div className="absolute right-4 top-4 z-30 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-2 py-1.5 backdrop-blur-md">
@@ -206,10 +206,10 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
         <div className="flex flex-col md:flex-row min-h-[380px] md:h-[620px] items-stretch">
 
           {/* Lado Izquierdo (Multimedia: imagen/GIF/video) — mismo fondo que el
-              contenedor (bg-[#111], sin /50) para que no haya costura detrás
-              de la media; antes bg-black/50 sobre bg-[#111] se veía como un
+              contenedor (bg-surface, sin /50) para que no haya costura detrás
+              de la media; antes bg-black/50 sobre bg-surface se veía como un
               rectángulo más oscuro. */}
-          <div className={cn("w-full md:w-1/2 relative bg-[#111] overflow-hidden h-[190px] sm:h-[260px] md:h-auto flex items-center justify-center border-b border-border/30 md:border-b-0 md:border-r border-border/30", safeIndex > 0 && "max-md:bg-black")}>
+          <div className={cn("w-full md:w-1/2 relative bg-surface overflow-hidden h-[190px] sm:h-[260px] md:h-auto flex items-center justify-center border-b border-border/30 md:border-b-0 md:border-r border-border/30", safeIndex > 0 && "max-md:bg-black")}>
             {/* Glow radial muy sutil detrás de la media: le da profundidad
                 intencional al vacío negro sin leerse como un círculo — blur
                 alto + opacidad baja, no un halo obvio. */}
@@ -318,7 +318,7 @@ export function Hero({ initialLanding }: { initialLanding?: LandingConfig | null
 
       {/* ── BARRA DE NAVEGACIÓN Y PROGRESO FLOTANTE (Estilo dbrand) ── */}
       <div className="flex justify-center mt-3 sm:mt-6">
-        <div className="flex items-center gap-3 bg-[#111] border border-border/40 px-4.5 py-2.5 rounded-full shadow-premium">
+        <div className="flex items-center gap-3 bg-surface border border-border/40 px-4.5 py-2.5 rounded-full shadow-premium">
           {/* Botón Play/Pause — área táctil 44px en móvil (WCAG 2.5.5), compacta en desktop */}
           <button
             onClick={() => setPlaying(!playing)}

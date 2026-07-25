@@ -13,6 +13,10 @@ frontend/public/build/
 serviceAccountKey.json
 server/serviceAccountKey.json
 *.pem
+*.bak
+
+# Scripts and maintenance
+!scripts/
 
 # Logs
 *.log

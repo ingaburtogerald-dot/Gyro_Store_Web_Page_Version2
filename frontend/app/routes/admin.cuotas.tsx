@@ -13,7 +13,7 @@ import {
   useAddInstallmentPaymentMutation,
   type Installment,
 } from "~/store/api/installmentsApi";
-import { installmentPaymentSchema, type InstallmentPaymentInput } from "~/lib/validators";
+import { installmentPaymentSchema, type InstallmentPaymentInput } from "~/schemas/validators";
 import { DateField } from "~/components/ui/DatePicker";
 import { formatCordobas } from "~/lib/utils";
 

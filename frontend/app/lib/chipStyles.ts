@@ -9,3 +9,16 @@ export const FOOTER_CHIP_BASE =
 /** Tamaño uniforme para los íconos (SVG o emoji) dentro de un chip. */
 export const FOOTER_CHIP_ICON =
   "inline-flex items-center justify-center h-3.5 w-3.5 sm:h-4 sm:w-4 text-[13px] sm:text-[15px] leading-none";
+
+/**
+ * Colores de marca de cada red social — FUENTE ÚNICA. Los usan por igual los pills
+ * del landing (SocialLinksStrip), el footer y el modal "Quiénes somos", para que
+ * TikTok/Instagram/Facebook se vean idénticos en todo el sitio. Solo definen fondo +
+ * texto (blanco) + borde; cada lugar aporta su propio tamaño/forma. TikTok es negro,
+ * así que lleva un borde tenue para separarse del fondo oscuro.
+ */
+export const SOCIAL_COLOR = {
+  tiktok: "bg-[#000000] text-white border border-white/10",
+  instagram: "bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] text-white border border-transparent",
+  facebook: "bg-[#1877F2] text-white border border-transparent",
+} as const;
