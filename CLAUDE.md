@@ -63,6 +63,10 @@
 
 El server usa rutas relativas (`require('../shared/schemas.mjs')` via `require(esm)` de Node 20.19+).
 
+**Reglas Críticas de Importación:**
+1. **PROHIBIDO** usar rutas relativas ascendentes (`../../`) en el frontend (usa `~/`).
+2. **PROHIBIDO** crear/usar archivos `index.ts` (barrel files) para re-exportar componentes en `frontend/app/components/`. Importa siempre directamente el archivo.
+
 ## Convenciones de Nombres
 
 | Qué | Convención | Ejemplo |

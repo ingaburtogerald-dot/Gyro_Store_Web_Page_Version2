@@ -6,8 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { toast } from "sonner";
 import {
-  Mail, Lock, ArrowLeft, ArrowRight, Eye, EyeOff, CheckCircle2, AlertTriangle,
-  KeyRound, MessageCircle, Sunrise, Sun, Moon, Loader2,
+  Mail, Lock, ArrowLeft, Eye, EyeOff, CheckCircle2, AlertTriangle,
+  KeyRound, MessageCircle, Sunrise, Sun, Moon
 } from "lucide-react";
 import { Logo } from "~/components/ui/Logo";
 import { cn, buildWhatsappUrl } from "~/lib/utils";
@@ -15,45 +15,33 @@ import { useAuth } from "~/hooks/useAuth";
 import { GoogleStrategy, MicrosoftStrategy, EmailStrategy } from "~/lib/authStrategies";
 import { loginSchema, type LoginInput } from "~/schemas/validators";
 import { roleLandingPath, type Role, WHATSAPP_NUMBER } from "~/lib/constants";
+import { DecorWaves } from "~/components/public/login/DecorWaves";
+import { SocialButton } from "~/components/public/login/SocialButton";
+import { AnimatedPrimary } from "~/components/public/login/AnimatedPrimary";
 
 export const meta: MetaFunction = () => [{ title: "Iniciar Sesión · Gyro Store" }];
 
-// Video de fondo del login (alojado en Cloudflare R2, bucket público). Se reproduce
-// en bucle, silenciado y sin controles. Si el navegador no lo carga, el fondo negro
-// del <main> queda de respaldo.
 const LOGIN_BG_VIDEO = "https://pub-e5292366f3c04eb1a93d9a0b38928540.r2.dev/site/login/background.webm";
-
-// Curva de salida exponencial (mismo lenguaje de motion que el resto de la app).
-const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 const EASE_IN = [0.7, 0, 0.84, 0] as const;
-// Duración de la animación de salida antes de navegar al dashboard.
 const EXIT_MS = 520;
-
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const reduce = useReducedMotion();
-  // Página desde donde se inició el login (la dejó el header/footer o RequireRole).
   const redirectTo = searchParams.get("redirectTo");
   const [busy, setBusy] = useState<null | "google" | "microsoft" | "email">(null);
   const [showPassword, setShowPassword] = useState(false);
   const [capsOn, setCapsOn] = useState(false);
   const [showRecovery, setShowRecovery] = useState(false);
-  // `exiting` dispara la animación de transición hacia el dashboard.
   const [exiting, setExiting] = useState(false);
-  // Saludo según la hora. Se calcula tras montar para no chocar con el SSR
-  // (la hora del servidor puede diferir de la del navegador → hydration mismatch).
   const [greeting, setGreeting] = useState<{ text: string; icon: "sunrise" | "sun" | "moon" } | null>(null);
   useEffect(() => setGreeting(getGreeting()), []);
 
-  // Pre-cargar Firebase Auth para evitar que el navegador (Edge/Safari)
-  // bloquee el popup por culpa del delay del "fetch" asíncrono.
   useEffect(() => {
     import("~/lib/firebase.client").then((m) => m.getFirebaseAuth().catch(console.error));
   }, []);
-
 
   const {
     register,
@@ -62,14 +50,9 @@ export default function Login() {
     formState: { errors },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
-  // Validación en vivo del correo (solo para el check verde; los errores formales
-  // los sigue manejando zod al enviar).
   const emailValue = watch("email") || "";
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
 
-  // Recuperación de contraseña: no usamos correo (muchos colaboradores son cuentas
-  // locales sin buzón accesible). En su lugar abrimos WhatsApp con el admin, que
-  // restablece la clave y activa mustChangePassword. Prellenamos el correo si lo escribió.
   const recoveryUrl = buildWhatsappUrl(
     WHATSAPP_NUMBER,
     `Hola 👋, olvidé mi contraseña de Gyro Store.${
@@ -77,8 +60,6 @@ export default function Login() {
     } ¿Me pueden ayudar a restablecerla?`,
   );
 
-  // Ruta destino tras un login exitoso: respeta el origen (solo rutas internas,
-  // evita open-redirect y nunca /login); si no, según los roles del usuario.
   function resolveTarget(roles: string[]): string {
     if (
       redirectTo &&
@@ -103,33 +84,24 @@ export default function Login() {
       const user = await login(strategy);
       toast.success(`Bienvenido, ${user.name}`);
       const target = resolveTarget(user.roles);
-      // Con motion reducido no hay animación de salida: navega directo.
       if (reduce) {
         navigate(target);
         return;
       }
-      // Reproduce la transición de salida (variants "exit" vía `exiting`) y navega
-      // al terminar. `viewTransition` deja que el navegador haga el morph entre rutas.
       setExiting(true);
       window.setTimeout(() => navigate(target, { viewTransition: true }), EXIT_MS);
-      // Mantenemos `busy` durante la salida (el panel se está yendo).
     } catch (err: any) {
       toast.error(err?.message || "No se pudo iniciar sesión.");
       setBusy(null);
     }
   }
 
-  // ── Variant de SALIDA (Framer) ─────────────────────────────────────────
-  // La ENTRADA es CSS puro (clases login-enter-*, ver globals.css): robusta ante
-  // fallo de JS y sin parpadeo. Framer solo orquesta la salida calmada al dashboard.
   const cardVariants: Variants = {
     exit: { opacity: 0, scale: reduce ? 1 : 0.98, y: reduce ? 0 : -8, transition: { duration: 0.42, ease: EASE_IN } },
   };
-  // Delay escalonado para el wordmark + encabezado (entrada CSS).
   const itemDelay = (i: number): React.CSSProperties =>
     reduce ? {} : { animationDelay: `${0.1 + i * 0.07}s` };
 
-  // Ícono del saludo (sin emojis; DESIGN.md §8).
   const GreetIcon = greeting?.icon === "sunrise" ? Sunrise : greeting?.icon === "moon" ? Moon : Sun;
 
   return (
@@ -137,8 +109,6 @@ export default function Login() {
       data-skin="store"
       className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-black p-4 sm:p-6 lg:p-8"
     >
-      {/* Fondo en video (Cloudflare R2): autoplay silenciado en bucle. Si el
-          navegador no puede reproducirlo, el fondo negro del <main> es el respaldo. */}
       <video
         className="absolute inset-0 z-0 h-full w-full object-cover"
         autoPlay
@@ -151,19 +121,14 @@ export default function Login() {
         <source src={LOGIN_BG_VIDEO} type="video/webm" />
       </video>
 
-      {/* Scrim: oscurece el fondo y aplica una viñeta radial que enfoca el centro,
-          para que la tarjeta resalte sin que el video compita. */}
       <div aria-hidden className="absolute inset-0 z-0 bg-black/45" />
       <div
         aria-hidden
         className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_38%,rgba(0,0,0,0.6)_100%)]"
       />
 
-      {/* Line-art hairline en los márgenes (evoca las ondas de las referencias,
-          pero es hairline esmeralda muy tenue, no glow → DESIGN.md §6). */}
       <DecorWaves />
 
-      {/* Volver al catálogo: con fondo cristal para no perderse en la nueva imagen y animado. */}
       <motion.a
         href="/"
         whileHover={{ scale: 1.05 }}
@@ -174,7 +139,6 @@ export default function Login() {
         Volver al catálogo
       </motion.a>
 
-      {/* Tarjeta split que flota sobre el fondo (marco + hairline + sombra neutra). */}
       <motion.div
         variants={cardVariants}
         initial={false}
@@ -185,10 +149,8 @@ export default function Login() {
           exiting && "pointer-events-none",
         )}
       >
-        {/* ── PANEL FORMULARIO ──────────────────────────────────────────────── */}
         <div className="order-2 flex flex-col justify-center p-7 sm:p-10 lg:order-1 lg:p-14">
           <div className="mx-auto w-full max-w-sm">
-            {/* Marca (visible solo en móvil) + encabezado con jerarquía. */}
             <div className="login-enter-item" style={itemDelay(0)}>
               <Logo size={50} className="lg:hidden object-contain" />
               <h1 className="mt-6 font-heading text-3xl font-extrabold tracking-tight text-text">
@@ -200,132 +162,127 @@ export default function Login() {
               </p>
             </div>
 
-          {/* Email + contraseña */}
-          <form onSubmit={handleSubmit((d) => run("email", d))} className="login-enter-item mt-8 space-y-4" style={itemDelay(1)}>
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
-                Correo
-              </label>
-              <div
-                className={cn(
-                  "flex items-center gap-2 rounded-xl border bg-surface px-3 transition-colors focus-within:ring-2 focus-within:ring-accent/15",
-                  emailValid
-                    ? "border-accent/60 focus-within:border-accent"
-                    : "border-border focus-within:border-accent",
-                )}
-              >
-                <Mail className={cn("h-4 w-4 transition-colors", emailValid ? "text-accent" : "text-muted")} />
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="tu@gyrostore.com"
-                  className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted"
-                  {...register("email")}
-                />
-                {emailValid && (
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-accent animate-in fade-in zoom-in duration-200" />
-                )}
-              </div>
-              {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
-                Contraseña
-              </label>
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15">
-                <Lock className="h-4 w-4 text-muted" />
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  onKeyUp={(e) => setCapsOn(e.getModifierState?.("CapsLock") ?? false)}
-                  className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted"
-                  {...register("password")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                  title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                  className="shrink-0 rounded-md p-1 text-muted transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            <form onSubmit={handleSubmit((d) => run("email", d))} className="login-enter-item mt-8 space-y-4" style={itemDelay(1)}>
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
+                  Correo
+                </label>
+                <div
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl border bg-surface px-3 transition-colors focus-within:ring-2 focus-within:ring-accent/15",
+                    emailValid
+                      ? "border-accent/60 focus-within:border-accent"
+                      : "border-border focus-within:border-accent",
+                  )}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
-              )}
-              {capsOn && (
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-warning animate-in fade-in duration-200">
-                  <AlertTriangle className="h-3.5 w-3.5" /> Bloq Mayús está activado
-                </p>
-              )}
-              <div className="mt-1.5 text-right">
-                <button
-                  type="button"
-                  onClick={() => setShowRecovery((v) => !v)}
-                  className="rounded text-xs text-muted transition-colors hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
-            </div>
-
-            {/* Panel de recuperación: sin correo, vía WhatsApp con el admin. */}
-            {showRecovery && (
-              <div className="rounded-xl border border-accent-2/30 bg-accent-2/5 p-4 animate-in fade-in slide-in-from-top-1 duration-200">
-                <div className="mb-2 flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 text-accent-2" />
-                  <span className="text-sm font-medium">Restablecer contraseña</span>
+                  <Mail className={cn("h-4 w-4 transition-colors", emailValid ? "text-accent" : "text-muted")} />
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="tu@gyrostore.com"
+                    className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted"
+                    {...register("email")}
+                  />
+                  {emailValid && (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-accent animate-in fade-in zoom-in duration-200" />
+                  )}
                 </div>
-                <p className="text-xs leading-relaxed text-muted">
-                  Escríbele al administrador por WhatsApp. Él te asignará una clave temporal y, al
-                  entrar, el sistema te pedirá crear una nueva.
-                </p>
-                <a
-                  href={recoveryUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-whatsapp py-2.5 text-sm font-semibold text-[#04201a] transition-transform hover:scale-[1.02]"
-                >
-                  <MessageCircle className="h-4 w-4" /> Escribir al administrador
-                </a>
+                {errors.email && <p className="mt-1 text-xs text-danger">{errors.email.message}</p>}
               </div>
-            )}
 
-            <AnimatedPrimary type="submit" loading={busy === "email"} reduce={!!reduce}>
-              Iniciar sesión
-            </AnimatedPrimary>
-          </form>
+              <div>
+                <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
+                  Contraseña
+                </label>
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15">
+                  <Lock className="h-4 w-4 text-muted" />
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    onKeyUp={(e) => setCapsOn(e.getModifierState?.("CapsLock") ?? false)}
+                    className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted"
+                    {...register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    className="shrink-0 rounded-md p-1 text-muted transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-xs text-danger">{errors.password.message}</p>
+                )}
+                {capsOn && (
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-warning animate-in fade-in duration-200">
+                    <AlertTriangle className="h-3.5 w-3.5" /> Bloq Mayús está activado
+                  </p>
+                )}
+                <div className="mt-1.5 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setShowRecovery((v) => !v)}
+                    className="rounded text-xs text-muted transition-colors hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
+              </div>
 
-          {/* Separador */}
-          <div className="login-enter-item my-6 flex items-center gap-3 text-xs text-muted" style={itemDelay(2)}>
-            <span className="h-px flex-1 bg-border" /> o continúa con <span className="h-px flex-1 bg-border" />
-          </div>
+              {showRecovery && (
+                <div className="rounded-xl border border-accent-2/30 bg-accent-2/5 p-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="mb-2 flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-accent-2" />
+                    <span className="text-sm font-medium">Restablecer contraseña</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-muted">
+                    Escríbele al administrador por WhatsApp. Él te asignará una clave temporal y, al
+                    entrar, el sistema te pedirá crear una nueva.
+                  </p>
+                  <a
+                    href={recoveryUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-whatsapp py-2.5 text-sm font-semibold text-[#04201a] transition-transform hover:scale-[1.02]"
+                  >
+                    <MessageCircle className="h-4 w-4" /> Escribir al administrador
+                  </a>
+                </div>
+              )}
 
-          {/* Proveedores externos */}
-          <div className="login-enter-item grid grid-cols-2 gap-3" style={itemDelay(3)}>
-            <SocialButton
-              loading={busy === "google"}
-              onClick={() => run("google")}
-              reduce={!!reduce}
-              icon={<GoogleIcon className="h-4 w-4" />}
-              label="Google"
-              hoverClass="hover:border-[#4285F4]/60 hover:bg-[#4285F4]/5"
-            />
-            {/* Hotmail/Outlook usa la estrategia de Microsoft por debajo (mismo OAuth que valida @hotmail/@outlook). */}
-            <SocialButton
-              loading={busy === "microsoft"}
-              onClick={() => run("microsoft")}
-              reduce={!!reduce}
-              icon={<OutlookIcon className="h-4 w-4" />}
-              label="Hotmail"
-              hoverClass="hover:border-[#0078D4]/60 hover:bg-[#0078D4]/5"
-            />
-          </div>
+              <AnimatedPrimary type="submit" loading={busy === "email"} reduce={!!reduce}>
+                Iniciar sesión
+              </AnimatedPrimary>
+            </form>
+
+            <div className="login-enter-item my-6 flex items-center gap-3 text-xs text-muted" style={itemDelay(2)}>
+              <span className="h-px flex-1 bg-border" /> o continúa con <span className="h-px flex-1 bg-border" />
+            </div>
+
+            <div className="login-enter-item grid grid-cols-2 gap-3" style={itemDelay(3)}>
+              <SocialButton
+                loading={busy === "google"}
+                onClick={() => run("google")}
+                reduce={!!reduce}
+                icon={<GoogleIcon className="h-4 w-4" />}
+                label="Google"
+                hoverClass="hover:border-[#4285F4]/60 hover:bg-[#4285F4]/5"
+              />
+              <SocialButton
+                loading={busy === "microsoft"}
+                onClick={() => run("microsoft")}
+                reduce={!!reduce}
+                icon={<OutlookIcon className="h-4 w-4" />}
+                label="Hotmail"
+                hoverClass="hover:border-[#0078D4]/60 hover:bg-[#0078D4]/5"
+              />
+            </div>
 
             <p className="mt-4 text-center text-xs text-muted">
               Aceptamos cuentas <span className="text-text">@gmail</span>,{" "}
@@ -334,14 +291,11 @@ export default function Login() {
           </div>
         </div>
 
-        {/* ── PANEL VISUAL · Marca (solo desktop) ──────────────────── */}
         <div className="relative order-1 hidden flex-col items-center justify-center overflow-hidden bg-black lg:order-2 lg:flex">
-          {/* Logo principal centrado (obtenido de la config del admin automáticamente por el componente Logo) */}
           <div className="relative z-10 flex flex-1 items-center justify-center p-12 w-full max-w-lg mx-auto">
             <Logo size={90} className="w-full max-w-[280px] object-contain" />
           </div>
 
-          {/* Declaración de marca al pie (sin el logo circular). */}
           <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black via-black/80 to-transparent p-12 pt-32">
             <p className="text-balance font-heading text-3xl font-extrabold leading-tight text-white">
               Acceso a Colaboradores
@@ -356,8 +310,6 @@ export default function Login() {
   );
 }
 
-// Saludo según la franja horaria del navegador. Devuelve una clave de ícono lucide
-// (no emoji; DESIGN.md §8) que el componente mapea a Sunrise/Sun/Moon.
 function getGreeting(): { text: string; icon: "sunrise" | "sun" | "moon" } {
   const h = new Date().getHours();
   if (h < 12) return { text: "Buenos días", icon: "sunrise" };
@@ -365,111 +317,6 @@ function getGreeting(): { text: string; icon: "sunrise" | "sun" | "moon" } {
   return { text: "Buenas noches", icon: "moon" };
 }
 
-// CTA primaria premium: relleno esmeralda con barrido de brillo (sheen) en hover,
-// flecha que se desliza y press táctil con spring (solo tacto; DESIGN.md §5). El
-// sheen se apaga con prefers-reduced-motion. Es <button> nativo → sirve de submit.
-function AnimatedPrimary({
-  children,
-  loading,
-  reduce,
-  type = "button",
-  onClick,
-}: {
-  children: React.ReactNode;
-  loading?: boolean;
-  reduce: boolean;
-  type?: "button" | "submit";
-  onClick?: () => void;
-}) {
-  return (
-    <motion.button
-      type={type}
-      onClick={onClick}
-      disabled={loading}
-      whileTap={reduce || loading ? undefined : { scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 420, damping: 24 }}
-      className="group relative w-full overflow-hidden rounded-lg bg-gradient-to-b from-accent to-accent-hover px-5 py-3 text-sm font-semibold text-bg shadow-md shadow-accent/20 transition-shadow duration-300 hover:shadow-lg hover:shadow-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 disabled:opacity-60 disabled:cursor-not-allowed"
-    >
-      {/* Barrido de brillo que cruza en hover. */}
-      {!reduce && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full"
-        />
-      )}
-      <span className="relative flex items-center justify-center gap-2">
-        {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <>
-            {children}
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </>
-        )}
-      </span>
-    </motion.button>
-  );
-}
-
-// Botón social: hairline que se aclara + ícono con pop sutil en hover + press táctil.
-function SocialButton({
-  icon,
-  label,
-  loading,
-  reduce,
-  onClick,
-  hoverClass,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  loading?: boolean;
-  reduce: boolean;
-  onClick?: () => void;
-  hoverClass?: string;
-}) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      disabled={loading}
-      whileTap={reduce || loading ? undefined : { scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 420, damping: 24 }}
-      className={cn(
-        "group flex items-center justify-center gap-2 rounded-lg border border-border bg-surface-2/40 px-4 py-2.5 text-sm font-medium text-text transition-colors hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:opacity-60 disabled:cursor-not-allowed",
-        hoverClass,
-      )}
-    >
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <span className={cn("inline-flex transition-transform duration-200", !reduce && "group-hover:scale-110")}>
-          {icon}
-        </span>
-      )}
-      {label}
-    </motion.button>
-  );
-}
-
-// Line-art decorativo de fondo: dos trazos hairline esmeralda muy tenues en esquinas
-// opuestas (evocan las ondas de las referencias sin caer en glow). Puramente estético.
-function DecorWaves() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden text-accent/[0.06]">
-      <svg className="absolute -left-24 -top-24 h-[520px] w-[520px]" viewBox="0 0 400 400" fill="none">
-        <circle cx="200" cy="200" r="150" stroke="currentColor" strokeWidth="1" />
-        <circle cx="200" cy="200" r="110" stroke="currentColor" strokeWidth="1" />
-        <circle cx="200" cy="200" r="70" stroke="currentColor" strokeWidth="1" />
-      </svg>
-      <svg className="absolute -bottom-32 -right-24 h-[560px] w-[560px]" viewBox="0 0 400 400" fill="none">
-        <path d="M0 300 Q100 220 200 300 T400 300" stroke="currentColor" strokeWidth="1" />
-        <path d="M0 340 Q100 260 200 340 T400 340" stroke="currentColor" strokeWidth="1" />
-      </svg>
-    </div>
-  );
-}
-
-// Íconos de marca (inline para no depender de paquetes externos de logos).
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">

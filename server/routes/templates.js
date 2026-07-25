@@ -8,7 +8,7 @@ const { requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../utils/asyncHandler');
 // El caché del catálogo público incluye axesSummary derivado de las plantillas:
 // cualquier mutación aquí debe invalidarlo para que las cards no queden desfasadas.
-const { clearCatalogCache } = require('./catalog');
+const { clearCatalogCache } = require('../services/catalog');
 
 const TEMPLATES = config.collections.templates;
 
