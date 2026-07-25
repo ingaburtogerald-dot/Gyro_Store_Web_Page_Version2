@@ -1,18 +1,17 @@
 // Portal de Configuración — admin puede editar costos fijos, descuentos por mayor,
 // tipo de cambio, WhatsApp, dirección y redes sociales.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Save, Upload, Trash2 } from "lucide-react";
+import { Save, ImageIcon, Store } from "lucide-react";
 import { RequireRole } from "~/components/admin/RequireRole";
 import { Button } from "~/components/ui/Button";
 import { Card } from "~/components/ui/Card";
+import { SiteImagesPanel } from "~/components/admin/config/SiteImagesPanel";
 import {
   useGetFullConfigQuery,
   useUpdateBusinessConfigMutation,
   useUpdateCostosFijosMutation,
   useUpdatePricingConfigMutation,
-  useUploadLogoMutation,
-  useRemoveLogoMutation,
   type Discount,
   type CostosFijos,
 } from "~/store/api/salesApi";
@@ -46,198 +45,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
       {children}
     </label>
-  );
-}
-
-// Una fila de logo (estático o animado). PRESENTACIONAL: solo prepara el cambio
-// (vista previa local del archivo elegido / marca "quitar"); no sube nada hasta que
-// el padre pulse "Guardar cambios".
-function LogoRow({
-  label,
-  hint,
-  accept,
-  currentUrl,
-  staged,
-  onSelect,
-  onRemove,
-  onUndo,
-}: {
-  label: string;
-  hint: string;
-  accept: string;
-  currentUrl?: string;
-  staged: File | "remove" | null;
-  onSelect: (file: File) => void;
-  onRemove: () => void;
-  onUndo: () => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [localUrl, setLocalUrl] = useState("");
-
-  // Vista previa local del archivo staged (se revoca al cambiar/desmontar).
-  useEffect(() => {
-    if (staged instanceof File) {
-      const u = URL.createObjectURL(staged);
-      setLocalUrl(u);
-      return () => URL.revokeObjectURL(u);
-    }
-    setLocalUrl("");
-  }, [staged]);
-
-  const changed = staged !== null;
-  const hasCurrent = Boolean(currentUrl);
-  // Qué mostrar: archivo nuevo (local) → quitar (nada) → logo actual.
-  const src = staged instanceof File ? localUrl : staged === "remove" ? "" : currentUrl || "";
-
-  const isVideo = staged instanceof File 
-    ? staged.type.startsWith('video/')
-    : (src && src.match(/\.(mp4|webm|ogg|mov)$/i));
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted">{label}</span>
-        {changed && (
-          <span className="text-[11px] font-medium text-accent-2">
-            {staged === "remove" ? "Se quitará al guardar" : "Nuevo · sin guardar"}
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-4">
-        {/* Vista previa sobre negro, como el header real */}
-        <div className="grid h-16 w-32 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-black">
-          {src ? (
-            isVideo ? (
-              <video key="video" src={src} autoPlay muted loop playsInline className="max-h-full max-w-full object-contain" />
-            ) : (
-              <img key="img" src={src} alt="" className="max-h-full max-w-full object-contain" />
-            )
-          ) : (
-            <span className="text-[11px] text-muted">Sin logo</span>
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs leading-relaxed text-muted">{hint}</p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept={accept}
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onSelect(f);
-              if (inputRef.current) inputRef.current.value = "";
-            }}
-          />
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => inputRef.current?.click()}
-              className="flex items-center gap-2"
-            >
-              <Upload className="h-4 w-4" />
-              {hasCurrent || staged instanceof File ? "Cambiar imagen" : "Elegir imagen"}
-            </Button>
-            {changed ? (
-              <button
-                type="button"
-                onClick={onUndo}
-                className="text-xs font-medium text-muted underline-offset-2 transition-colors hover:text-text hover:underline"
-              >
-                Deshacer
-              </button>
-            ) : hasCurrent ? (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={onRemove}
-                className="flex items-center gap-2 text-danger"
-              >
-                <Trash2 className="h-4 w-4" /> Quitar
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Sección "Logo del header": dos filas (estático + animado) con staging y UN solo
-// botón "Guardar cambios" que aplica todo (sube los archivos nuevos y/o quita).
-function LogoSection({ branding }: { branding?: { logoStaticUrl?: string; logoAnimatedUrl?: string } }) {
-  const [uploadLogo] = useUploadLogoMutation();
-  const [removeLogo] = useRemoveLogoMutation();
-  const [saving, setSaving] = useState(false);
-  // Cambio pendiente por tipo: File (nuevo) | "remove" (quitar) | null (sin cambio).
-  const [staged, setStaged] = useState<{
-    static: File | "remove" | null;
-    animated: File | "remove" | null;
-  }>({ static: null, animated: null });
-
-  const hasChanges = staged.static !== null || staged.animated !== null;
-  const setKind = (kind: "static" | "animated", value: File | "remove" | null) =>
-    setStaged((s) => ({ ...s, [kind]: value }));
-
-  async function save() {
-    setSaving(true);
-    try {
-      for (const kind of ["static", "animated"] as const) {
-        const change = staged[kind];
-        if (change instanceof File) {
-          const fd = new FormData();
-          fd.append("file", change);
-          fd.append("kind", kind);
-          await uploadLogo(fd).unwrap();
-        } else if (change === "remove") {
-          await removeLogo(kind).unwrap();
-        }
-      }
-      setStaged({ static: null, animated: null });
-      toast.success("Logo del header guardado.");
-    } catch (e) {
-      const msg = (e as { data?: { error?: string } })?.data?.error;
-      toast.error(msg || "No se pudo guardar el logo.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="space-y-5">
-      <LogoRow
-        label="Logo estático"
-        accept="image/jpeg,image/png,image/webp"
-        hint="Imagen (JPG, PNG o WebP). Se recomienda proporción 2:1 y fondo negro."
-        currentUrl={branding?.logoStaticUrl}
-        staged={staged.static}
-        onSelect={(f) => setKind("static", f)}
-        onRemove={() => setKind("static", "remove")}
-        onUndo={() => setKind("static", null)}
-      />
-      <LogoRow
-        label="Logo animado (GIF/Video)"
-        accept="image/gif,video/mp4,video/webm,video/ogg,video/quicktime"
-        hint="GIF animado o Video corto. Debe coincidir en tamaño/proporción con el estático."
-        currentUrl={branding?.logoAnimatedUrl}
-        staged={staged.animated}
-        onSelect={(f) => setKind("animated", f)}
-        onRemove={() => setKind("animated", "remove")}
-        onUndo={() => setKind("animated", null)}
-      />
-      <div className="flex justify-end border-t border-border pt-4">
-        <Button
-          type="button"
-          onClick={save}
-          loading={saving}
-          disabled={!hasChanges}
-          className="flex items-center gap-2"
-        >
-          <Save className="h-4 w-4" /> Guardar cambios
-        </Button>
-      </div>
-    </div>
   );
 }
 
@@ -372,6 +179,9 @@ export default function Configuracion() {
 
   const totalCF = Number(publicidad) + Number(utiles) + Number(servicios) + Number(garantias);
 
+  // Tab activo: "general" (datos, costos, descuentos) | "images" (recursos de imagen).
+  const [tab, setTab] = useState<"general" | "images">("general");
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -390,6 +200,34 @@ export default function Configuracion() {
           <p className="mt-1 text-sm text-muted">Parámetros del negocio editables desde la UI</p>
         </div>
 
+        {/* Tabs: General (datos/costos/descuentos) · Recursos de imágenes. */}
+        <div className="flex gap-1 border-b border-border">
+          {([
+            { id: "general", label: "General", icon: Store },
+            { id: "images", label: "Recursos de imágenes", icon: ImageIcon },
+          ] as const).map((t) => {
+            const active = tab === t.id;
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "border-accent text-text"
+                    : "border-transparent text-muted hover:text-text"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {tab === "general" && (
+          <>
         {/* Datos de la tienda */}
         <Section
           title="Datos de la tienda"
@@ -440,14 +278,6 @@ export default function Configuracion() {
               </Button>
             </div>
           </form>
-        </Section>
-
-        {/* Logo del header (identidad de marca) */}
-        <Section
-          title="Logo del header"
-          description="El logo que aparece arriba a la izquierda en toda la tienda. El estático se muestra por defecto; el animado (GIF) aparece al pasar el mouse o hacer clic. Elige los archivos y pulsa Guardar cambios para aplicarlos."
-        >
-          <LogoSection branding={config?.branding} />
         </Section>
 
         {/* Costos fijos */}
@@ -541,6 +371,17 @@ export default function Configuracion() {
             </div>
           </form>
         </Section>
+          </>
+        )}
+
+        {tab === "images" && (
+          <Section
+            title="Recursos de imágenes"
+            description="Todas las imágenes de la tienda en un solo lugar. Sube una nueva y pulsa “Guardar cambios”: se reemplaza la anterior (también en Cloudflare). Cada ranura indica para qué se usa y las medidas recomendadas."
+          >
+            <SiteImagesPanel branding={config?.branding} />
+          </Section>
+        )}
       </div>
     </RequireRole>
   );

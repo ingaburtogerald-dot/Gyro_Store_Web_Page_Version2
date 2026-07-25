@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { Modal } from "~/components/ui/Modal";
 import { Logo } from "~/components/ui/Logo";
 import { Button } from "~/components/ui/Button";
-import { SocialLink, TikTokIcon, SOCIAL_BRAND } from "~/components/ui/SocialIcon";
+import { TikTokIcon } from "~/components/ui/SocialIcon";
+import { SOCIAL_COLOR } from "~/lib/chipStyles";
 import { Instagram, Facebook } from "lucide-react";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
 import { buildWhatsappUrl } from "~/lib/utils";
@@ -66,9 +67,9 @@ export function AboutUsModal({ open, onClose }: AboutUsModalProps) {
 
         {/* Founder Section */}
         <div className="flex flex-col items-center gap-2 pt-2">
-          <img 
-            src="/images/founder.jpg" 
-            alt="Gerald Aburto" 
+          <img
+            src={config?.branding?.founderUrl || "/images/founder.jpg"}
+            alt="Gerald Aburto"
             className="h-20 w-20 sm:h-28 sm:w-28 rounded-full border-4 border-surface-2 object-cover shadow-xl"
             onError={(e) => { e.currentTarget.src = "https://ui-avatars.com/api/?name=Gerald+Aburto&background=04201a&color=fff"; }}
           />
@@ -99,32 +100,29 @@ export function AboutUsModal({ open, onClose }: AboutUsModalProps) {
         {/* Social Media and WhatsApp */}
         <div className="flex w-full flex-col gap-3 sm:gap-4 pt-3 sm:pt-4 sm:flex-row sm:justify-center">
           <div className="flex justify-center gap-2 sm:gap-3">
-            <a 
-              href={social?.instagram || "#"} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-[14px] sm:rounded-2xl transition-transform hover:scale-105 active:scale-95" 
-              style={{ backgroundColor: SOCIAL_BRAND.instagram.tint, color: SOCIAL_BRAND.instagram.color }}
+            <a
+              href={social?.instagram || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-[14px] sm:rounded-2xl transition-transform hover:scale-105 active:scale-95 ${SOCIAL_COLOR.instagram}`}
               aria-label="Instagram"
             >
               <Instagram className="h-5 w-5 sm:h-6 sm:w-6" />
             </a>
-            <a 
-              href={social?.facebook || "#"} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-[14px] sm:rounded-2xl transition-transform hover:scale-105 active:scale-95" 
-              style={{ backgroundColor: SOCIAL_BRAND.facebook.tint, color: SOCIAL_BRAND.facebook.color }}
+            <a
+              href={social?.facebook || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-[14px] sm:rounded-2xl transition-transform hover:scale-105 active:scale-95 ${SOCIAL_COLOR.facebook}`}
               aria-label="Facebook"
             >
               <Facebook className="h-5 w-5 sm:h-6 sm:w-6" />
             </a>
-            <a 
-              href={social?.tiktok || "https://www.tiktok.com/@gyro_store"} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-[14px] sm:rounded-2xl transition-transform hover:scale-105 active:scale-95" 
-              style={{ backgroundColor: SOCIAL_BRAND.tiktok.tint, color: SOCIAL_BRAND.tiktok.color }}
+            <a
+              href={social?.tiktok || "https://www.tiktok.com/@gyro_store"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-[14px] sm:rounded-2xl transition-transform hover:scale-105 active:scale-95 ${SOCIAL_COLOR.tiktok}`}
               aria-label="TikTok"
             >
               <TikTokIcon className="h-4 w-4 sm:h-5 sm:w-5" />

@@ -1,6 +1,6 @@
 import { Instagram, Facebook } from "lucide-react";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
-import { FOOTER_CHIP_BASE, FOOTER_CHIP_ICON } from "~/lib/chipStyles";
+import { FOOTER_CHIP_BASE, FOOTER_CHIP_ICON, SOCIAL_COLOR } from "~/lib/chipStyles";
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -24,7 +24,7 @@ export function SocialLinksStrip() {
         href={tiktokUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${FOOTER_CHIP_BASE} bg-[#000000] text-white shadow-sm border border-white/10 hover:shadow-[0_4px_15px_rgba(255,255,255,0.2)]`}
+        className={`${FOOTER_CHIP_BASE} ${SOCIAL_COLOR.tiktok} shadow-sm hover:shadow-[0_4px_15px_rgba(255,255,255,0.2)]`}
       >
         <TikTokIcon className={FOOTER_CHIP_ICON} />
         <span>TikTok</span>
@@ -34,7 +34,7 @@ export function SocialLinksStrip() {
         href={instagramUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${FOOTER_CHIP_BASE} bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F56040] text-white shadow-sm border border-transparent hover:shadow-[0_4px_15px_rgba(253,29,29,0.3)]`}
+        className={`${FOOTER_CHIP_BASE} ${SOCIAL_COLOR.instagram} shadow-sm hover:shadow-[0_4px_15px_rgba(253,29,29,0.3)]`}
       >
         <Instagram className={FOOTER_CHIP_ICON} />
         <span>Instagram</span>
@@ -44,7 +44,7 @@ export function SocialLinksStrip() {
         href={facebookUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${FOOTER_CHIP_BASE} bg-[#1877F2] text-white shadow-sm border border-transparent hover:shadow-[0_4px_15px_rgba(24,119,242,0.3)]`}
+        className={`${FOOTER_CHIP_BASE} ${SOCIAL_COLOR.facebook} shadow-sm hover:shadow-[0_4px_15px_rgba(24,119,242,0.3)]`}
       >
         <Facebook className={FOOTER_CHIP_ICON} />
         <span>Facebook</span>

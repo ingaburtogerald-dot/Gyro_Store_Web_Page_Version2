@@ -19,7 +19,7 @@ import {
   setOnlyOnSale,
   setOnlyInStock,
 } from "~/store/slices/uiSlice";
-import { useCatalogFilter } from "~/lib/useCatalogFilter";
+import { useCatalogFilter } from "~/hooks/useCatalogFilter";
 import type { CatalogProduct } from "~/store/api/catalogApi";
 import { cn } from "~/lib/utils";
 

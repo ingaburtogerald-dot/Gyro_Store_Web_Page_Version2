@@ -134,4 +134,8 @@ module.exports = {
     }
     return mail;
   })(),
+
+  // Configuración de Webhook n8n para automatizaciones
+  n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || '',
+  n8nWebhookSecret: process.env.N8N_WEBHOOK_SECRET || '',
 };

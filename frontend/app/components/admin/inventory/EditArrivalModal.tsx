@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Modal } from "~/components/ui/Modal";
 import { Button } from "~/components/ui/Button";
 import { Field } from "~/components/ui/Field";
-import { arrivalFormSchema, type ArrivalFormInput } from "~/lib/validators";
+import { arrivalFormSchema, type ArrivalFormInput } from "~/schemas/validators";
 import { useUpdatePurchaseMutation, type Purchase } from "~/store/api/inventoryApi";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
 import { DateField } from "~/components/ui/DatePicker";

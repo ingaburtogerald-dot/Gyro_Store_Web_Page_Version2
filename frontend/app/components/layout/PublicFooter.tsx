@@ -12,6 +12,7 @@ import { Link } from "@remix-run/react";
 import { Logo } from "~/components/ui/Logo";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
 import { TRUST_SIGNALS } from "~/lib/trustSignals";
+import { SOCIAL_COLOR } from "~/lib/chipStyles";
 
 export function PublicFooter() {
   const { data: config } = useGetConfigQuery();
@@ -44,17 +45,17 @@ export function PublicFooter() {
           <div className="mt-6 flex flex-col items-center justify-center">
             <div className="flex items-center gap-4">
             {instagramUrl && (
-              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 md:h-12 md:w-12 items-center justify-center rounded-full border border-white/5 bg-surface-2/50 text-muted transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-surface-3 hover:text-text hover:border-white/10 hover:shadow-lg active:scale-95">
+              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className={`flex h-8 w-8 md:h-12 md:w-12 items-center justify-center rounded-full transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:shadow-lg active:scale-95 ${SOCIAL_COLOR.instagram}`}>
                 <Instagram className="h-4 w-4 md:h-5 md:w-5" />
               </a>
             )}
             {facebookUrl && (
-              <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 md:h-12 md:w-12 items-center justify-center rounded-full border border-white/5 bg-surface-2/50 text-muted transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-surface-3 hover:text-text hover:border-white/10 hover:shadow-lg active:scale-95">
+              <a href={facebookUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className={`flex h-8 w-8 md:h-12 md:w-12 items-center justify-center rounded-full transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:shadow-lg active:scale-95 ${SOCIAL_COLOR.facebook}`}>
                 <Facebook className="h-4 w-4 md:h-5 md:w-5" />
               </a>
             )}
             {tiktokUrl && (
-              <a href={tiktokUrl} target="_blank" rel="noopener noreferrer" className="flex h-8 w-8 md:h-12 md:w-12 items-center justify-center rounded-full border border-white/5 bg-surface-2/50 text-muted transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-surface-3 hover:text-text hover:border-white/10 hover:shadow-lg active:scale-95">
+              <a href={tiktokUrl} target="_blank" rel="noopener noreferrer" aria-label="TikTok" className={`flex h-8 w-8 md:h-12 md:w-12 items-center justify-center rounded-full transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:shadow-lg active:scale-95 ${SOCIAL_COLOR.tiktok}`}>
                 <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 md:h-5 md:w-5">
                   <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.34 2.88 2.88 0 0 1 2.31-4.53 2.66 2.66 0 0 1 1.04.2v-3.2A5.99 5.99 0 0 0 3.32 15a5.95 5.95 0 0 0 11.23 2.14v-6.32a8.04 8.04 0 0 0 5.04 1.76v-3.15a4.7 4.7 0 0 1-2.19-.51Z" />
                 </svg>

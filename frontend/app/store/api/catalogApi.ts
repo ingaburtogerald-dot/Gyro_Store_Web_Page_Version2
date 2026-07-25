@@ -2,35 +2,8 @@
 // En esta fase solo expone la config de negocio; los endpoints de productos
 // del catálogo se agregan en la Fase 2.
 import { baseApi } from "./baseApi";
-import type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, Combo as PublicCombo, HeroSlide, LandingConfig } from "~/types/catalog";
-export type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, PublicCombo, HeroSlide, LandingConfig };
-// ── Plantillas (molde de características reutilizable por categoría) ──
-export interface TemplateAxis {
-  key: string;
-  label: string;
-  options: string[];
-  isColor?: boolean;
-}
-
-export interface Template {
-  id: string;
-  name: string;
-  category: string;
-  description?: string;
-  axes: TemplateAxis[];
-  specs: SpecRow[];
-}
-
-// Mapeo 1-a-1: cada combinación de variante → UN SKU canónico del inventario
-// (que agrupa lotes) + un precio override opcional. El stock lo suma el backend
-// por `sku`; el catálogo nunca vuelve a ver "tandas".
-export interface VariantMapping {
-  sku?: string;
-  skus?: string[];
-  price?: number;
-}
-export type VariantMappings = Record<string, VariantMapping>;
-
+import type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, PublicCombo, HeroSlide, LandingConfig, TemplateAxis, Template, VariantMapping, VariantMappings, CatalogVariant, CatalogDetail, ComboProduct, Combo, ComboInput, TemplateInput, InventorySku, CatalogItemInput } from "~/types/catalog";
+export type { CatalogProduct, Category, VolumeDiscount, BusinessConfig, SpecRow, DiscountTier, PublicCombo, HeroSlide, LandingConfig, TemplateAxis, Template, VariantMapping, VariantMappings, CatalogVariant, CatalogDetail, ComboProduct, Combo, ComboInput, TemplateInput, InventorySku, CatalogItemInput };
 // Lectura tolerante con datos viejos ({ skus:[...] } | { sku }) durante la migración.
 export function variantSku(entry?: VariantMapping | { sku?: string; skus?: string[] }): string {
   if (!entry) return "";
@@ -51,35 +24,6 @@ export function variantPrice(entry?: VariantMapping): number | undefined {
   return typeof entry?.price === "number" && entry.price > 0 ? entry.price : undefined;
 }
 
-export interface CatalogVariant {
-  id: string;
-  name: string;
-  variantName: string;
-  axisValues?: string[];
-  price: number;
-  sku?: string;
-  stock: number;
-  specs?: string[];
-}
-
-export interface CatalogDetail extends CatalogProduct {
-  variants: CatalogVariant[];
-  axisLabels: string[];
-  colorAxisIndex?: number;
-  imagesByColor: Record<string, string[]>;
-  badges: string[];
-  tiktokUrl?: string;
-  compareAtPrice?: number;
-  specs: SpecRow[];
-  // Modo plantilla
-  templateId?: string;
-  basePrice?: number;
-  variantMappings?: VariantMappings;
-  templateAxes?: TemplateAxis[];
-  // Opciones que ESTE producto ofrece por eje (poda estructural, no stock).
-  // Si un eje no aparece, se asumen todas sus opciones. { conector: ["Tipo C"], color: ["Negro","Azul"] }
-  axisOptions?: Record<string, string[]>;
-}
 
 export const catalogApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
@@ -233,79 +177,6 @@ export const catalogApi = baseApi.injectEndpoints({
   }),
 });
 
-// ── Combos ──
-// Producto de un combo, ya resuelto por el backend (nombre/imagen/precio actuales).
-export interface ComboProduct {
-  id: string;
-  name: string;
-  description?: string;
-  image: string;
-  price: number;
-}
-
-export interface Combo {
-  id: string;
-  /** Nombre del combo; si no se definió, el backend lo arma como "A + B". */
-  name: string;
-  /** Foto propia del combo (opcional). Vacío ⇒ la card arma el split de las
-   *  fotos de los 2 productos. */
-  image: string;
-  productIds: string[];
-  /** Precio del paquete (con el descuento ya incorporado). */
-  price: number;
-  active: boolean;
-  products: ComboProduct[];
-  /** Suma de los precios normales de los productos. */
-  normalTotal: number;
-  /** normalTotal − price (nunca negativo). */
-  savings: number;
-  /** true si algún producto referenciado ya no existe en el catálogo. */
-  broken: boolean;
-}
-
-export interface ComboInput {
-  name?: string;
-  productIds: string[];
-  price: number;
-  active?: boolean;
-  /** Vacío/omitido ⇒ sin foto propia. */
-  image?: string;
-}
-
-export interface TemplateInput {
-  name: string;
-  category: string;
-  description?: string;
-  axes: TemplateAxis[];
-  specs: SpecRow[];
-}
-
-// SKU canónico del inventario con su stock ya sumado (todos los lotes que lo comparten).
-export interface InventorySku {
-  sku: string;
-  name: string;
-  stock: number;
-  price?: number;
-}
-
-export interface CatalogItemInput {
-  name: string;
-  description: string;
-  category: string;
-  imagesByColor?: Record<string, string[]>;
-  tiktokUrl?: string;
-  compareAtPrice?: number;
-  specs?: SpecRow[];
-  published?: boolean;
-  isPromo: boolean;
-  // Modo plantilla
-  templateId?: string;
-  basePrice?: number;
-  variantMappings?: VariantMappings;
-  // Opciones que ESTE producto ofrece por eje (poda estructural, no stock).
-  // Si un eje no aparece, se asumen todas sus opciones. { conector: ["Tipo C"], color: ["Negro","Azul"] }
-  axisOptions?: Record<string, string[]>;
-}
 
 export const {
   useGetConfigQuery,

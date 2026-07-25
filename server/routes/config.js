@@ -208,16 +208,35 @@ router.get('/full', requireAdmin, asyncHandler(async (req, res) => {
   res.json(fullConfigCache);
 }));
 
-const LOGO_FIELDS = { static: 'logoStaticUrl', animated: 'logoAnimatedUrl' };
+// Recursos de imagen del sitio, editables desde Configuración → Recursos de imágenes.
+// Cada `kind` mapea a un campo dentro de `branding`. Vacío → el front usa el archivo
+// por defecto del repo. Añadir un recurso nuevo = una línea aquí + su ranura en el front.
+//   static/animated → logo del header · favicon → ícono de pestaña · ticket → logo del
+//   ticket POS · og → imagen para compartir (Open Graph) · founder → foto "Quiénes somos".
+const BRANDING_FIELDS = {
+  static: 'logoStaticUrl',
+  animated: 'logoAnimatedUrl',
+  favicon: 'faviconUrl',
+  ticket: 'ticketLogoUrl',
+  og: 'ogImageUrl',
+  founder: 'founderUrl',
+};
+// Alias retro-compatible (el mapa antiguo solo cubría el logo del header).
+const LOGO_FIELDS = BRANDING_FIELDS;
 
-// POST /api/config/logo — sube el logo del header a R2 (site/logo/) y guarda su
-// URL en la config del negocio. `kind`: 'static' (imagen) | 'animated' (GIF).
-// El GIF se sube TAL CUAL (sin optimizar) para no perder la animación.
-// Al REEMPLAZAR, borra el logo anterior de R2 para no dejar huérfanos/duplicados.
-router.post('/logo', requireAdmin, logoUpload.single('file'), asyncHandler(async (req, res) => {
+function resolveKind(raw) {
+  return BRANDING_FIELDS[raw] ? raw : 'static';
+}
+
+// POST /api/config/image — sube un recurso de imagen del sitio a R2 (site/branding/)
+// y guarda su URL en `branding`. `kind`: static | animated | favicon | ticket | og |
+// founder. El archivo se sube TAL CUAL (sin optimizar) para no degradar el logo ni
+// perder la animación del GIF/video. Al REEMPLAZAR, borra el anterior de R2 para no
+// dejar huérfanos/duplicados.
+const uploadImageHandler = asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se envió ningún archivo.' });
-  const kind = req.body.kind === 'animated' ? 'animated' : 'static';
-  const field = LOGO_FIELDS[kind];
+  const kind = resolveKind(req.body.kind);
+  const field = BRANDING_FIELDS[kind];
   const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.png'])[0];
 
   // URL anterior (para borrarla de R2 después de guardar la nueva).
@@ -227,12 +246,12 @@ router.post('/logo', requireAdmin, logoUpload.single('file'), asyncHandler(async
 
   const url = await storage.uploadFile(
     req.file.buffer,
-    'site/logo',
+    'site/branding',
     `${kind}-${Date.now()}${ext}`,
     req.file.mimetype,
   );
 
-  // Merge para no pisar el otro campo del branding (estático/animado).
+  // Merge para no pisar los otros campos del branding.
   await bizRef.set({ branding: { [field]: url } }, { merge: true });
   clearConfigCache();
 
@@ -240,26 +259,32 @@ router.post('/logo', requireAdmin, logoUpload.single('file'), asyncHandler(async
   if (oldUrl && oldUrl !== url) await storage.deleteFileByUrl(oldUrl);
 
   res.json({ ok: true, url, kind });
-}));
+});
 
-// DELETE /api/config/logo?kind=static|animated — quita el logo de la config y lo
-// borra de R2. El header vuelve a usar el archivo por defecto del repo.
-router.delete('/logo', requireAdmin, asyncHandler(async (req, res) => {
-  const kind = req.query.kind === 'animated' ? 'animated' : 'static';
-  const field = LOGO_FIELDS[kind];
+// DELETE /api/config/image?kind=… — quita el recurso de la config y lo borra de R2.
+// El front vuelve a usar el archivo por defecto del repo.
+const deleteImageHandler = asyncHandler(async (req, res) => {
+  const kind = resolveKind(req.query.kind);
+  const field = BRANDING_FIELDS[kind];
 
   const bizRef = db.collection(APP_CONFIG).doc('business');
   const snap = await bizRef.get();
   const oldUrl = snap.exists ? snap.data()?.branding?.[field] : null;
 
-  // Vacía el campo (string vacío → el front cae al logo por defecto).
+  // Vacía el campo (string vacío → el front cae al default del repo).
   await bizRef.set({ branding: { [field]: '' } }, { merge: true });
   clearConfigCache();
 
   if (oldUrl) await storage.deleteFileByUrl(oldUrl);
 
   res.json({ ok: true, kind });
-}));
+});
+
+// Ruta canónica + alias `/logo` retro-compatible (mismos handlers).
+router.post('/image', requireAdmin, logoUpload.single('file'), uploadImageHandler);
+router.delete('/image', requireAdmin, deleteImageHandler);
+router.post('/logo', requireAdmin, logoUpload.single('file'), uploadImageHandler);
+router.delete('/logo', requireAdmin, deleteImageHandler);
 
 // ── Landing page (modo edición inline): Hero + orden del header ──────────────
 // Doc `app_config/landing_page`. Separado de `business` para no sobrecargar el doc

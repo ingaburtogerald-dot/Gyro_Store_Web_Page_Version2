@@ -12,8 +12,10 @@
     "dev:frontend": "cd frontend && npm run dev",
     "build": "cd frontend && npm install && npm run build",
     "start": "cross-env NODE_ENV=production node server/index.js",
-    "seed:admin": "node scripts/seedAdmin.js",
-    "seed:template": "node scripts/seedTemplate.js",
+    "seed:admin": "node scripts/seed/seedAdmin.js",
+    "seed:template": "node scripts/seed/seedTemplate.js",
+    "lint": "npm run lint --prefix frontend",
+    "format": "npm run format --prefix frontend",
     "postinstall": "echo \"Instala el frontend con: cd frontend && npm install\""
   },
   "dependencies": {

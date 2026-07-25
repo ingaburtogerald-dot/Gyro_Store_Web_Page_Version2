@@ -7,7 +7,7 @@ import { ReportKpis } from "~/components/admin/reports/ReportKpis";
 import { ReportCharts } from "~/components/admin/reports/ReportCharts";
 import { BudgetTable } from "~/components/admin/reports/BudgetTable";
 import { LossesPanel } from "~/components/admin/reports/LossesPanel";
-import { MonthPicker } from "~/components/admin/reports/_shared/MonthPicker";
+import { MonthPicker } from "~/components/ui/MonthPicker";
 import { TabBtn } from "~/components/ui/TabBtn";
 import { Skeleton } from "~/components/ui/Skeleton";
 import { useGetReportQuery } from "~/store/api/reportsApi";

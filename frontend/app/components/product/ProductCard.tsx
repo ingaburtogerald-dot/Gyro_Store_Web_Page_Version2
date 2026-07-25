@@ -10,28 +10,23 @@ import { useAppDispatch } from "~/store/hooks";
 import { addItem, openCart } from "~/store/slices/cartSlice";
 import { formatCordobas, cn, getProductUrl, buildWhatsappUrl } from "~/lib/utils";
 
-const MAX_PILLS = 3;
-
 export function ProductCard({
   product,
-  categories,
   layout = "grid",
   index = 0,
-  showPills = true,
 }: {
   product: CatalogProduct;
-  categories: Category[];
   layout?: "grid" | "list";
   /** Posición en la grilla: escalona la entrada de las tarjetas visibles. */
   index?: number;
-  /** Muestra los pills de variantes. Se apaga en las recomendaciones de la ficha
-   *  (el usuario los veía "raros" ahí y pidió omitirlos para tarjetas más limpias). */
+  /** Aceptados por compatibilidad con los llamadores; la card actual (estilo
+   *  showcase) ya no los usa. Se limpiarán en la cascada ProductGrid/Carousel. */
+  categories?: Category[];
   showPills?: boolean;
 }) {
   const dispatch = useAppDispatch();
   const { data: config } = useGetConfigQuery();
   const reduce = useReducedMotion();
-  const category = categories.find((c) => c.id === product.category);
   const image = product.images?.[0];
   const soldOut = (product.stock ?? 0) <= 0;
   const lowStock = !soldOut && (product.stock ?? 0) > 0 && (product.stock ?? 0) <= 5;
@@ -39,13 +34,6 @@ export function ProductCard({
   const onSale = compareAt > product.price;
   const discountPct = onSale ? Math.round((1 - product.price / compareAt) * 100) : 0;
   const isList = layout === "list";
-
-  // Pills de variantes: primero las opciones reales de la plantilla; si el
-  // ítem no tiene plantilla, se muestran sus badges. (El color NO viene en la
-  // card — se ve en la foto; ver DESIGN.md §7 y server/routes/catalog.js.)
-  const pills = (product.axesSummary?.length ? product.axesSummary : product.badges) ?? [];
-  const visiblePills = pills.slice(0, MAX_PILLS);
-  const extraPills = pills.length - visiblePills.length;
 
   // >1 combinación encendida → hay que elegir variante antes de agregar.
   const needsPicker = (product.variantCount ?? 1) > 1;
@@ -151,54 +139,6 @@ export function ProductCard({
     </Link>
   );
 
-  // Eyebrow editorial: categoría en label tracked (sin emoji; DESIGN.md §8).
-  const Eyebrow = category ? (
-    <span className="truncate text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.22em] text-muted">
-      {category.name}
-    </span>
-  ) : null;
-
-  const Name = (
-    <Link
-      to={getProductUrl(product.id, product.name)}
-      prefetch="intent"
-      viewTransition
-      className="line-clamp-2 min-h-[32px] text-[13px] font-bold leading-snug tracking-tight text-text transition-colors group-hover:text-accent-2 sm:text-lg sm:min-h-10"
-    >
-      {product.name}
-    </Link>
-  );
-
-  // Variantes reales (pills de la plantilla). font-light por DESIGN.md §3.
-  const Pills = visiblePills.length ? (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {visiblePills.map((p) => (
-        <span
-          key={p}
-          className="rounded-pill border border-white/10 px-2 py-0.5 text-[11px] font-light text-muted"
-        >
-          {p}
-        </span>
-      ))}
-      {extraPills > 0 && (
-        <span className="text-[11px] font-light text-muted">+{extraPills}</span>
-      )}
-    </div>
-  ) : null;
-
-  const Price = (
-    <div className="flex items-baseline gap-2">
-      <span className="text-[14px] font-extrabold tabular-nums leading-none text-accent-2 sm:text-lg">
-        {formatCordobas(product.price)}
-      </span>
-      {onSale && (
-        <span className="text-[11px] sm:text-sm text-muted line-through tabular-nums">
-          {formatCordobas(compareAt)}
-        </span>
-      )}
-    </div>
-  );
-
   const Cta = (
     <div className="flex items-center gap-2">
       <Button
@@ -302,6 +242,9 @@ export function ProductCard({
           </p>
         )}
       </Link>
+      {/* CTA anclado al fondo: al vivir fuera del <Link> flex-1, todas las tarjetas
+          de una fila alinean su botón "Agregar" a la misma altura (simetría). */}
+      <div className="pt-3">{Cta}</div>
       {Sheet}
     </motion.article>
   );

@@ -211,6 +211,29 @@ router.post('/public', asyncHandler(async (req, res) => {
   const whatsappUrl = buildWhatsappMessage(order);
   const ref = await db.collection(PUBLIC_ORDERS).add({ ...order, whatsappUrl });
 
+  // Notificar a n8n (Webhook) en segundo plano si está configurado
+  if (config.n8nWebhookUrl) {
+    fetch(config.n8nWebhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(config.n8nWebhookSecret ? { 'Authorization': `Bearer ${config.n8nWebhookSecret}` } : {}),
+      },
+      body: JSON.stringify({
+        event: 'new_order',
+        orderId: ref.id,
+        orderData: {
+          customerName: order.customerName,
+          customerPhone: order.customerPhone,
+          deliveryMethod: order.deliveryMethod,
+          total: order.total,
+          itemsCount: order.items.length,
+          whatsappUrl: whatsappUrl,
+        }
+      })
+    }).catch(err => console.error('⚠️ Error enviando webhook a n8n:', err.message));
+  }
+
   res.status(201).json({ id: ref.id, subtotal, discount, codeDiscount, total, whatsappUrl });
 }));
 

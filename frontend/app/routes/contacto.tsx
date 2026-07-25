@@ -6,7 +6,7 @@ import { Instagram, Facebook, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { PublicFooter } from "~/components/layout/PublicFooter";
 import { Button } from "~/components/ui/Button";
-import { contactSchema, type ContactInput } from "~/lib/validators";
+import { contactSchema, type ContactInput } from "~/schemas/validators";
 import { useSendContactMutation } from "~/store/api/ordersApi";
 import { useGetConfigQuery } from "~/store/api/catalogApi";
 

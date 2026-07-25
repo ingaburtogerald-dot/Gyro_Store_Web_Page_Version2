@@ -6,15 +6,19 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { AboutUsModal } from "~/components/layout/AboutUsModal";
+import { useGetConfigQuery } from "~/store/api/catalogApi";
 
 export function OurStoryStrip() {
   const [open, setOpen] = useState(false);
+  // Foto configurable (Configuración → Recursos de imágenes). Fallback al repo.
+  const { data: cfg } = useGetConfigQuery();
+  const founderSrc = cfg?.branding?.founderUrl || "/images/founder.jpg";
 
   return (
     <section aria-label="Sobre Gyro Store">
       <div className="flex flex-col items-center gap-3.5 rounded-3xl border border-border/50 bg-surface/40 p-4 text-center sm:flex-row sm:gap-6 sm:p-8 sm:text-left">
         <img
-          src="/images/founder.jpg"
+          src={founderSrc}
           alt="Gerald Aburto, fundador de Gyro Store"
           className="h-12 w-12 sm:h-20 sm:w-20 shrink-0 rounded-full border-2 border-accent/30 object-cover"
           onError={(e) => {

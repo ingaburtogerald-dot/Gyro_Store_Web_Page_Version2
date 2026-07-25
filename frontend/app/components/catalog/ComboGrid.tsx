@@ -68,7 +68,7 @@ export function ComboGrid() {
           <p className="text-xs text-muted">Empareja 2 productos a un precio especial y aparecerán en sus páginas.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:gap-5 sm:grid-cols-3 lg:grid-cols-4">
           {combos.map((combo) => (
             <ComboCard
               key={combo.id}
