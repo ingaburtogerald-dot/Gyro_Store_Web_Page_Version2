@@ -7,8 +7,9 @@ import {
   isRouteErrorResponse,
   useRouteError,
   useLocation,
+  useRouteLoaderData,
 } from "@remix-run/react";
-import type { LinksFunction } from "@remix-run/node";
+import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { Provider } from "react-redux";
 import { Toaster } from "sonner";
 import { store } from "~/store/store";
@@ -22,8 +23,6 @@ import tailwind from "~/styles/globals.css?url";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: tailwind },
-  { rel: "icon", type: "image/png", href: "/logo-favicon.png" },
-  { rel: "apple-touch-icon", href: "/logo-favicon.png" },
   // Inter (fuente única): <link> de primer nivel (no @import anidado en globals.css)
   // para que el navegador la descubra y pida en paralelo, no en cadena tras bajar
   // y parsear el CSS de la app. preconnect acelera la conexión a ambos hosts.
@@ -35,7 +34,25 @@ export const links: LinksFunction = () => [
   },
 ];
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  const origin = new URL(request.url).origin;
+  let faviconUrl = "/logo-favicon.png";
+  try {
+    const res = await fetch(`${origin}/api/config`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.branding?.faviconUrl) {
+        faviconUrl = data.branding.faviconUrl;
+      }
+    }
+  } catch {}
+  return { faviconUrl };
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  const data = useRouteLoaderData<typeof loader>("root");
+  const faviconUrl = data?.faviconUrl || "/logo-favicon.png";
+
   // suppressHydrationWarning en <html>: el script anti-flash de abajo escribe
   // `data-theme` en el cliente antes de hidratar; sin esto React ve un mismatch (el
   // server no emite el atributo) y puede RECONCILIAR el <html> borrando el `data-theme`,
@@ -50,6 +67,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             quedar tapadas o tapar contenido. */}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#0a0a0f" />
+        <link rel="icon" type="image/png" href={faviconUrl} />
+        <link rel="apple-touch-icon" href={faviconUrl} />
         {/* Las etiquetas Open Graph (preview al compartir) las define cada ruta vía
             su función meta() — homepage y página de producto — con URL absoluta. */}
         <Meta />

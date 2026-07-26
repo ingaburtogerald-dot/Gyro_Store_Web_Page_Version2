@@ -29,6 +29,10 @@ export interface Branding {
   ogImageUrl?: string;
   /** Foto "Quiénes somos" (fundador). Vacío → /images/founder.jpg. */
   founderUrl?: string;
+  /** Imagen del panel de marca del login en ESCRITORIO (columna derecha, vertical). Vacío → gradiente de acento. */
+  loginBrandUrl?: string;
+  /** Imagen del panel de marca del login en MÓVIL (banda superior, panorámica). Vacío → gradiente de acento. */
+  loginBrandMobileUrl?: string;
 }
 
 export interface BusinessConfig {

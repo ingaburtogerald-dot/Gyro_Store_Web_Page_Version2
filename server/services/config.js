@@ -176,6 +176,8 @@ const BRANDING_FIELDS = {
   ticket: 'ticketLogoUrl',
   og: 'ogImageUrl',
   founder: 'founderUrl',
+  loginBrand: 'loginBrandUrl',
+  loginBrandMobile: 'loginBrandMobileUrl',
 };
 
 function resolveKind(raw) {

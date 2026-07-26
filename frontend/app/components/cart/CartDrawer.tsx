@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useNavigate } from "@remix-run/react";
 import { motion, AnimatePresence, useDragControls, useReducedMotion } from "framer-motion";
-import { X, Minus, Plus, Trash2, ImageOff, Pencil, Gift } from "lucide-react";
+import { X, Minus, Plus, Trash2, ImageOff, Pencil, Gift, ShoppingBag, Sparkles } from "lucide-react";
 import { Button } from "~/components/ui/Button";
 import { CheckoutModal } from "./CheckoutModal";
 import { EditCartItemSheet } from "./EditCartItemSheet";
@@ -83,12 +83,20 @@ export function CartDrawer() {
             role="dialog"
             aria-label="Carrito de compras"
           >
-            <header className="flex shrink-0 items-center justify-between border-b border-border p-4">
-              <h2 className="text-lg font-bold">Tu carrito</h2>
+            <header className="flex shrink-0 items-start justify-between border-b border-border p-4">
+              <div>
+                <h2 className="text-lg font-bold">Tu carrito</h2>
+                {items.length > 0 && (
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
+                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+                    Buena elección — revísalo y finalízalo cuando quieras.
+                  </p>
+                )}
+              </div>
               <button
                 onClick={() => dispatch(closeCart())}
                 aria-label="Cerrar"
-                className="grid h-11 w-11 place-items-center text-muted hover:text-text md:h-8 md:w-8"
+                className="grid h-11 w-11 shrink-0 place-items-center text-muted hover:text-text md:h-8 md:w-8"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -96,7 +104,22 @@ export function CartDrawer() {
 
               <div className="flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
                 {items.length === 0 ? (
-                  <p className="py-12 text-center text-sm text-muted">Tu carrito está vacío.</p>
+                  <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+                    <div className="grid h-16 w-16 place-items-center rounded-full bg-surface-2 text-muted">
+                      <ShoppingBag className="h-7 w-7" aria-hidden />
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="font-heading text-lg font-bold text-text">
+                        Tu carrito está vacío… por ahora
+                      </p>
+                      <p className="mx-auto max-w-[16rem] text-sm leading-relaxed text-muted">
+                        Explora la tienda y descubre lo que puedes llevarte hoy.
+                      </p>
+                    </div>
+                    <Button variant="primary" onClick={keepShopping}>
+                      Explorar catálogo
+                    </Button>
+                  </div>
                 ) : (
                   <>
                   {items.map((item) => {

@@ -1,11 +1,8 @@
-import { useMemo, useRef, useState, useCallback, useEffect } from "react";
+import { useMemo, useRef, useState, useCallback } from "react";
 import type { HeadersFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useParams, useLoaderData, useNavigate } from "@remix-run/react";
 import { motion } from "framer-motion";
-import {
-  Share2,
-  ChevronLeft,
-} from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { PublicFooter } from "~/components/layout/PublicFooter";
 import { VariantPicker, type VariantSelection } from "~/components/product/VariantPicker";
@@ -15,6 +12,12 @@ import { SocialLinksStrip } from "~/components/catalog/SocialLinksStrip";
 import { ProductCarousel } from "~/components/product/ProductCarousel";
 import { ProductPurchasePanel } from "~/components/public/product/ProductPurchasePanel";
 import { ProductSpecsPanel } from "~/components/public/product/ProductSpecsPanel";
+import { DetailHeader } from "~/components/public/product/DetailHeader";
+import { DetailPrice } from "~/components/public/product/DetailPrice";
+import { StockIndicator, type StockTone } from "~/components/public/product/StockIndicator";
+import { MobileBuyBar } from "~/components/public/product/MobileBuyBar";
+import { useElementInView } from "~/hooks/useElementInView";
+import { staggerContainer, itemFade } from "~/lib/detailMotion";
 import {
   useGetConfigQuery,
   useGetCombosByProductQuery,
@@ -40,6 +43,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   let product: CatalogDetail | null = null;
   let catalog: CatalogProduct[] = [];
   let categories: Category[] = [];
+  let branding: any = null;
   try {
     const [pRes, listRes, cRes] = await Promise.all([
       fetch(`${origin}/api/catalog/${actualId}`),
@@ -48,16 +52,20 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     ]);
     if (pRes.ok) product = (await pRes.json()) as CatalogDetail;
     if (listRes.ok) catalog = (await listRes.json()) as CatalogProduct[];
-    if (cRes.ok) categories = ((await cRes.json()) as { categories?: Category[] }).categories ?? [];
+    if (cRes.ok) {
+      const cData = await cRes.json() as any;
+      categories = cData.categories ?? [];
+      branding = cData.branding ?? null;
+    }
   } catch {
   }
-  return { product, catalog, categories, url: request.url, origin };
+  return { product, catalog, categories, url: request.url, origin, branding };
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const p = data?.product;
   if (!p) return [{ title: "Producto · Gyro Store" }];
-  const img = p.images?.[0] || `${data!.origin}/logo.jpg`;
+  const img = p.images?.[0] || data?.branding?.ogImageUrl || `${data!.origin}/logo.jpg`;
   const title = `${p.name} · Gyro Store`;
   const description =
     (p.description && String(p.description).slice(0, 160)) ||
@@ -95,16 +103,6 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
   ];
 };
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
-};
-
-const itemFade = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0 }
-};
-
 type ProductTab = "detalles" | "specs";
 
 export default function ProductDetail() {
@@ -117,18 +115,8 @@ export default function ProductDetail() {
   const [selection, setSelection] = useState<VariantSelection | null>(null);
   const [activeTab, setActiveTab] = useState<ProductTab>("detalles");
   const [isAdded, setIsAdded] = useState(false);
-  const [footerVisible, setFooterVisible] = useState(false);
+  const footerVisible = useElementInView("public-footer");
   const tabRefs = useRef<Partial<Record<ProductTab, HTMLButtonElement | null>>>({});
-
-  useEffect(() => {
-    const el = document.getElementById("public-footer");
-    if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => {
-      setFooterVisible(entry.isIntersecting);
-    }, { rootMargin: "0px 0px 50px 0px" });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
 
   const selectedVariant = selection?.variant ?? product?.variants?.[0];
   const baseName = product?.name ?? "";
@@ -137,6 +125,12 @@ export default function ProductDetail() {
   const stockCount = selectedVariant?.stock ?? product?.stock ?? 0;
   const compareAt = product?.compareAtPrice ?? 0;
   const onSale = compareAt > price;
+  const stockTone: StockTone = !inStock ? "out" : stockCount <= 5 ? "low" : "ok";
+  const stockLabel = !inStock
+    ? "Agotado"
+    : stockCount <= 5
+      ? `Últimas ${stockCount} unidade${stockCount === 1 ? "" : "s"}`
+      : `${stockCount} unidades disponibles`;
 
   const [qty, setQty] = useState(1);
   const discounts = useMemo(
@@ -265,77 +259,42 @@ export default function ProductDetail() {
               animate="show"
               className="flex flex-col md:sticky md:top-24 pb-0 md:pb-8 min-w-0"
             >
-              <motion.div variants={itemFade}>
-                {product.badges && product.badges.length > 0 && (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    {product.badges.map((b) => (
-                      <span key={b} className="rounded-pill bg-accent/15 px-3 py-1 text-xs font-bold tracking-wide text-accent-2 ring-1 ring-accent/20">
-                        {b}
-                      </span>
-                    ))}
-                  </div>
-                )}
+              <DetailHeader
+                title={selectedVariant ? selectedVariant.name : baseName}
+                onShare={share}
+                shareLabel="Compartir producto"
+                badges={
+                  product.badges && product.badges.length > 0 ? (
+                    <>
+                      {product.badges.map((b) => (
+                        <span key={b} className="rounded-pill bg-accent/15 px-3 py-1 text-xs font-bold tracking-wide text-accent-2 ring-1 ring-accent/20">
+                          {b}
+                        </span>
+                      ))}
+                    </>
+                  ) : undefined
+                }
+              />
 
-                <div className="flex items-start justify-between gap-4">
-                  <h1 className="font-heading text-2xl sm:text-[clamp(2rem,5.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-balance text-text">
-                    {selectedVariant ? selectedVariant.name : baseName}
-                  </h1>
-                  <button
-                    type="button"
-                    onClick={share}
-                    aria-label="Compartir producto"
-                    className="mt-2 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-2/60 text-muted transition-colors hover:bg-surface hover:text-accent-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-2/50"
-                  >
-                    <Share2 className="h-5 w-5" />
-                  </button>
-                </div>
-              </motion.div>
-
-              <motion.div variants={itemFade} className="mt-5 flex flex-wrap items-baseline gap-4">
-                <p className="font-heading text-3xl sm:text-[clamp(2.5rem,6vw,3rem)] font-bold tabular-nums leading-none text-accent drop-shadow-[0_0_15px_rgba(var(--color-accent),0.4)] animate-[pulse_3s_ease-in-out_infinite]">{formatCordobas(unitPrice)}</p>
-                {tier ? (
-                  <span className="text-base sm:text-lg text-muted line-through">{formatCordobas(price)}</span>
-                ) : onSale ? (
-                  <span className="text-base sm:text-lg text-muted line-through">{formatCordobas(compareAt)}</span>
-                ) : null}
-                {tier ? (
-                  <span className="rounded-pill bg-whatsapp/12 px-2.5 py-1 text-[11px] sm:text-xs font-semibold tabular-nums tracking-wide text-whatsapp">
-                    −{tier.discountPercent}% por {qty} uds
-                  </span>
-                ) : onSale ? (
-                  <span className="rounded-pill bg-bg/70 px-2.5 py-1 text-[11px] sm:text-xs font-semibold tracking-wide text-accent-2 ring-1 ring-white/10 backdrop-blur-md">
-                    En oferta
-                  </span>
-                ) : null}
-              </motion.div>
+              <DetailPrice
+                price={unitPrice}
+                compareAt={tier ? price : onSale ? compareAt : null}
+                pill={
+                  tier
+                    ? { text: `−${tier.discountPercent}% por ${qty} uds`, tone: "save" }
+                    : onSale
+                      ? { text: "En oferta", tone: "sale" }
+                      : null
+                }
+              />
 
               {qty > 1 && (
                 <motion.p variants={itemFade} className="mt-2 text-sm text-muted">
                   Total {qty} uds: <span className="font-bold text-text">{formatCordobas(unitPrice * qty)}</span>
                 </motion.p>
               )}
-              
-              <motion.p
-                variants={itemFade}
-                className={cn(
-                  "mt-3 inline-flex items-center gap-2 text-sm font-medium",
-                  !inStock ? "text-danger" : stockCount <= 5 ? "text-warning" : "text-muted",
-                )}
-              >
-                <span
-                  className={cn(
-                    "h-1.5 w-1.5 rounded-full",
-                    !inStock ? "bg-danger" : stockCount <= 5 ? "bg-warning" : "bg-whatsapp",
-                  )}
-                />
-                <span>
-                  {!inStock
-                    ? "Agotado"
-                    : stockCount <= 5
-                      ? `Últimas ${stockCount} unidade${stockCount === 1 ? '' : 's'}`
-                      : `${stockCount} unidades disponibles`}
-                </span>
-              </motion.p>
+
+              <StockIndicator tone={stockTone} label={stockLabel} />
 
               {product.variants?.length > 0 && (
                 <motion.div variants={itemFade} className="mt-6">
@@ -448,7 +407,18 @@ export default function ProductDetail() {
         )}
       </main>
 
-      <div className="[&>footer]:!mt-4 md:[&>footer]:!mt-8">
+      {product && (
+        <MobileBuyBar
+          visible={!footerVisible}
+          isAdded={isAdded}
+          onAdd={add}
+          addLabel={inStock ? "Agregar al carrito" : "Agotado"}
+          disabled={!inStock}
+          whatsappUrl={whatsappUrl}
+        />
+      )}
+
+      <div className="[&>footer]:!mt-4 md:[&>footer]:!mt-8" id="public-footer">
         <PublicFooter />
       </div>
     </div>

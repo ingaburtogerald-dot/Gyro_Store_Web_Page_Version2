@@ -224,7 +224,9 @@ export type BrandingImageKind =
   | "favicon"
   | "ticket"
   | "og"
-  | "founder";
+  | "founder"
+  | "loginBrand"
+  | "loginBrandMobile";
 
 export interface BusinessConfig {
   storeName: string;
