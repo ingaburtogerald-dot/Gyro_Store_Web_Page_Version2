@@ -1,17 +1,11 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { Check, ShoppingCart, ShieldCheck } from "lucide-react";
-import { Button } from "~/components/ui/Button";
+import { ShieldCheck } from "lucide-react";
 import { VolumePriceCard } from "~/components/product/VolumePriceCard";
 import { FrequentlyBoughtTogetherCard } from "~/components/product/FrequentlyBoughtTogetherCard";
 import { TrustBox } from "./TrustBox";
-import { WhatsAppIcon } from "./WhatsAppIcon";
-import { cn } from "~/lib/utils";
+import { PurchaseCard } from "./PurchaseCard";
+import { AddToCartButton } from "./AddToCartButton";
+import { WhatsAppButton } from "./WhatsAppButton";
 import type { CatalogDetail, Combo } from "~/store/api/catalogApi";
-
-const itemFade = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0 }
-};
 
 interface ProductPurchasePanelProps {
   product: CatalogDetail;
@@ -45,7 +39,7 @@ export function ProductPurchasePanel({
   onAddCombo
 }: ProductPurchasePanelProps) {
   return (
-    <motion.div variants={itemFade} className="card-premium mt-4 flex flex-col gap-6 rounded-2xl p-4 sm:gap-10 sm:p-8">
+    <PurchaseCard>
       <div className="flex flex-col focus:outline-none">
         {/* Selector de cantidad y Agregar al carrito */}
         <div className="mb-6 sm:mb-8">
@@ -71,26 +65,14 @@ export function ProductPurchasePanel({
               </button>
             </div>
 
-            <Button
-              variant="primary"
-              onClick={add}
-              disabled={!inStock}
-              className={cn("flex-1 h-10 sm:h-12 overflow-hidden", isAdded && "bg-whatsapp hover:bg-whatsapp border-transparent text-[#000000]")}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={isAdded ? "added" : "idle"}
-                  initial={{ opacity: 0, scale: 0.6 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.6 }}
-                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                  className="inline-flex items-center gap-2"
-                >
-                  {isAdded ? <Check className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
-                  {isAdded ? "¡Agregado!" : inStock ? "Agregar al carrito" : "Agotado"}
-                </motion.span>
-              </AnimatePresence>
-            </Button>
+            <div className="flex-1">
+              <AddToCartButton
+                isAdded={isAdded}
+                onClick={add}
+                disabled={!inStock}
+                idleLabel={inStock ? "Agregar al carrito" : "Agotado"}
+              />
+            </div>
           </div>
         </div>
 
@@ -123,15 +105,7 @@ export function ProductPurchasePanel({
 
         {/* CTA secundario (WhatsApp) */}
         <div className="mb-0 flex">
-          <a href={whatsappUrl} target="_blank" rel="noreferrer" className="flex-1">
-            <Button
-              variant="whatsapp"
-              className="w-full h-12"
-            >
-              <WhatsAppIcon className="h-5 w-5 shrink-0" />
-              <span>Comprar al por mayor por WhatsApp</span>
-            </Button>
-          </a>
+          <WhatsAppButton href={whatsappUrl} label="Comprar al por mayor por WhatsApp" />
         </div>
 
         {/* Venta cruzada */}
@@ -148,6 +122,6 @@ export function ProductPurchasePanel({
         {/* Trust Box */}
         <TrustBox />
       </div>
-    </motion.div>
+    </PurchaseCard>
   );
 }

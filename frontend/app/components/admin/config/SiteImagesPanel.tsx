@@ -57,7 +57,6 @@ const SLOTS: Slot[] = [
     dimensions: "512×512 px cuadrado · versión simple (solo el emblema) · PNG",
     accept: IMG_ACCEPT,
     previewBg: "black",
-    pending: true,
   },
   {
     kind: "ticket",
@@ -76,7 +75,6 @@ const SLOTS: Slot[] = [
     dimensions: "1200×630 px · JPG o PNG",
     accept: IMG_ACCEPT,
     previewBg: "black",
-    pending: true,
   },
   {
     kind: "founder",
@@ -84,6 +82,26 @@ const SLOTS: Slot[] = [
     label: "Foto “Quiénes somos”",
     purpose: "Avatar del fundador en la sección “Nuestra historia” y el modal de la tienda.",
     dimensions: "400×400 px cuadrado · JPG o PNG",
+    accept: IMG_ACCEPT,
+    previewBg: "black",
+  },
+  {
+    kind: "loginBrand",
+    field: "loginBrandUrl",
+    label: "Login · panel de marca (escritorio)",
+    purpose:
+      "Imagen editorial detrás del logo en la columna derecha de la pantalla de inicio de sesión (pantallas grandes). Vacío → gradiente de acento.",
+    dimensions: "1200×1600 px (retrato 3:4, vertical) · JPG o PNG · se recorta a la forma del panel",
+    accept: IMG_ACCEPT,
+    previewBg: "black",
+  },
+  {
+    kind: "loginBrandMobile",
+    field: "loginBrandMobileUrl",
+    label: "Login · banda de marca (móvil)",
+    purpose:
+      "Imagen editorial detrás del logo en la banda superior de la pantalla de inicio de sesión en móvil. Vacío → gradiente de acento.",
+    dimensions: "1200×540 px (panorámico ~2.2:1, horizontal) · JPG o PNG · se recorta a la forma de la banda",
     accept: IMG_ACCEPT,
     previewBg: "black",
   },
@@ -228,6 +246,8 @@ export function SiteImagesPanel({ branding }: { branding?: Branding }) {
     ticket: null,
     og: null,
     founder: null,
+    loginBrand: null,
+    loginBrandMobile: null,
   });
 
   const hasChanges = Object.values(staged).some((v) => v !== null);
@@ -248,7 +268,7 @@ export function SiteImagesPanel({ branding }: { branding?: Branding }) {
           await removeImage(slot.kind).unwrap();
         }
       }
-      setStaged({ static: null, animated: null, favicon: null, ticket: null, og: null, founder: null });
+      setStaged({ static: null, animated: null, favicon: null, ticket: null, og: null, founder: null, loginBrand: null, loginBrandMobile: null });
       toast.success("Imágenes del sitio guardadas.");
     } catch (e) {
       const msg = (e as { data?: { error?: string } })?.data?.error;

@@ -52,6 +52,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   let categories: Category[] = [];
   let combos: Combo[] = [];
   let landing: LandingConfig | null = null;
+  let branding: any = null;
   let popularProductIds: string[] = [];
   try {
     const [pRes, cRes, comboRes, landingRes, popularRes] = await Promise.all([
@@ -62,7 +63,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
       fetch(`${origin}/api/search-events/popular`),
     ]);
     if (pRes.ok) products = (await pRes.json()) as CatalogProduct[];
-    if (cRes.ok) categories = ((await cRes.json()) as { categories?: Category[] }).categories ?? [];
+    if (cRes.ok) {
+      const cData = await cRes.json() as any;
+      categories = cData.categories ?? [];
+      branding = cData.branding ?? null;
+    }
     if (comboRes.ok) combos = (await comboRes.json()) as Combo[];
     if (landingRes.ok) landing = (await landingRes.json()) as LandingConfig;
     if (popularRes.ok) {
@@ -117,12 +122,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
     popularProducts.push(...fillers.slice(0, POPULAR_COUNT - popularProducts.length));
   }
 
-  return { origin, products, categories, combos, landing, popularProducts };
+  return { origin, products, categories, combos, landing, popularProducts, branding };
 }
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const origin = data?.origin ?? "";
-  const img = `${origin}/logo.jpg`;
+  const img = data?.branding?.ogImageUrl || `${origin}/logo.jpg`;
   const title = "Gyro Store";
   const description = "Audífonos KZ, adaptadores Bluetooth y accesorios para PC en Managua, Nicaragua.";
   return [

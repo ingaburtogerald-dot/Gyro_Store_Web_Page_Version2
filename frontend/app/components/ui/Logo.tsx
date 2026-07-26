@@ -124,7 +124,7 @@ export function Logo({
         src={staticUrl}
         alt="Gyro Store"
         style={{ height: size }}
-        className="block h-full w-auto select-none object-contain"
+        className={cn("block h-full w-auto select-none object-contain", active && gifUrl && "opacity-0")}
         draggable={false}
       />
       {/* GIF animado o Video: montado solo mientras está activo, con URL única por activación

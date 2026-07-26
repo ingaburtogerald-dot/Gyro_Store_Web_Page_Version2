@@ -12,6 +12,7 @@ import {
 import { Logo } from "~/components/ui/Logo";
 import { cn, buildWhatsappUrl } from "~/lib/utils";
 import { useAuth } from "~/hooks/useAuth";
+import { useGetConfigQuery } from "~/store/api/catalogApi";
 import { GoogleStrategy, MicrosoftStrategy, EmailStrategy } from "~/lib/authStrategies";
 import { loginSchema, type LoginInput } from "~/schemas/validators";
 import { roleLandingPath, type Role, WHATSAPP_NUMBER } from "~/lib/constants";
@@ -21,12 +22,14 @@ import { AnimatedPrimary } from "~/components/public/login/AnimatedPrimary";
 
 export const meta: MetaFunction = () => [{ title: "Iniciar Sesión · Gyro Store" }];
 
-const LOGIN_BG_VIDEO = "https://pub-e5292366f3c04eb1a93d9a0b38928540.r2.dev/site/login/background.webm";
 const EASE_IN = [0.7, 0, 0.84, 0] as const;
 const EXIT_MS = 520;
 
 export default function Login() {
   const { login } = useAuth();
+  const { data: cfg } = useGetConfigQuery();
+  const brandDesktop = cfg?.branding?.loginBrandUrl;
+  const brandMobile = cfg?.branding?.loginBrandMobileUrl;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const reduce = useReducedMotion();
@@ -107,24 +110,16 @@ export default function Login() {
   return (
     <main
       data-skin="store"
-      className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-black p-4 sm:p-6 lg:p-8"
+      className="relative flex min-h-screen w-full flex-col overflow-x-hidden overflow-y-auto bg-bg p-4 sm:p-6 lg:p-8"
     >
-      <video
-        className="absolute inset-0 z-0 h-full w-full object-cover"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        aria-hidden
-      >
-        <source src={LOGIN_BG_VIDEO} type="video/webm" />
-      </video>
-
-      <div aria-hidden className="absolute inset-0 z-0 bg-black/45" />
+      {/* Fondo editorial: superficie oscura + glow de acento sutil (sin video, carga inmediata). */}
       <div
         aria-hidden
-        className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_38%,rgba(0,0,0,0.6)_100%)]"
+        className="absolute inset-0 z-0"
+        style={{
+          background:
+            "radial-gradient(120% 90% at 50% -10%, rgba(45,212,191,0.12), transparent 55%), radial-gradient(90% 70% at 100% 110%, rgba(94,234,212,0.08), transparent 60%)",
+        }}
       />
 
       <DecorWaves />
@@ -133,7 +128,7 @@ export default function Login() {
         href="/"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="group absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-bg shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:left-16 sm:top-8"
+        className="group absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-bg shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:left-16 sm:top-8"
       >
         <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
         Volver al catálogo
@@ -145,15 +140,14 @@ export default function Login() {
         animate={exiting ? "exit" : undefined}
         aria-busy={exiting}
         className={cn(
-          "login-enter-rise relative z-10 grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border bg-surface shadow-[0_30px_90px_-30px_rgba(0,0,0,0.75)] lg:min-h-[600px] lg:grid-cols-2",
+          "login-enter-rise relative z-10 grid w-full max-w-5xl m-auto mt-20 sm:mt-auto overflow-hidden rounded-3xl border border-border bg-surface shadow-[0_30px_90px_-30px_rgba(0,0,0,0.75)] lg:min-h-[600px] lg:grid-cols-2",
           exiting && "pointer-events-none",
         )}
       >
         <div className="order-2 flex flex-col justify-center p-7 sm:p-10 lg:order-1 lg:p-14">
           <div className="mx-auto w-full max-w-sm">
             <div className="login-enter-item" style={itemDelay(0)}>
-              <Logo size={50} className="lg:hidden object-contain" />
-              <h1 className="mt-6 font-heading text-3xl font-extrabold tracking-tight text-text">
+              <h1 className="font-heading text-3xl font-extrabold tracking-tight text-text">
                 Iniciar sesión
               </h1>
               <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted">
@@ -291,12 +285,51 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="relative order-1 hidden flex-col items-center justify-center overflow-hidden bg-black lg:order-2 lg:flex">
-          <div className="relative z-10 flex flex-1 items-center justify-center p-12 w-full max-w-lg mx-auto">
-            <Logo size={90} className="w-full max-w-[280px] object-contain" />
+        <div className="relative order-1 flex min-h-[9.5rem] flex-col overflow-hidden bg-surface-2 lg:order-2 lg:min-h-0">
+          {/* Imagen editorial configurable (Configuración → Recursos de imágenes), una por
+              breakpoint. Fallback independiente: gradiente de acento. */}
+          {brandMobile ? (
+            <img
+              src={brandMobile}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full object-contain p-4 lg:hidden"
+            />
+          ) : (
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-br from-accent/25 via-surface-2 to-bg lg:hidden"
+            />
+          )}
+          {brandDesktop ? (
+            <img
+              src={brandDesktop}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 hidden h-full w-full object-contain p-8 pb-40 lg:block"
+            />
+          ) : (
+            <div
+              aria-hidden
+              className="absolute inset-0 hidden bg-gradient-to-br from-accent/25 via-surface-2 to-bg lg:block"
+            />
+          )}
+
+
+          <div className="relative z-10 flex flex-1 items-center justify-center p-6 lg:p-12">
+            {!brandMobile && (
+              <div className="lg:hidden">
+                <Logo size={56} className="w-full max-w-[180px] object-contain" />
+              </div>
+            )}
+            {!brandDesktop && (
+              <div className="hidden lg:block">
+                <Logo size={96} className="w-full max-w-[280px] object-contain" />
+              </div>
+            )}
           </div>
 
-          <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black via-black/80 to-transparent p-12 pt-32">
+          <div className="relative z-10 hidden p-12 pt-0 lg:block">
             <p className="text-balance font-heading text-3xl font-extrabold leading-tight text-white">
               Acceso a Colaboradores
             </p>
